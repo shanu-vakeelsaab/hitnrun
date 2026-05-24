@@ -3,1881 +3,1470 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hit N Run Sports Arena · Admin Panel</title>
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>Admin · Hit N Run Sports Arena</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body { font-family: 'Outfit', system-ui, sans-serif; background: #f1f2f4; color: #111; -webkit-font-smoothing: antialiased; }
-    input, select, textarea, button { font-family: 'Outfit', system-ui, sans-serif; }
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: #f1f1f1; }
-    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
-
-    @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(16px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-    @keyframes shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
-    @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
-    .anim-up    { animation: slideUp .22s ease both; }
-    .anim-fade  { animation: fadeIn .18s ease both; }
-    .anim-toast { animation: toastIn .28s cubic-bezier(.34,1.56,.64,1) both; }
-    .shake      { animation: shake .35s ease; }
-    .spin       { animation: spin .9s linear infinite; }
-    .pulse      { animation: pulse 1.4s ease-in-out infinite; }
-
-    .tab-btn { transition: background .15s, color .15s; }
-    .tab-btn:hover { background: #f9fafb !important; }
-    .action-btn { transition: opacity .15s, transform .1s; }
-    .action-btn:hover { opacity: .88; transform: scale(1.02); }
-    .action-btn:active { transform: scale(.97); }
-    .cancel-btn { transition: opacity .15s, transform .1s; }
-    .cancel-btn:hover { opacity: .88; transform: scale(1.02); }
-    .cancel-btn:active { transform: scale(.97); }
-    .card-hover { transition: box-shadow .18s, transform .18s; }
-    .card-hover:hover { box-shadow: 0 4px 20px rgba(0,0,0,.08); transform: translateY(-1px); }
-    .slot-card { transition: box-shadow .18s, transform .18s; }
-    .slot-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.1); transform: translateY(-2px); }
-    .filter-pill { transition: all .15s; }
-    .filter-pill:hover:not(.active) { background: #e5e7eb !important; }
-
-    /* Live sync pulsing dot */
-    @keyframes live-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,.55); }
-      50%      { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+    body {
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: #f9fafb; color: #111; line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
+    input, textarea, select, button { font-family: 'Outfit', system-ui, sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    button { cursor: pointer; border: none; background: none; color: inherit; }
+    a { color: inherit; text-decoration: none; }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f3f4f6; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+    @keyframes live-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: .55; } }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+    .anim-up { animation: rise .2s ease both; }
+    .spin { animation: spin .8s linear infinite; }
+    .pulse { animation: pulse 1.4s infinite; }
+    .shake { animation: shake .4s; }
+
     .live-dot-green {
       width: 7px; height: 7px; border-radius: 50%;
       background: #10b981; display: inline-block;
       animation: live-pulse 2s ease-in-out infinite;
     }
 
-    .skel { background: linear-gradient(90deg, #f3f4f6, #e5e7eb, #f3f4f6); background-size: 200% 100%; animation: pulse 1.4s ease-in-out infinite; border-radius: 6px; }
+    /* ═══════ MOBILE RESPONSIVE ═══════ */
+    @media (max-width: 700px) {
+      .top-bar { padding: 0 12px !important; gap: 6px !important; }
+      .top-bar-date { display: none !important; }
+      .live-text-full { display: none !important; }
+      .top-bar-actions { gap: 6px !important; }
+      .brand-sub { display: none !important; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr) !important; padding: 12px 12px 0 !important; gap: 8px !important; }
+      .stat-card { padding: 12px 14px !important; }
+      .stat-card-num { font-size: 22px !important; }
+      .stat-card-label { font-size: 10px !important; }
+      .tab-bar { padding: 12px 12px 0 !important; overflow-x: auto !important; flex-wrap: nowrap !important; scrollbar-width: none; }
+      .tab-bar::-webkit-scrollbar { display: none; }
+      .tab-bar button { white-space: nowrap !important; flex-shrink: 0; padding: 9px 14px !important; }
+      .content-card { margin: 0 12px 20px !important; padding: 14px !important; border-radius: 12px !important; }
+      .bookings-table-wrap { display: none !important; }
+      .bookings-mobile { display: flex !important; }
+      .slot-card-mobile { padding: 12px !important; }
+      .resource-row { padding: 8px 10px !important; font-size: 12px !important; }
+      .lead-grid { grid-template-columns: 1fr !important; gap: 18px !important; }
+      .date-strip-admin button { min-width: 60px !important; padding: 6px 10px !important; }
+      .filter-row { gap: 5px !important; }
+      .filter-row button { padding: 6px 11px !important; font-size: 11px !important; }
+      .pass-pricing { grid-template-columns: 1fr !important; gap: 8px !important; }
+      .revenue-cards { grid-template-columns: 1fr !important; gap: 10px !important; }
+      .revenue-split { grid-template-columns: 1fr !important; gap: 18px !important; }
+      .modal-inner { padding: 16px !important; max-width: calc(100vw - 24px) !important; }
+      .form-grid-2 { grid-template-columns: 1fr !important; }
+    }
+    .bookings-mobile { display: none; }
   </style>
 </head>
 <body>
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect, useCallback, useMemo, useRef } = React;
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
-/* ═══════════════════════════════════════════
-   API CONFIG — PASTE YOUR WEB APP URL HERE
-═══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxIW747v-r1nDBHXHgcUWn6xgJWJaxEvotvfYAMSLXggyp12D78Kxwtzz6DtT6Z9xKQTQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxIDzTFvD5st7rGeS1qL4O-spmysAase9ZFigXB0rPnlyHm3W6AlWQwNLh4Wz4m92kM2A/exec";
+const REFRESH_INTERVAL_MS = 30000; // 30s auto-refresh
 
-/* Auto-refresh: how often to repoll data when the dashboard is in the foreground.
-   30000 = every 30 seconds. Lower this for snappier updates (15000 = 15s),
-   raise it to be lighter on Apps Script quota (60000 = 1 min). */
-const REFRESH_INTERVAL_MS = 30000;
+// PLANS — must match Code.gs PLANS array
+const PLANS = [
+  { key: 'turf_weekly',  label: 'Turf Weekly Team Pass',  category: 'turf', price:  4999, days:  7, max_members: 12 },
+  { key: 'turf_monthly', label: 'Turf Monthly Team Pass', category: 'turf', price: 14999, days: 30, max_members: 18 },
+  { key: 'net_week_weekday', label: 'Net Weekly (Weekday)', category: 'net', price: 1800, days: 7 },
+  { key: 'net_week_weekend', label: 'Net Weekly (Weekend)', category: 'net', price: 1400, days: 7 },
+  { key: 'net_week_full',    label: 'Net Weekly (Mon–Sun)', category: 'net', price: 2500, days: 7 },
+  { key: 'net_month_basic',    label: 'Net Monthly Basic (12 hrs)',    category: 'net', price: 4200, days: 30, hours_quota: 12 },
+  { key: 'net_month_standard', label: 'Net Monthly Standard (20 hrs)', category: 'net', price: 6500, days: 30, hours_quota: 20 },
+  { key: 'net_month_premium',  label: 'Net Monthly Premium (30 hrs)',  category: 'net', price: 9000, days: 30, hours_quota: 30 }
+];
 
-/* ═══════════════════════════════════════════
-   API CLIENT
-═══════════════════════════════════════════ */
+const SPORTS_TURF = ['Cricket', 'Football'];
+
 const API = {
-  url: API_URL,
-
-  // Special endpoint: tests a key without storing it first
-  async validateKey(typedKey) {
-    const res = await fetch(this.url + '?action=validateKey&adminKey=' + encodeURIComponent(typedKey));
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Validation failed');
-    return data.data.valid;
-  },
-
   async get(action, params = {}) {
     const adminKey = sessionStorage.getItem('hnr_admin_key') || '';
     const qs = new URLSearchParams({ action, adminKey, ...params }).toString();
-    const res = await fetch(this.url + '?' + qs);
+    const res = await fetch(API_URL + '?' + qs);
     const data = await res.json();
-    if (!data.ok) {
-      if (data.error === 'Unauthorized') {
-        sessionStorage.removeItem('hnr_admin_key');
-        location.reload();
-        return;
-      }
-      throw new Error(data.error || 'Request failed');
-    }
+    if (!data.ok) throw new Error(data.error || 'Request failed');
     return data.data;
   },
-
   async post(action, body = {}) {
     const adminKey = sessionStorage.getItem('hnr_admin_key') || '';
-    const res = await fetch(this.url, {
+    const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action, adminKey, ...body })
     });
     const data = await res.json();
-    if (!data.ok) {
-      if (data.error === 'Unauthorized') {
-        sessionStorage.removeItem('hnr_admin_key');
-        location.reload();
-        return;
-      }
-      throw new Error(data.error || 'Request failed');
-    }
+    if (!data.ok) throw new Error(data.error || 'Request failed');
     return data.data;
+  },
+  async validateKey(key) {
+    const res = await fetch(API_URL + '?action=validateKey&adminKey=' + encodeURIComponent(key));
+    const data = await res.json();
+    return data.ok && data.data && data.data.valid;
   }
 };
 
-/* ═══════════════════════════════════════════
-   CONSTANTS
-═══════════════════════════════════════════ */
-const SPORTS = ["Cricket","Football","Cricket Net Practice"];
-const INTEREST_OPTIONS = ["Regular Booking","Weekly Pass","Monthly Pass","Quarterly Pass","Cricket Coaching","Football Training","Net Practice","Tournament Slot","Other"];
-const SOURCES = ["Walk-in","Call","WhatsApp","Instagram","Facebook","Reference","Website"];
-const PASS_PLANS = [
-  { key:"weekly",    label:"Weekly Pass",    price:4999,  days:7  },
-  { key:"monthly",   label:"Monthly Pass",   price:14999, days:30 },
-  { key:"quarterly", label:"Quarterly Pass", price:39999, days:90 },
-];
-
-// Slot times by day of week — must match Setup.gs templates exactly
-const SLOT_TIMES_WEEKDAY = [
-  "08:00-09:00","09:00-10:00","10:00-11:00","11:00-12:00",
-  "12:00-13:00","13:00-14:00","14:00-15:00","15:00-16:00"
-];
-const SLOT_TIMES_WEEKEND = [
-  "06:00-07:00","07:00-08:00","08:00-09:00","09:00-10:00",
-  "10:00-11:00","11:00-12:00","12:00-13:00","13:00-14:00",
-  "14:00-15:00","15:00-16:00","16:00-17:00","17:00-18:00",
-  "18:00-19:00","19:00-20:00","20:00-21:00","21:00-22:00",
-  "22:00-23:00"
-];
-function slotTimesForDate(iso) {
-  if (!iso) return SLOT_TIMES_WEEKDAY;
-  const d = new Date(iso + 'T00:00:00');
-  const day = d.getDay();
-  return (day === 0 || day === 6) ? SLOT_TIMES_WEEKEND : SLOT_TIMES_WEEKDAY;
-}
-
-/* ═══════════════════════════════════════════
-   HELPERS
-═══════════════════════════════════════════ */
-function formatDateISO(d) {
-  const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function formatDateShort(iso) {
-  if (!iso) return '';
-  const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-}
-
-function formatDateNice(iso) {
-  if (!iso) return '';
-  const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-}
-
-function formatDateLong() {
-  const d = new Date();
-  return d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-function relativeTime(from, now) {
-  const seconds = Math.max(0, Math.floor((now - from) / 1000));
-  if (seconds < 5)    return "just now";
-  if (seconds < 60)   return seconds + "s ago";
-  if (seconds < 3600) return Math.floor(seconds/60) + "m ago";
-  return Math.floor(seconds/3600) + "h ago";
-}
-
-function getNext15Days() {
-  const today = new Date();
-  return Array.from({ length: 15 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + i);
-    const iso = formatDateISO(d);
-    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-IN', { day:'numeric', month:'short' });
-    return { iso, label, weekday: d.toLocaleDateString('en-IN', { weekday:'short' }) };
+// ── Utils ──────────────────────────────────────────────────
+function formatDateISO(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function formatDateLong(){ return new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'short' }); }
+function formatDateShort(iso){ if(!iso) return ''; return new Date(iso+'T00:00:00').toLocaleDateString('en-IN', { day:'2-digit', month:'short' }); }
+function getNext15Days(){
+  const t = new Date();
+  return Array.from({length:15}, (_,i) => {
+    const d = new Date(t); d.setDate(d.getDate()+i);
+    return { iso: formatDateISO(d), label: i===0?'Today':i===1?'Tomorrow':d.toLocaleDateString('en-IN',{month:'short'}), day: d.getDate(), weekday: d.toLocaleDateString('en-IN',{weekday:'short'}) };
   });
 }
-
-function formatPhone(p) {
-  if (!p) return '';
-  const digits = String(p).replace(/\D/g, '');
-  if (digits.length === 10) return digits.slice(0,5) + ' ' + digits.slice(5);
-  return digits;
+function formatPhone(p){ if(!p) return ''; const s=String(p).replace(/\D/g,''); if(s.length===10) return s.slice(0,5)+' '+s.slice(5); return p; }
+function normalizePhone(p){ return p ? String(p).replace(/\D/g,'').slice(-10) : ''; }
+function relativeTime(then, now){
+  if(!then) return 'never';
+  const secs = Math.round((now-then)/1000);
+  if(secs<5) return 'just now';
+  if(secs<60) return secs+'s ago';
+  if(secs<3600) return Math.round(secs/60)+'m ago';
+  return Math.round(secs/3600)+'h ago';
+}
+function sportColor(sport){
+  const map = {
+    'Cricket': {bg:'#fef3c7', text:'#854d0e'},
+    'Football': {bg:'#d1fae5', text:'#065f46'},
+    'Cricket Net Practice': {bg:'#dbeafe', text:'#1e40af'}
+  };
+  return map[sport] || { bg:'#f3f4f6', text:'#6b7280' };
+}
+function paymentBadge(b){
+  if(b.status === 'cancelled') return { bg:'#fee2e2', text:'#991b1b', label:'Cancelled' };
+  if(b.payment_status === 'paid') return { bg:'#d1fae5', text:'#065f46', label:'Paid' };
+  return { bg:'#fef3c7', text:'#92400e', label:'Pending' };
 }
 
-function normalizePhone(p) {
-  if (!p) return '';
-  return String(p).replace(/\D/g, '').slice(-10);
+function Badge({ bg, text, children }){
+  return <span style={{ background:bg, color:text, padding:'3px 9px', borderRadius:999, fontSize:11, fontWeight:700, whiteSpace:'nowrap' }}>{children}</span>;
 }
 
-function genId(prefix, list, key) {
-  // Used only as a stale fallback while waiting for server reply
-  const ids = list.map(l => l[key]).filter(Boolean);
-  let max = 0;
-  ids.forEach(id => {
-    const m = String(id).match(/(\d+)$/);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  });
-  return `${prefix}-${String(max + 1).padStart(3, '0')}`;
+function CancelBtn({ onClick, label, small }){
+  return <button onClick={onClick} style={{
+    fontSize:small?11:12, padding:small?'5px 11px':'7px 14px',
+    background:'#fef2f2', color:'#991b1b', border:'1px solid #fecaca',
+    borderRadius:6, fontWeight:700
+  }}>{label||'Cancel'}</button>;
 }
 
-const sportColor = s => ({
-  Cricket:                  { bg:"#dcfce7", text:"#14532d" },
-  Football:                 { bg:"#dbeafe", text:"#1e3a8a" },
-  "Cricket Net Practice":   { bg:"#fef3c7", text:"#92400e" }
-}[s] || { bg:"#f3f4f6", text:"#6b7280" });
-
-function paymentBadge(b) {
-  if (b.booking_type && b.booking_type.indexOf('pass') > -1) {
-    return { bg:"#ede9fe", text:"#5b21b6", label:"Member" };
-  }
-  if (b.payment_status === 'paid') {
-    return { bg:"#dcfce7", text:"#14532d", label: b.payment_mode === 'upi' ? "Paid · UPI" : "Paid · Cash" };
-  }
-  return { bg:"#fef3c7", text:"#92400e", label:"Pending" };
+function Spinner({ small }){
+  return <span className="spin" style={{
+    display:'inline-block', width:small?14:24, height:small?14:24,
+    border:`${small?2:3}px solid #e5e7eb`, borderTopColor:'#f59e0b', borderRadius:'50%'
+  }}/>;
 }
 
-const leadStatusColor = s => ({
-  new:       { bg:"#dbeafe", text:"#1e3a8a" },
-  contacted: { bg:"#fef3c7", text:"#92400e" },
-  converted: { bg:"#dcfce7", text:"#14532d" },
-  lost:      { bg:"#fee2e2", text:"#991b1b" }
-}[s] || { bg:"#f3f4f6", text:"#6b7280" });
-
-function normalizeSource(s) {
-  return String(s).toLowerCase().replace(/[-\s]/g, '_');
+function LoadingBlock({ message }){
+  return <div style={{ padding:50, textAlign:'center', color:'#9ca3af' }}>
+    <Spinner/>
+    <div style={{ marginTop:14, fontSize:13, fontWeight:600 }}>{message || 'Loading…'}</div>
+  </div>;
 }
 
-function displaySource(s) {
-  const map = { walk_in:"Walk-in", call:"Call", whatsapp:"WhatsApp", instagram:"Instagram", facebook:"Facebook", reference:"Reference", website:"Website" };
-  return map[s] || s;
-}
-
-const INP = {
-  width:"100%", padding:"10px 12px", border:"1.5px solid #e5e7eb", borderRadius:8,
-  fontSize:13, color:"#111", outline:"none", background:"#fff",
-  fontFamily:"'Outfit',system-ui,sans-serif", transition:"border-color .15s"
-};
-const LBL = { fontSize:12, color:"#6b7280", marginBottom:5, display:"block", fontWeight:600, letterSpacing:".01em" };
-
-/* ═══════════════════════════════════════════
-   REUSABLE UI COMPONENTS
-═══════════════════════════════════════════ */
-function Badge({ bg, text, children, small }) {
-  return (
-    <span style={{
-      background: bg, color: text,
-      fontSize: small ? 10 : 11, fontWeight: 700,
-      padding: small ? "1px 7px" : "3px 9px",
-      borderRadius: 999, whiteSpace: "nowrap",
-      display: "inline-block", letterSpacing: ".01em"
-    }}>{children}</span>
-  );
-}
-
-function CancelBtn({ onClick, label = "Cancel", small = false, style: extraStyle = {} }) {
-  return (
-    <button className="cancel-btn" onClick={onClick} style={{
-      fontSize: small ? 11 : 13, padding: small ? "4px 11px" : "9px 18px",
-      background: "#ef4444", color: "#fff", border: "none",
-      borderRadius: small ? 6 : 8, cursor: "pointer", fontWeight: 700,
-      display: "inline-flex", alignItems: "center", gap: 5,
-      letterSpacing: ".01em", ...extraStyle
-    }}>
-      <span style={{ fontSize: small ? 10 : 12, fontWeight: 800 }}>✕</span> {label}
-    </button>
-  );
-}
-
-function ConfirmModal({ config, onClose }) {
-  if (!config?.show) return null;
-  return (
-    <div className="anim-fade" style={{
-      position:"fixed", inset:0, background:"rgba(0,0,0,0.6)",
-      display:"flex", alignItems:"center", justifyContent:"center",
-      zIndex:1200, backdropFilter:"blur(4px)", padding:16
-    }}>
-      <div className="anim-up" style={{
-        background:"#fff", borderRadius:18, padding:"32px 36px",
-        width:"100%", maxWidth:400, boxShadow:"0 24px 64px rgba(0,0,0,0.28)",
-        border:"1px solid #f3f4f6"
-      }}>
-        <div style={{ fontSize:32, marginBottom:12, textAlign:"center" }}>{config.icon || "⚠️"}</div>
-        <div style={{ fontSize:17, fontWeight:800, marginBottom:8, textAlign:"center" }}>{config.title || "Confirm Action"}</div>
-        <div style={{ fontSize:13, color:"#6b7280", marginBottom:28, lineHeight:1.7, textAlign:"center" }}>{config.message}</div>
-        <div style={{ display:"flex", gap:10 }}>
-          <button onClick={onClose} style={{
-            flex:1, padding:"11px", background:"#f3f4f6", color:"#374151",
-            border:"none", borderRadius:10, fontSize:13, fontWeight:600, cursor:"pointer"
-          }}>Not Now</button>
-          <button onClick={() => { config.onConfirm(); onClose(); }} style={{
-            flex:1, padding:"11px",
-            background: config.danger ? "#ef4444" : "#f59e0b",
-            color: config.danger ? "#fff" : "#000",
-            border:"none", borderRadius:10, fontSize:13, fontWeight:800, cursor:"pointer"
-          }}>{config.confirmLabel || "Confirm"}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Toast({ toast, onClose }) {
-  useEffect(() => {
-    if (toast?.show) {
-      const t = setTimeout(onClose, toast.isError ? 4200 : 3200);
-      return () => clearTimeout(t);
-    }
+function Toast({ toast, onClose }){
+  useEffect(()=>{
+    if(!toast?.show) return;
+    const t = setTimeout(onClose, 4000);
+    return ()=>clearTimeout(t);
   }, [toast?.show]);
-  if (!toast?.show) return null;
+  if(!toast?.show) return null;
+  return <div style={{
+    position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)',
+    background: toast.isError?'#fef2f2':'#0a0a0a', color: toast.isError?'#991b1b':'#fff',
+    padding:'12px 22px', borderRadius:99, fontSize:14, fontWeight:600,
+    boxShadow:'0 12px 36px rgba(0,0,0,.2)', zIndex:200,
+    border: toast.isError?'1px solid #fecaca':'none',
+    display:'flex', alignItems:'center', gap:10, maxWidth:'90vw'
+  }}>
+    <span>{toast.isError?'⚠':'✓'}</span>
+    <span>{toast.message}</span>
+  </div>;
+}
+
+function ConfirmModal({ config, onClose }){
+  if(!config?.show) return null;
   return (
-    <div className="anim-toast" style={{
-      position:"fixed", bottom:32, left:"50%", transform:"translateX(-50%)",
-      background: toast.isError ? "#7f1d1d" : "#0f0f0f", color:"#fff",
-      padding:"13px 24px", borderRadius:14,
-      display:"flex", alignItems:"center", gap:12,
-      zIndex:1300, boxShadow:"0 12px 40px rgba(0,0,0,0.35)",
-      fontSize:14, fontWeight:600, minWidth:300, maxWidth:520,
-      border: toast.isError ? "1px solid #991b1b" : "1px solid #222"
+    <div onClick={(e)=>e.target===e.currentTarget&&onClose()} style={{
+      position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:150,
+      display:'grid', placeItems:'center', padding:16
     }}>
-      <span style={{ fontSize:20 }}>{toast.icon || (toast.isError ? "⚠️" : "✅")}</span>
-      <span style={{ flex:1 }}>{toast.message}</span>
-      <button onClick={onClose} style={{
-        background:"none", border:"none", color:"#bbb",
-        cursor:"pointer", fontSize:16, lineHeight:1, padding:"0 0 0 8px"
-      }}>✕</button>
-    </div>
-  );
-}
-
-function Modal({ title, subtitle, onClose, children, width = 540 }) {
-  return (
-    <div className="anim-fade" style={{
-      position:"fixed", inset:0, background:"rgba(0,0,0,0.6)",
-      display:"flex", alignItems:"center", justifyContent:"center",
-      zIndex:1000, backdropFilter:"blur(4px)", padding:16, overflowY:"auto"
-    }}>
-      <div className="anim-up" style={{
-        background:"#fff", borderRadius:18, width:"100%", maxWidth:width,
-        boxShadow:"0 24px 64px rgba(0,0,0,0.28)", position:"relative",
-        border:"1px solid #f3f4f6", margin:"auto"
+      <div className="modal-inner" style={{
+        background:'#fff', borderRadius:16, padding:24, maxWidth:420, width:'100%',
+        boxShadow:'0 24px 80px rgba(0,0,0,.3)'
       }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"18px 24px", borderBottom:"1px solid #f3f4f6" }}>
-          <div>
-            <div style={{ fontSize:15, fontWeight:800 }}>{title}</div>
-            {subtitle && <div style={{ fontSize:12, color:"#9ca3af", marginTop:2 }}>{subtitle}</div>}
-          </div>
-          <CancelBtn onClick={onClose} small label="" style={{ padding:"6px 10px" }} />
-        </div>
-        <div style={{ padding:"22px 24px" }}>{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function FormRow({ children, cols = 2 }) {
-  return <div style={{ display:"grid", gridTemplateColumns:`repeat(${cols},1fr)`, gap:12, marginBottom:14 }}>{children}</div>;
-}
-
-function FormField({ label, span, children }) {
-  return (
-    <div style={span ? { gridColumn:`span ${span}` } : {}}>
-      <label style={LBL}>{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function ModalFooter({ onClose, onSubmit, submitLabel, disabled, busy }) {
-  return (
-    <div style={{ display:"flex", gap:10, justifyContent:"flex-end", borderTop:"1px solid #f3f4f6", paddingTop:18, marginTop:6 }}>
-      <CancelBtn onClick={onClose} />
-      <button className="action-btn" onClick={onSubmit} disabled={disabled || busy} style={{
-        padding:"9px 24px",
-        background: (disabled || busy) ? "#e5e7eb" : "#f59e0b",
-        color: (disabled || busy) ? "#9ca3af" : "#000",
-        border:"none", borderRadius:8, fontSize:13, fontWeight:800,
-        cursor: (disabled || busy) ? "default" : "pointer",
-        display:"inline-flex", alignItems:"center", gap:8
-      }}>
-        {busy && <span className="spin" style={{ display:"inline-block", width:13, height:13, border:"2px solid #999", borderTopColor:"transparent", borderRadius:"50%" }}/>}
-        {busy ? "Saving…" : submitLabel}
-      </button>
-    </div>
-  );
-}
-
-function Spinner({ size = 18, color = "#f59e0b" }) {
-  return (
-    <span className="spin" style={{
-      display:"inline-block", width:size, height:size,
-      border:`2.5px solid ${color}`, borderTopColor:"transparent",
-      borderRadius:"50%"
-    }} />
-  );
-}
-
-function LoadingBlock({ message = "Loading…" }) {
-  return (
-    <div style={{ padding:"48px 0", textAlign:"center" }}>
-      <Spinner size={28} />
-      <div style={{ marginTop:14, fontSize:13, color:"#9ca3af", fontWeight:600 }}>{message}</div>
-    </div>
-  );
-}
-
-function EmptyState({ icon = "📭", title, sub }) {
-  return (
-    <div style={{ padding:"56px 0", textAlign:"center", color:"#d1d5db" }}>
-      <div style={{ fontSize:32, marginBottom:10 }}>{icon}</div>
-      <div style={{ fontSize:14, fontWeight:600 }}>{title}</div>
-      {sub && <div style={{ fontSize:12, marginTop:4 }}>{sub}</div>}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   MODAL: SPOT BOOKING (walk-in / instant)
-═══════════════════════════════════════════ */
-function SpotBookingModal({ onClose, onBook }) {
-  const [f, setF] = useState({ name:"", phone:"", sport:"Cricket", slot:"", members:1, amount:"1200", payment:"pending", payment_mode:"cash", notes:"" });
-  const [busy, setBusy] = useState(false);
-  const set = v => setF(p => ({...p,...v}));
-  const valid = f.name && f.phone && f.slot;
-
-  async function submit() {
-    if (!valid || busy) return;
-    setBusy(true);
-    try { await onBook(f); }
-    catch (e) { setBusy(false); throw e; }
-  }
-
-  return (
-    <Modal title="⚡ Spot Booking" subtitle="Walk-in / on-the-spot booking" onClose={onClose} width={560}>
-      <div style={{
-        background:"linear-gradient(135deg,#fffbeb,#fef3c7)",
-        borderRadius:10, padding:"10px 14px", marginBottom:18,
-        fontSize:12, color:"#92400e", fontWeight:600,
-        border:"1px solid #fde68a", display:"flex", alignItems:"center", gap:8
-      }}>⚡ This booking will be added to today's schedule immediately.</div>
-      <FormRow cols={2}>
-        <FormField label="Customer Name *">
-          <input value={f.name} onChange={e=>set({name:e.target.value})} placeholder="Full name" style={INP} autoFocus />
-        </FormField>
-        <FormField label="Phone Number *">
-          <input value={f.phone} onChange={e=>set({phone:e.target.value})} placeholder="Mobile" style={INP} />
-        </FormField>
-      </FormRow>
-      <FormRow cols={2}>
-        <FormField label="Sport">
-          <select value={f.sport} onChange={e=>set({sport:e.target.value})} style={INP}>
-            {SPORTS.map(s=><option key={s}>{s}</option>)}
-          </select>
-        </FormField>
-        <FormField label="Time Slot *">
-          <select value={f.slot} onChange={e=>set({slot:e.target.value})} style={INP}>
-            <option value="">— Select slot —</option>
-            {slotTimesForDate(formatDateISO(new Date())).map(s=><option key={s}>{s}</option>)}
-          </select>
-        </FormField>
-      </FormRow>
-      <FormRow cols={2}>
-        <FormField label="No. of Players">
-          <input type="number" min="1" value={f.members} onChange={e=>set({members:e.target.value})} style={INP} />
-        </FormField>
-        <FormField label="Amount (₹)">
-          <input type="number" value={f.amount} onChange={e=>set({amount:e.target.value})} placeholder="0" style={INP} />
-        </FormField>
-      </FormRow>
-      <FormRow cols={2}>
-        <FormField label="Payment Status">
-          <select value={f.payment} onChange={e=>set({payment:e.target.value})} style={INP}>
-            <option value="pending">Pending</option>
-            <option value="paid">Paid</option>
-          </select>
-        </FormField>
-        <FormField label={f.payment === 'paid' ? "Payment Mode" : "Notes (optional)"}>
-          {f.payment === 'paid' ? (
-            <select value={f.payment_mode} onChange={e=>set({payment_mode:e.target.value})} style={INP}>
-              <option value="cash">Cash</option>
-              <option value="upi">UPI</option>
-            </select>
-          ) : (
-            <input value={f.notes} onChange={e=>set({notes:e.target.value})} placeholder="Special notes" style={INP} />
-          )}
-        </FormField>
-      </FormRow>
-      <ModalFooter onClose={onClose} onSubmit={submit} submitLabel="⚡ Confirm Spot Booking" disabled={!valid} busy={busy} />
-    </Modal>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   MODAL: ADVANCE BOOKING
-═══════════════════════════════════════════ */
-function AdvanceBookingModal({ slot, onClose, onBook }) {
-  const [f, setF] = useState({ name:"", phone:"", sport: slot?.sport || "Cricket", members:1, amount: slot?.price || "", notes:"", payment:"pending", payment_mode:"cash" });
-  const [busy, setBusy] = useState(false);
-  const set = v => setF(p => ({...p,...v}));
-  const valid = f.name && f.phone && f.sport;
-
-  async function submit() {
-    if (!valid || busy) return;
-    setBusy(true);
-    try { await onBook({ ...f, slot_id: slot.slot_id }); }
-    catch (e) { setBusy(false); throw e; }
-  }
-
-  return (
-    <Modal title="📅 Advance Slot Booking" subtitle={`${formatDateNice(slot?.slot_date)} · ${slot?.slot_time}`} onClose={onClose} width={500}>
-      <div style={{
-        background:"#f0f9ff", borderRadius:10, padding:"12px 16px",
-        marginBottom:18, fontSize:12, border:"1px solid #bae6fd"
-      }}>
-        <div style={{ display:"flex", gap:20, flexWrap:"wrap", fontWeight:600, color:"#0369a1" }}>
-          <span>📅 {formatDateNice(slot?.slot_date)}</span>
-          <span>⏰ {slot?.slot_time}</span>
-          <span>💰 ₹{slot?.price?.toLocaleString("en-IN")}</span>
-        </div>
-      </div>
-      <FormRow cols={2}>
-        <FormField label="Customer Name *">
-          <input value={f.name} onChange={e=>set({name:e.target.value})} placeholder="Full name" style={INP} autoFocus />
-        </FormField>
-        <FormField label="Phone *">
-          <input value={f.phone} onChange={e=>set({phone:e.target.value})} placeholder="Mobile" style={INP} />
-        </FormField>
-      </FormRow>
-      <FormRow cols={2}>
-        <FormField label="Sport *">
-          <select value={f.sport} onChange={e=>set({sport:e.target.value})} style={INP}>
-            {SPORTS.map(s=><option key={s}>{s}</option>)}
-          </select>
-        </FormField>
-        <FormField label="No. of Players">
-          <input type="number" min="1" value={f.members} onChange={e=>set({members:e.target.value})} style={INP} />
-        </FormField>
-      </FormRow>
-      <FormRow cols={2}>
-        <FormField label="Amount (₹)">
-          <input type="number" value={f.amount} onChange={e=>set({amount:e.target.value})} style={INP} />
-        </FormField>
-        <FormField label="Payment Status">
-          <select value={f.payment} onChange={e=>set({payment:e.target.value})} style={INP}>
-            <option value="pending">Pending</option>
-            <option value="paid">Paid</option>
-          </select>
-        </FormField>
-      </FormRow>
-      <FormRow cols={1}>
-        <FormField label="Notes (optional)">
-          <input value={f.notes} onChange={e=>set({notes:e.target.value})} placeholder="Special requirements" style={INP} />
-        </FormField>
-      </FormRow>
-      <ModalFooter onClose={onClose} onSubmit={submit} submitLabel="✓ Book This Slot" disabled={!valid} busy={busy} />
-    </Modal>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   MODAL: ADD LEAD
-═══════════════════════════════════════════ */
-function AddLeadModal({ onClose, onSave }) {
-  const [f, setF] = useState({ name:"", phone:"", interest:"Regular Booking", source:"Walk-in", sport:"Cricket", notes:"" });
-  const [busy, setBusy] = useState(false);
-  const set = v => setF(p => ({...p,...v}));
-  const valid = f.name && f.phone;
-
-  async function submit() {
-    if (!valid || busy) return;
-    setBusy(true);
-    try { await onSave(f); }
-    catch (e) { setBusy(false); throw e; }
-  }
-
-  return (
-    <Modal title="👤 Add New Lead" subtitle="Add a prospect to the pipeline" onClose={onClose} width={520}>
-      <FormRow cols={2}>
-        <FormField label="Full Name *">
-          <input value={f.name} onChange={e=>set({name:e.target.value})} placeholder="Lead name" style={INP} autoFocus />
-        </FormField>
-        <FormField label="Phone *">
-          <input value={f.phone} onChange={e=>set({phone:e.target.value})} placeholder="Mobile number" style={INP} />
-        </FormField>
-      </FormRow>
-      <FormRow cols={2}>
-        <FormField label="Interest / Goal">
-          <select value={f.interest} onChange={e=>set({interest:e.target.value})} style={INP}>
-            {INTEREST_OPTIONS.map(o=><option key={o}>{o}</option>)}
-          </select>
-        </FormField>
-        <FormField label="Sport Interested In">
-          <select value={f.sport} onChange={e=>set({sport:e.target.value})} style={INP}>
-            {SPORTS.map(s=><option key={s}>{s}</option>)}
-          </select>
-        </FormField>
-      </FormRow>
-      <FormRow cols={2}>
-        <FormField label="Lead Source">
-          <select value={f.source} onChange={e=>set({source:e.target.value})} style={INP}>
-            {SOURCES.map(o=><option key={o}>{o}</option>)}
-          </select>
-        </FormField>
-        <FormField label="Notes (optional)">
-          <input value={f.notes} onChange={e=>set({notes:e.target.value})} placeholder="Preferred slots, team size…" style={INP} />
-        </FormField>
-      </FormRow>
-      <ModalFooter onClose={onClose} onSubmit={submit} submitLabel="+ Save Lead" disabled={!valid} busy={busy} />
-    </Modal>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   MODAL: PASS / MEMBERSHIP
-═══════════════════════════════════════════ */
-function PassBookingModal({ onClose, onSave }) {
-  const [f, setF] = useState({ team:"", contact:"", phone:"", email:"", sport:"Cricket", plan:"monthly", memberCount:10, paid:14999, notes:"" });
-  const [busy, setBusy] = useState(false);
-  const set = v => setF(p => ({...p,...v}));
-  const planData = PASS_PLANS.find(p => p.key === f.plan);
-  const valid = f.team && f.contact && f.phone;
-
-  async function submit() {
-    if (!valid || busy) return;
-    setBusy(true);
-    try { await onSave(f); }
-    catch (e) { setBusy(false); throw e; }
-  }
-
-  return (
-    <Modal title="🏅 New Pass / Membership" subtitle="Create a recurring membership" onClose={onClose} width={560}>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:20 }}>
-        {PASS_PLANS.map(p => (
-          <button key={p.key}
-            onClick={() => set({ plan:p.key, paid:p.price })}
-            style={{
-              padding:"12px 10px", borderRadius:10, border:"2px solid",
-              borderColor: f.plan === p.key ? "#f59e0b" : "#e5e7eb",
-              background: f.plan === p.key ? "#fffbeb" : "#f9fafb",
-              cursor:"pointer", textAlign:"center", transition:"all .15s"
-            }}>
-            <div style={{ fontSize:13, fontWeight:800, color:"#111" }}>{p.label}</div>
-            <div style={{ fontSize:16, fontWeight:800, color:"#f59e0b", marginTop:2 }}>₹{p.price.toLocaleString("en-IN")}</div>
-            <div style={{ fontSize:11, color:"#9ca3af", marginTop:1 }}>{p.days} days</div>
-          </button>
-        ))}
-      </div>
-
-      <FormRow cols={1}>
-        <FormField label="Team / Group Name *">
-          <input value={f.team} onChange={e=>set({team:e.target.value})} placeholder="Team or individual name" style={INP} autoFocus />
-        </FormField>
-      </FormRow>
-      <FormRow cols={2}>
-        <FormField label="Contact Person *">
-          <input value={f.contact} onChange={e=>set({contact:e.target.value})} placeholder="Captain / Owner name" style={INP} />
-        </FormField>
-        <FormField label="Phone *">
-          <input value={f.phone} onChange={e=>set({phone:e.target.value})} placeholder="Mobile" style={INP} />
-        </FormField>
-      </FormRow>
-      <FormRow cols={2}>
-        <FormField label="Email (optional)">
-          <input value={f.email} onChange={e=>set({email:e.target.value})} placeholder="contact@example.com" style={INP} />
-        </FormField>
-        <FormField label="Sport">
-          <select value={f.sport} onChange={e=>set({sport:e.target.value})} style={INP}>
-            {SPORTS.map(s=><option key={s}>{s}</option>)}
-          </select>
-        </FormField>
-      </FormRow>
-      <FormRow cols={2}>
-        <FormField label="No. of Members">
-          <input type="number" min="1" value={f.memberCount} onChange={e=>set({memberCount:e.target.value})} style={INP} />
-        </FormField>
-        <FormField label={`Amount Paid (₹) — Plan: ₹${planData?.price?.toLocaleString("en-IN")}`}>
-          <input type="number" value={f.paid} onChange={e=>set({paid:e.target.value})} style={INP} />
-        </FormField>
-      </FormRow>
-      <FormRow cols={1}>
-        <FormField label="Notes / Preferred Slots">
-          <input value={f.notes} onChange={e=>set({notes:e.target.value})} placeholder="Morning only, specific days…" style={INP} />
-        </FormField>
-      </FormRow>
-      <ModalFooter onClose={onClose} onSubmit={submit} submitLabel="✓ Create Pass" disabled={!valid} busy={busy} />
-    </Modal>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   CONFIG ERROR (when API_URL not set)
-═══════════════════════════════════════════ */
-function ConfigError() {
-  return (
-    <div style={{
-      minHeight:"100vh", background:"#0a0a0a", color:"#fff",
-      display:"flex", alignItems:"center", justifyContent:"center", padding:24,
-      fontFamily:"'Outfit',system-ui,sans-serif"
-    }}>
-      <div style={{ maxWidth:520, textAlign:"left" }}>
-        <div style={{ fontSize:48, marginBottom:16 }}>⚙️</div>
-        <div style={{ fontSize:22, fontWeight:800, marginBottom:10 }}>Configuration needed</div>
-        <div style={{ fontSize:14, color:"#888", lineHeight:1.7, marginBottom:24 }}>
-          This dashboard needs your Google Apps Script Web App URL before it can talk to the backend.
-          Open this HTML file, find the line near the top that says:
-        </div>
-        <pre style={{ background:"#1a1a1a", padding:"14px 16px", borderRadius:10, fontSize:12, color:"#f59e0b", border:"1px solid #2a2a2a", overflowX:"auto" }}>
-{`const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";`}
-        </pre>
-        <div style={{ fontSize:13, color:"#888", marginTop:14, lineHeight:1.7 }}>
-          Replace the placeholder with your live Web App URL (looks like<br/>
-          <code style={{ color:"#f59e0b" }}>https://script.google.com/macros/s/AKfycb…/exec</code>) and refresh.
+        <div style={{ fontSize:18, fontWeight:800, marginBottom:8 }}>{config.title}</div>
+        <div style={{ fontSize:14, color:'#6b7280', marginBottom:20, lineHeight:1.6 }}>{config.message}</div>
+        <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+          <button onClick={onClose} style={{ padding:'10px 18px', background:'#f3f4f6', color:'#374151', border:'none', borderRadius:8, fontSize:13, fontWeight:700 }}>Cancel</button>
+          <button onClick={()=>{ config.onConfirm(); onClose(); }} style={{ padding:'10px 18px', background: config.danger?'#ef4444':'#f59e0b', color:'#fff', border:'none', borderRadius:8, fontSize:13, fontWeight:700 }}>{config.confirmLabel||'Confirm'}</button>
         </div>
       </div>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════
-   LOGIN PAGE
-═══════════════════════════════════════════ */
-function LoginPage({ onLogin }) {
-  const [pw, setPw] = useState("");
-  const [err, setErr] = useState(null);
+// ──────────────────────────────────────────────────────────
+// LOGIN PAGE
+// ──────────────────────────────────────────────────────────
+function LoginPage({ onLogin }){
+  const [pw, setPw] = useState('');
   const [loading, setLoading] = useState(false);
-  const [shake, setShakeAnim] = useState(false);
+  const [err, setErr] = useState(null);
+  const [shake, setShake] = useState(false);
+  const inputRef = useRef(null);
 
-  async function attempt() {
-    if (!pw || loading) return;
-    setLoading(true);
-    setErr(null);
+  useEffect(()=>{ inputRef.current?.focus(); }, []);
+
+  async function attempt(){
+    if(!pw || loading) return;
+    setLoading(true); setErr(null);
     try {
-      const valid = await API.validateKey(pw);
-      if (valid) {
+      const ok = await API.validateKey(pw);
+      if(ok){
         sessionStorage.setItem('hnr_admin_key', pw);
         onLogin();
       } else {
-        setErr("Incorrect admin key. Try again.");
-        setShakeAnim(true);
-        setTimeout(() => setShakeAnim(false), 400);
+        setErr('Incorrect admin key.');
+        setShake(true);
+        setTimeout(()=>setShake(false), 400);
         setLoading(false);
       }
-    } catch (e) {
-      setErr("Connection failed: " + e.message);
+    } catch(e){
+      setErr(e.message || 'Connection error');
       setLoading(false);
     }
   }
 
   return (
-    <div style={{
-      minHeight:"100vh",
-      background:"linear-gradient(135deg,#0a0a0a 0%,#141414 50%,#0f0f0f 100%)",
-      display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-      fontFamily:"'Outfit',system-ui,sans-serif", padding:16
-    }}>
-      <div style={{
-        position:"absolute", inset:0, opacity:.03,
-        backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)",
-        backgroundSize:"28px 28px", pointerEvents:"none"
-      }} />
-
-      <div style={{ marginBottom:36, textAlign:"center", position:"relative" }}>
-        <div style={{ fontSize:56, marginBottom:10 }}>🏏</div>
-        <div style={{ fontSize:26, fontWeight:800, color:"#fff", letterSpacing:"-1px" }}>Hit N Run Sports Arena</div>
-        <div style={{ fontSize:13, color:"#444", marginTop:6, letterSpacing:".08em", textTransform:"uppercase" }}>Admin Panel · Staff Only</div>
-      </div>
-
-      <div className={shake ? "shake" : ""} style={{
-        background:"#1a1a1a", border:"1px solid #2a2a2a",
-        borderRadius:20, padding:"36px 40px", width:"100%", maxWidth:380,
-        position:"relative"
-      }}>
-        <div style={{
-          position:"absolute", top:0, left:"50%", transform:"translate(-50%,-50%)",
-          background:"#f59e0b", borderRadius:999, padding:"5px 16px",
-          fontSize:11, fontWeight:800, letterSpacing:".06em", color:"#000"
-        }}>SECURE LOGIN</div>
-
-        <div style={{ fontSize:16, fontWeight:700, color:"#fff", marginBottom:4 }}>Welcome back</div>
-        <div style={{ fontSize:12, color:"#555", marginBottom:26 }}>Enter your admin key to continue</div>
-
-        <div style={{ marginBottom:18 }}>
-          <div style={{ fontSize:12, color:"#666", marginBottom:7, fontWeight:600 }}>Admin Key</div>
-          <input
-            type="password" value={pw}
-            onChange={e => { setPw(e.target.value); setErr(null); }}
-            onKeyDown={e => e.key === "Enter" && attempt()}
-            placeholder="Enter key"
-            autoFocus
-            style={{
-              width:"100%", padding:"12px 14px",
-              background:"#111", border: err ? "1.5px solid #ef4444" : "1.5px solid #2a2a2a",
-              borderRadius:10, color:"#fff", fontSize:14, outline:"none",
-              boxSizing:"border-box", fontFamily:"'Outfit',system-ui,sans-serif",
-              transition:"border-color .2s"
-            }}
-          />
-          {err && <div style={{ fontSize:12, color:"#ef4444", marginTop:7, fontWeight:500 }}>⚠ {err}</div>}
+    <div style={{ minHeight:'100vh', background:'#0a0a0a', display:'grid', placeItems:'center', padding:16 }}>
+      <div className={shake?'shake':''} style={{ maxWidth:380, width:'100%', textAlign:'center' }}>
+        <div style={{ width:60, height:60, borderRadius:14, background:'linear-gradient(135deg,#c4f000,#94c800)', margin:'0 auto 22px', display:'grid', placeItems:'center', fontSize:30 }}>🏏</div>
+        <div style={{ color:'#fff', fontSize:22, fontWeight:800, marginBottom:6 }}>Hit N Run Admin</div>
+        <div style={{ color:'#666', fontSize:13, marginBottom:30 }}>Sign in to manage bookings</div>
+        <div style={{ background:'#141414', padding:24, borderRadius:14, border:'1px solid #222' }}>
+          <input ref={inputRef} type="password" value={pw} onChange={e=>setPw(e.target.value)}
+            onKeyDown={e=>e.key==='Enter'&&attempt()}
+            placeholder="Admin key" style={{
+              width:'100%', padding:'13px 16px', background:'#0a0a0a',
+              border:'1.5px solid #2a2a2a', borderRadius:10, color:'#fff',
+              fontSize:14, outline:'none'
+            }}/>
+          {err && <div style={{ color:'#ef4444', fontSize:12, marginTop:10, fontWeight:600 }}>{err}</div>}
+          <button onClick={attempt} disabled={!pw||loading} style={{
+            width:'100%', marginTop:14, padding:'13px', background:!pw||loading?'#333':'#c4f000',
+            color:!pw||loading?'#666':'#000', border:'none', borderRadius:10,
+            fontSize:14, fontWeight:800, cursor:!pw||loading?'not-allowed':'pointer',
+            display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8
+          }}>{loading?<><Spinner small/> Signing in…</>:'Sign In →'}</button>
         </div>
-
-        <button onClick={attempt} disabled={loading || !pw} style={{
-          width:"100%", padding:13,
-          background: pw && !loading ? "#f59e0b" : "#222",
-          color: pw && !loading ? "#000" : "#444",
-          border:"none", borderRadius:10, fontSize:14, fontWeight:800,
-          cursor: pw && !loading ? "pointer" : "default", transition:"all .2s",
-          letterSpacing:".02em",
-          display:"flex", alignItems:"center", justifyContent:"center", gap:10
-        }}>
-          {loading && <span className="spin" style={{ display:"inline-block", width:14, height:14, border:"2px solid #555", borderTopColor:"#000", borderRadius:"50%" }}/>}
-          {loading ? "Verifying…" : "Sign In →"}
-        </button>
-      </div>
-
-      <div style={{ marginTop:28, fontSize:11, color:"#333", letterSpacing:".04em" }}>
-        Hit N Run Sports Arena · Admin v2.1
       </div>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════
-   MAIN APP
-═══════════════════════════════════════════ */
-function App() {
-  const [loggedIn, setLoggedIn] = useState(!!sessionStorage.getItem('hnr_admin_key'));
-  const [tab, setTab] = useState("bookings");
+// ──────────────────────────────────────────────────────────
+// SPOT BOOKING MODAL
+// ──────────────────────────────────────────────────────────
+function SpotBookingModal({ onClose, onCreate, defaultDate }){
+  const [form, setForm] = useState({
+    customer_name:'', phone:'', email:'',
+    booking_kind:'turf', sport:'Cricket',
+    booking_date: defaultDate || formatDateISO(new Date()),
+    slot_time:'',
+    members_count: 1,
+    amount:'',
+    payment_status:'pending',
+    payment_mode:''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState(null);
 
-  // Data
+  // Auto-suggest amount based on kind
+  useEffect(()=>{
+    if(!form.amount){
+      setForm(f => ({ ...f, amount: f.booking_kind==='turf' ? 1200 : 400 }));
+    }
+  }, [form.booking_kind]);
+
+  function setKind(k){
+    setForm(f => ({
+      ...f,
+      booking_kind: k,
+      sport: k==='turf' ? 'Cricket' : 'Cricket Net Practice',
+      amount: k==='turf' ? 1200 : 400
+    }));
+  }
+
+  async function submit(){
+    setErr(null);
+    if(!form.customer_name.trim()){ setErr('Customer name required'); return; }
+    if(normalizePhone(form.phone).length !== 10){ setErr('Valid 10-digit phone required'); return; }
+    if(!form.slot_time){ setErr('Slot time required'); return; }
+    setSubmitting(true);
+    try {
+      const result = await API.post('createSpotBooking', {
+        customer_name: form.customer_name.trim(),
+        phone: normalizePhone(form.phone),
+        email: form.email.trim(),
+        sport: form.sport,
+        booking_kind: form.booking_kind,
+        booking_date: form.booking_date,
+        slot_time: form.slot_time,
+        members_count: parseInt(form.members_count,10)||1,
+        amount: parseInt(form.amount,10)||0,
+        payment_status: form.payment_status,
+        payment_mode: form.payment_mode
+      });
+      onCreate(result);
+      onClose();
+    } catch(e){ setErr(e.message); setSubmitting(false); }
+  }
+
+  const sportOptions = form.booking_kind === 'turf' ? SPORTS_TURF : ['Cricket Net Practice'];
+
+  return (
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{
+      position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:140,
+      display:'grid', placeItems:'center', padding:16, overflowY:'auto'
+    }}>
+      <div className="modal-inner" style={{
+        background:'#fff', borderRadius:16, padding:24, maxWidth:520, width:'100%',
+        boxShadow:'0 24px 80px rgba(0,0,0,.3)', maxHeight:'92vh', overflowY:'auto'
+      }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:18 }}>
+          <div>
+            <div style={{ fontSize:20, fontWeight:800 }}>Walk-in Booking</div>
+            <div style={{ fontSize:12, color:'#9ca3af', marginTop:2 }}>Quick add for customers at the venue</div>
+          </div>
+          <button onClick={onClose} style={{ fontSize:22, color:'#9ca3af', padding:0, lineHeight:1 }}>×</button>
+        </div>
+
+        {/* Kind toggle */}
+        <div style={{ display:'flex', gap:8, marginBottom:18, background:'#f3f4f6', padding:4, borderRadius:10 }}>
+          <button onClick={()=>setKind('turf')} style={{
+            flex:1, padding:'10px 14px', borderRadius:7,
+            background: form.booking_kind==='turf'?'#fff':'transparent',
+            color: form.booking_kind==='turf'?'#111':'#6b7280',
+            fontWeight:700, fontSize:13,
+            boxShadow: form.booking_kind==='turf'?'0 1px 3px rgba(0,0,0,.1)':'none'
+          }}>🏏 Turf · ₹1,200/hr</button>
+          <button onClick={()=>setKind('net')} style={{
+            flex:1, padding:'10px 14px', borderRadius:7,
+            background: form.booking_kind==='net'?'#fff':'transparent',
+            color: form.booking_kind==='net'?'#111':'#6b7280',
+            fontWeight:700, fontSize:13,
+            boxShadow: form.booking_kind==='net'?'0 1px 3px rgba(0,0,0,.1)':'none'
+          }}>🥅 Net · ₹400/hr</button>
+        </div>
+
+        <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+          <div>
+            <label style={lblStyle}>Customer Name *</label>
+            <input value={form.customer_name} onChange={e=>setForm({...form, customer_name:e.target.value})} placeholder="Full name" style={inputStyle}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Phone *</label>
+            <input type="tel" value={form.phone} onChange={e=>setForm({...form, phone:e.target.value})} placeholder="98765 43210" style={inputStyle} maxLength={15}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Email</label>
+            <input type="email" value={form.email} onChange={e=>setForm({...form, email:e.target.value})} placeholder="optional" style={inputStyle}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Sport</label>
+            <select value={form.sport} onChange={e=>setForm({...form, sport:e.target.value})} style={inputStyle}>
+              {sportOptions.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={lblStyle}>Date *</label>
+            <input type="date" value={form.booking_date} onChange={e=>setForm({...form, booking_date:e.target.value})} style={inputStyle}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Time *</label>
+            <input value={form.slot_time} onChange={e=>setForm({...form, slot_time:e.target.value})} placeholder="14:00-15:00" style={inputStyle}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Players</label>
+            <input type="number" value={form.members_count} onChange={e=>setForm({...form, members_count:e.target.value})} min={1} max={30} style={inputStyle}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Amount (₹)</label>
+            <input type="number" value={form.amount} onChange={e=>setForm({...form, amount:e.target.value})} style={inputStyle}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Payment Status</label>
+            <select value={form.payment_status} onChange={e=>setForm({...form, payment_status:e.target.value})} style={inputStyle}>
+              <option value="pending">Pending</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
+          {form.payment_status === 'paid' && (
+            <div>
+              <label style={lblStyle}>Payment Mode</label>
+              <select value={form.payment_mode} onChange={e=>setForm({...form, payment_mode:e.target.value})} style={inputStyle}>
+                <option value="">-- select --</option>
+                <option value="cash">Cash</option>
+                <option value="upi">UPI</option>
+                <option value="card">Card</option>
+              </select>
+            </div>
+          )}
+        </div>
+
+        {err && <div style={{ background:'#fef2f2', color:'#991b1b', padding:'10px 14px', borderRadius:8, fontSize:13, marginTop:14 }}>⚠ {err}</div>}
+
+        <div style={{ display:'flex', gap:8, marginTop:20, justifyContent:'flex-end' }}>
+          <button onClick={onClose} style={{ padding:'11px 18px', background:'#f3f4f6', color:'#374151', borderRadius:8, fontWeight:700, fontSize:13 }}>Cancel</button>
+          <button onClick={submit} disabled={submitting} style={{ padding:'11px 22px', background: submitting?'#d1d5db':'#f59e0b', color: submitting?'#6b7280':'#fff', borderRadius:8, fontWeight:800, fontSize:13, display:'inline-flex', alignItems:'center', gap:8 }}>
+            {submitting && <Spinner small/>}{submitting?'Creating…':'Create Booking'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const lblStyle = { display:'block', fontSize:11, fontWeight:700, color:'#6b7280', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:6 };
+const inputStyle = { width:'100%', padding:'10px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, outline:'none', background:'#fff' };
+
+// ──────────────────────────────────────────────────────────
+// PASS MODAL (create/edit member)
+// ──────────────────────────────────────────────────────────
+function PassModal({ onClose, onCreate, editing }){
+  const [form, setForm] = useState(editing ? {
+    plan_key: editing.plan_key || PLANS[0].key,
+    team_name: editing.team_name || '',
+    contact_name: editing.contact_name || '',
+    contact_phone: editing.contact_phone || '',
+    contact_email: editing.contact_email || '',
+    members_list: editing.members_list || '',
+    start_date: editing.start_date || formatDateISO(new Date()),
+    amount_paid: editing.amount_paid || '',
+    notes: editing.notes || ''
+  } : {
+    plan_key: PLANS[0].key,
+    team_name: '', contact_name: '', contact_phone: '', contact_email: '',
+    members_list: '',
+    start_date: formatDateISO(new Date()),
+    amount_paid: '',
+    notes: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const plan = PLANS.find(p => p.key === form.plan_key);
+
+  useEffect(()=>{
+    if(!form.amount_paid && plan) setForm(f => ({ ...f, amount_paid: plan.price }));
+  }, [form.plan_key]);
+
+  async function submit(){
+    setErr(null);
+    if(!form.team_name.trim()){ setErr('Team name required'); return; }
+    if(!form.contact_name.trim()){ setErr('Contact name required'); return; }
+    if(normalizePhone(form.contact_phone).length !== 10){ setErr('Valid 10-digit phone required'); return; }
+    setSubmitting(true);
+    try {
+      if(editing){
+        await API.post('updateMember', {
+          id: editing.member_id,
+          team_name: form.team_name.trim(),
+          contact_name: form.contact_name.trim(),
+          contact_phone: normalizePhone(form.contact_phone),
+          contact_email: form.contact_email.trim(),
+          members_list: form.members_list.trim(),
+          amount_paid: parseInt(form.amount_paid,10) || plan.price,
+          notes: form.notes.trim()
+        });
+      } else {
+        await API.post('createMember', {
+          plan_key: form.plan_key,
+          team_name: form.team_name.trim(),
+          contact_name: form.contact_name.trim(),
+          contact_phone: normalizePhone(form.contact_phone),
+          contact_email: form.contact_email.trim(),
+          members_list: form.members_list.trim(),
+          start_date: form.start_date,
+          amount_paid: parseInt(form.amount_paid,10) || plan.price,
+          notes: form.notes.trim()
+        });
+      }
+      onCreate();
+      onClose();
+    } catch(e){ setErr(e.message); setSubmitting(false); }
+  }
+
+  const turfPlans = PLANS.filter(p => p.category === 'turf');
+  const netPlans  = PLANS.filter(p => p.category === 'net');
+
+  return (
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{
+      position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:140,
+      display:'grid', placeItems:'center', padding:16, overflowY:'auto'
+    }}>
+      <div className="modal-inner" style={{
+        background:'#fff', borderRadius:16, padding:24, maxWidth:560, width:'100%',
+        boxShadow:'0 24px 80px rgba(0,0,0,.3)', maxHeight:'92vh', overflowY:'auto'
+      }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:18 }}>
+          <div>
+            <div style={{ fontSize:20, fontWeight:800 }}>{editing ? 'Edit Member' : 'New Membership'}</div>
+            <div style={{ fontSize:12, color:'#9ca3af', marginTop:2 }}>{editing ? 'Update member details' : 'Issue a new turf or net pass'}</div>
+          </div>
+          <button onClick={onClose} style={{ fontSize:22, color:'#9ca3af', padding:0, lineHeight:1 }}>×</button>
+        </div>
+
+        {!editing && (
+          <div style={{ marginBottom:18 }}>
+            <label style={lblStyle}>Plan</label>
+            <select value={form.plan_key} onChange={e=>setForm({...form, plan_key:e.target.value, amount_paid:''})} style={inputStyle}>
+              <optgroup label="Turf Passes">
+                {turfPlans.map(p => <option key={p.key} value={p.key}>{p.label} · ₹{p.price.toLocaleString('en-IN')}</option>)}
+              </optgroup>
+              <optgroup label="Net Practice Packages">
+                {netPlans.map(p => <option key={p.key} value={p.key}>{p.label} · ₹{p.price.toLocaleString('en-IN')}</option>)}
+              </optgroup>
+            </select>
+            {plan && (
+              <div style={{ marginTop:10, padding:'10px 14px', background:'#f9fafb', borderRadius:8, fontSize:12, color:'#6b7280', lineHeight:1.6 }}>
+                <strong style={{ color:'#111' }}>{plan.label}</strong> · {plan.days} day{plan.days>1?'s':''}
+                {plan.max_members && <span> · Up to {plan.max_members} members</span>}
+                {plan.hours_quota && <span> · {plan.hours_quota} hr quota</span>}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+          <div>
+            <label style={lblStyle}>Team Name *</label>
+            <input value={form.team_name} onChange={e=>setForm({...form, team_name:e.target.value})} placeholder="e.g. Eagles XI" style={inputStyle}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Contact Name *</label>
+            <input value={form.contact_name} onChange={e=>setForm({...form, contact_name:e.target.value})} style={inputStyle}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Phone *</label>
+            <input type="tel" value={form.contact_phone} onChange={e=>setForm({...form, contact_phone:e.target.value})} style={inputStyle} maxLength={15}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Email</label>
+            <input type="email" value={form.contact_email} onChange={e=>setForm({...form, contact_email:e.target.value})} style={inputStyle}/>
+          </div>
+          {!editing && (
+            <div>
+              <label style={lblStyle}>Start Date</label>
+              <input type="date" value={form.start_date} onChange={e=>setForm({...form, start_date:e.target.value})} style={inputStyle}/>
+            </div>
+          )}
+          <div>
+            <label style={lblStyle}>Amount Paid (₹)</label>
+            <input type="number" value={form.amount_paid} onChange={e=>setForm({...form, amount_paid:e.target.value})} style={inputStyle}/>
+          </div>
+          <div style={{ gridColumn: 'span 2' }}>
+            <label style={lblStyle}>Members List</label>
+            <textarea value={form.members_list} onChange={e=>setForm({...form, members_list:e.target.value})} placeholder="Comma-separated names" style={{...inputStyle, minHeight:60, resize:'vertical', fontFamily:'inherit'}}/>
+          </div>
+          <div style={{ gridColumn: 'span 2' }}>
+            <label style={lblStyle}>Notes</label>
+            <input value={form.notes} onChange={e=>setForm({...form, notes:e.target.value})} style={inputStyle}/>
+          </div>
+        </div>
+
+        {err && <div style={{ background:'#fef2f2', color:'#991b1b', padding:'10px 14px', borderRadius:8, fontSize:13, marginTop:14 }}>⚠ {err}</div>}
+
+        <div style={{ display:'flex', gap:8, marginTop:20, justifyContent:'flex-end' }}>
+          <button onClick={onClose} style={{ padding:'11px 18px', background:'#f3f4f6', color:'#374151', borderRadius:8, fontWeight:700, fontSize:13 }}>Cancel</button>
+          <button onClick={submit} disabled={submitting} style={{ padding:'11px 22px', background: submitting?'#d1d5db':'#6366f1', color:'#fff', borderRadius:8, fontWeight:800, fontSize:13, display:'inline-flex', alignItems:'center', gap:8 }}>
+            {submitting && <Spinner small/>}{submitting?'Saving…':(editing?'Save Changes':'Create Pass')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// LEAD MODAL
+// ──────────────────────────────────────────────────────────
+function LeadModal({ onClose, onSave, editing }){
+  const [form, setForm] = useState(editing ? {
+    name: editing.name, phone: editing.phone, email: editing.email || '',
+    sport: editing.sport || '', interest: editing.interest || '',
+    status: editing.status || 'new', notes: editing.notes || ''
+  } : { name:'', phone:'', email:'', sport:'', interest:'', status:'new', notes:'' });
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState(null);
+
+  async function submit(){
+    setErr(null);
+    if(!form.name.trim()){ setErr('Name required'); return; }
+    if(normalizePhone(form.phone).length !== 10){ setErr('Valid 10-digit phone required'); return; }
+    setSubmitting(true);
+    try {
+      if(editing){
+        await API.post('updateLead', { id: editing.lead_id, ...form });
+      } else {
+        await API.post('createLead', {
+          name: form.name.trim(),
+          phone: normalizePhone(form.phone),
+          email: form.email.trim(),
+          sport: form.sport,
+          interest: form.interest,
+          source: 'manual',
+          notes: form.notes.trim()
+        });
+      }
+      onSave(); onClose();
+    } catch(e){ setErr(e.message); setSubmitting(false); }
+  }
+
+  return (
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{
+      position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:140,
+      display:'grid', placeItems:'center', padding:16
+    }}>
+      <div className="modal-inner" style={{ background:'#fff', borderRadius:16, padding:24, maxWidth:460, width:'100%', boxShadow:'0 24px 80px rgba(0,0,0,.3)' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:18 }}>
+          <div style={{ fontSize:20, fontWeight:800 }}>{editing ? 'Edit Lead' : 'New Lead'}</div>
+          <button onClick={onClose} style={{ fontSize:22, color:'#9ca3af', padding:0, lineHeight:1 }}>×</button>
+        </div>
+        <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+          <div><label style={lblStyle}>Name *</label><input value={form.name} onChange={e=>setForm({...form, name:e.target.value})} style={inputStyle}/></div>
+          <div><label style={lblStyle}>Phone *</label><input value={form.phone} onChange={e=>setForm({...form, phone:e.target.value})} style={inputStyle} maxLength={15}/></div>
+          <div><label style={lblStyle}>Email</label><input value={form.email} onChange={e=>setForm({...form, email:e.target.value})} style={inputStyle}/></div>
+          <div><label style={lblStyle}>Sport Interest</label>
+            <select value={form.sport} onChange={e=>setForm({...form, sport:e.target.value})} style={inputStyle}>
+              <option value="">--</option>
+              <option>Cricket</option>
+              <option>Football</option>
+              <option>Cricket Net Practice</option>
+            </select>
+          </div>
+          <div><label style={lblStyle}>Interest Type</label>
+            <select value={form.interest} onChange={e=>setForm({...form, interest:e.target.value})} style={inputStyle}>
+              <option value="">--</option>
+              <option value="regular">Regular Booking</option>
+              <option value="pass">Weekly/Monthly Pass</option>
+              <option value="tournament">Tournament</option>
+              <option value="coaching">Coaching</option>
+            </select>
+          </div>
+          {editing && (
+            <div><label style={lblStyle}>Status</label>
+              <select value={form.status} onChange={e=>setForm({...form, status:e.target.value})} style={inputStyle}>
+                <option>new</option><option>contacted</option><option>qualified</option><option>converted</option><option>lost</option>
+              </select>
+            </div>
+          )}
+          <div style={{ gridColumn: 'span 2' }}><label style={lblStyle}>Notes</label><input value={form.notes} onChange={e=>setForm({...form, notes:e.target.value})} style={inputStyle}/></div>
+        </div>
+        {err && <div style={{ background:'#fef2f2', color:'#991b1b', padding:'10px 14px', borderRadius:8, fontSize:13, marginTop:14 }}>⚠ {err}</div>}
+        <div style={{ display:'flex', gap:8, marginTop:20, justifyContent:'flex-end' }}>
+          <button onClick={onClose} style={{ padding:'11px 18px', background:'#f3f4f6', color:'#374151', borderRadius:8, fontWeight:700, fontSize:13 }}>Cancel</button>
+          <button onClick={submit} disabled={submitting} style={{ padding:'11px 22px', background:'#6366f1', color:'#fff', borderRadius:8, fontWeight:800, fontSize:13, display:'inline-flex', alignItems:'center', gap:8 }}>
+            {submitting && <Spinner small/>}{submitting?'Saving…':(editing?'Update':'Create')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// MAIN APP
+// ──────────────────────────────────────────────────────────
+function App(){
+  const [loggedIn, setLoggedIn] = useState(!!sessionStorage.getItem('hnr_admin_key'));
+  const [tab, setTab] = useState('bookings');
+  const [now, setNow] = useState(new Date());
+  const [lastSync, setLastSync] = useState(null);
+
+  // Data state
   const [bookings, setBookings] = useState([]);
+  const [slots, setSlots] = useState([]);
   const [leads, setLeads] = useState([]);
   const [members, setMembers] = useState([]);
-  const [slots, setSlots] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({ todays_bookings:0, pending_payment:0, todays_revenue:0, new_leads:0, active_members:0 });
   const [revenue, setRevenue] = useState(null);
 
-  // Loading flags
-  const [loadingBookings, setLoadingBookings] = useState(true);
-  const [loadingLeads, setLoadingLeads] = useState(true);
-  const [loadingMembers, setLoadingMembers] = useState(true);
-  const [loadingSlots, setLoadingSlots] = useState(true);
-
   // UI state
-  const [searchQ, setSearchQ] = useState("");
-  const next15 = useMemo(() => getNext15Days(), []);
-  const [slotDate, setSlotDate] = useState(next15[0].iso);
-  const [slotFilter, setSlotFilter] = useState('all'); // all | available | advance | booked | blocked
-
-  // Modals
-  const [showSpot, setShowSpot] = useState(false);
-  const [advSlot, setAdvSlot] = useState(null);
-  const [showPass, setShowPass] = useState(false);
-  const [showLead, setShowLead] = useState(false);
-
-  // Confirm & Toast
-  const [confirm, setConfirm] = useState({ show:false });
+  const [slotDate, setSlotDate] = useState(formatDateISO(new Date()));
+  const [slotFilter, setSlotFilter] = useState('all');
+  const [searchQ, setSearchQ] = useState('');
+  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ show:false });
-  const [lastSync, setLastSync] = useState(null);
-  const [now, setNow] = useState(new Date());
-  function ask(cfg) { setConfirm({ show:true, ...cfg }); }
-  function closeConfirm() { setConfirm({ show:false }); }
-  function win(message, icon="✅") { setToast({ show:true, message, icon }); }
-  function err(message) { setToast({ show:true, message, isError:true }); }
+  const [confirm, setConfirm] = useState({ show:false });
+  const [showSpot, setShowSpot] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
+  const [showLead, setShowLead] = useState(false);
+  const [editingLead, setEditingLead] = useState(null);
+  const [revenueRange, setRevenueRange] = useState({ from:'', to:'' });
 
-  /* ── Fetchers ── */
-  const fetchBookings = useCallback(async () => {
-    setLoadingBookings(true);
+  function ok(message){ setToast({ show:true, message }); }
+  function err(message){ setToast({ show:true, message, isError:true }); }
+
+  // ── FAST INITIAL LOAD: one combined call ──
+  const loadSnapshot = useCallback(async (opts={}) => {
     try {
-      const data = await API.get('getBookings');
-      setBookings(data || []);
-    } catch (e) { err("Failed to load bookings: " + e.message); }
-    finally { setLoadingBookings(false); }
-  }, []);
-
-  const fetchLeads = useCallback(async () => {
-    setLoadingLeads(true);
-    try {
-      const data = await API.get('getLeads');
-      setLeads(data || []);
-    } catch (e) { err("Failed to load leads: " + e.message); }
-    finally { setLoadingLeads(false); }
-  }, []);
-
-  const fetchMembers = useCallback(async () => {
-    setLoadingMembers(true);
-    try {
-      const data = await API.get('getMembers');
-      setMembers(data || []);
-    } catch (e) { err("Failed to load members: " + e.message); }
-    finally { setLoadingMembers(false); }
-  }, []);
-
-  const fetchSlots = useCallback(async (date) => {
-    setLoadingSlots(true);
-    try {
-      const data = await API.get('getSlotsAdmin', { date });
-      setSlots(data || []);
-    } catch (e) { err("Failed to load slots: " + e.message); }
-    finally { setLoadingSlots(false); }
-  }, []);
-
-  const fetchStats = useCallback(async () => {
-    try {
-      const data = await API.get('getDashboardStats');
-      setStats(data);
-    } catch (e) { /* silent */ }
-  }, []);
-
-  const fetchRevenue = useCallback(async () => {
-    try {
-      const today = new Date();
-      const monthStart = formatDateISO(new Date(today.getFullYear(), today.getMonth(), 1));
-      const monthEnd = formatDateISO(today);
-      const data = await API.get('getRevenue', { from: monthStart, to: monthEnd });
-      setRevenue(data);
-    } catch (e) { /* silent */ }
-  }, []);
-
-  /* ── Initial load ── */
-  useEffect(() => {
-    if (!loggedIn) return;
-    fetchBookings();
-    fetchLeads();
-    fetchMembers();
-    fetchStats();
-    fetchSlots(slotDate);
-  }, [loggedIn]);
-
-  /* ── Refetch slots when date changes ── */
-  useEffect(() => {
-    if (loggedIn) fetchSlots(slotDate);
+      const params = {
+        date: opts.date || slotDate,
+        includeLeads: opts.includeLeads ? 'true' : '',
+        includeMembers: opts.includeMembers ? 'true' : ''
+      };
+      const snap = await API.get('getDashboardSnapshot', params);
+      setBookings(snap.bookings || []);
+      setSlots(snap.slots || []);
+      setStats(snap.stats || {});
+      if(opts.includeLeads && snap.leads)     setLeads(snap.leads);
+      if(opts.includeMembers && snap.members) setMembers(snap.members);
+      setLastSync(new Date());
+    } catch(e){
+      err('Failed to load: ' + e.message);
+    }
   }, [slotDate]);
 
-  /* ── Refetch revenue when entering Revenue tab ── */
-  useEffect(() => {
-    if (loggedIn && tab === 'revenue') fetchRevenue();
-  }, [tab, loggedIn]);
+  // Initial load — fetch everything at once
+  useEffect(()=>{
+    if(!loggedIn) return;
+    setLoading(true);
+    loadSnapshot({ includeLeads: true, includeMembers: true }).finally(()=>setLoading(false));
+  }, [loggedIn]);
 
-  /* ── AUTO-REFRESH: poll bookings/slots/stats every REFRESH_INTERVAL_MS ──
-     Pauses when:  (a) tab is in background, (b) a modal is open,
-                   (c) a confirm dialog is open.                              */
-  useEffect(() => {
-    if (!loggedIn) return;
-    const tick = () => {
-      if (document.hidden) return;
-      if (confirm.show || showSpot || advSlot || showPass || showLead) return;
-      fetchBookings();
-      fetchStats();
-      fetchSlots(slotDate);
-      if (tab === 'leads')   fetchLeads();
-      if (tab === 'passes')  fetchMembers();
-      if (tab === 'revenue') fetchRevenue();
-      setLastSync(new Date());
+  // Refetch slots only when date changes (after initial load)
+  const isInitialLoad = useRef(true);
+  useEffect(()=>{
+    if(!loggedIn) return;
+    if(isInitialLoad.current){ isInitialLoad.current = false; return; }
+    (async()=>{
+      try {
+        const s = await API.get('getSlotsAdmin', { date: slotDate });
+        setSlots(s || []);
+      } catch(e){ err('Failed to load slots: ' + e.message); }
+    })();
+  }, [slotDate]);
+
+  // ── AUTO-REFRESH using refs (interval created once per session) ──
+  const refreshRefs = useRef({});
+  refreshRefs.current = {
+    slotDate, tab,
+    paused: confirm.show || showSpot || showPass || showLead,
+    loadSnapshot
+  };
+  useEffect(()=>{
+    if(!loggedIn) return;
+    const tick = async () => {
+      const r = refreshRefs.current;
+      if(document.hidden || r.paused) return;
+      try {
+        const params = { date: r.slotDate };
+        if(r.tab === 'leads')   params.includeLeads = 'true';
+        if(r.tab === 'passes')  params.includeMembers = 'true';
+        const snap = await API.get('getDashboardSnapshot', params);
+        setBookings(snap.bookings || []);
+        setSlots(snap.slots || []);
+        setStats(snap.stats || {});
+        if(snap.leads)   setLeads(snap.leads);
+        if(snap.members) setMembers(snap.members);
+        setLastSync(new Date());
+      } catch(_) {}
     };
     const id = setInterval(tick, REFRESH_INTERVAL_MS);
-    // Initial sync timestamp so the indicator doesn't say "never"
-    setLastSync(new Date());
     return () => clearInterval(id);
-  }, [loggedIn, slotDate, tab, confirm.show, showSpot, advSlot, showPass, showLead]);
+  }, [loggedIn]);
 
-  /* ── Time ticker for the "synced X ago" display ── */
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 5000);
-    return () => clearInterval(id);
+  // Time ticker for "X ago" display
+  useEffect(()=>{
+    const id = setInterval(()=>setNow(new Date()), 5000);
+    return ()=>clearInterval(id);
   }, []);
 
-  if (API_URL === "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
-    return <ConfigError />;
-  }
-  if (!loggedIn) return <LoginPage onLogin={() => setLoggedIn(true)} />;
+  // Refetch revenue on tab change
+  useEffect(()=>{
+    if(loggedIn && tab === 'revenue') fetchRevenue();
+  }, [tab, loggedIn]);
 
-  /* ── Booking actions ── */
-  function markPaid(id) {
-    ask({
-      title:"Mark as Paid", icon:"💰",
-      message:`Confirm payment received for booking ${id}? Defaulting to Cash — change to UPI from the spreadsheet if needed.`,
-      confirmLabel:"Mark Paid · Cash ✓",
-      onConfirm: async () => {
-        try {
-          await API.post('updateBooking', { id, payment_status:'paid', payment_mode:'cash' });
-          win(`Booking ${id} marked as Paid`, "💰");
-          fetchBookings();
-          fetchStats();
-        } catch (e) { err(e.message); }
-      }
-    });
-  }
-
-  function cancelBooking(id) {
-    ask({
-      title:"Cancel Booking", icon:"🚫",
-      message:`Cancel booking ${id}? This will free up its slot.`,
-      confirmLabel:"Yes, Cancel It",
-      danger:true,
-      onConfirm: async () => {
-        try {
-          await API.post('cancelBooking', { id });
-          win(`Booking ${id} cancelled`, "🚫");
-          fetchBookings();
-          fetchSlots(slotDate);
-          fetchStats();
-        } catch (e) { err(e.message); }
-      }
-    });
-  }
-
-  async function addSpotBooking(f) {
+  async function fetchRevenue(){
     try {
-      const today = formatDateISO(new Date());
-      await API.post('createSpotBooking', {
-        customer_name: f.name,
-        phone: normalizePhone(f.phone),
-        sport: f.sport,
-        slot_time: f.slot,
-        booking_date: today,
-        members_count: parseInt(f.members, 10) || 1,
-        amount: parseInt(f.amount, 10) || 0,
-        payment_status: f.payment,
-        payment_mode: f.payment === 'paid' ? (f.payment_mode || 'cash') : '',
-        notes: f.notes || ''
-      });
-      setShowSpot(false);
-      win(`Spot booking confirmed for ${f.name}!`, "⚡");
-      fetchBookings();
-      fetchSlots(slotDate);
-      fetchStats();
-    } catch (e) {
-      err(e.message);
-      throw e;
-    }
+      const params = {};
+      if(revenueRange.from) params.from = revenueRange.from;
+      if(revenueRange.to)   params.to   = revenueRange.to;
+      const r = await API.get('getRevenue', params);
+      setRevenue(r);
+    } catch(e){ err('Failed to load revenue: '+e.message); }
   }
 
-  /* ── Slot actions ── */
-  async function bookAdvanceSlot(f) {
-    try {
-      await API.post('createSpotBooking', {
-        customer_name: f.name,
-        phone: normalizePhone(f.phone),
-        sport: f.sport,
-        slot_id: f.slot_id,
-        members_count: parseInt(f.members, 10) || 1,
-        amount: parseInt(f.amount, 10) || 0,
-        payment_status: f.payment,
-        payment_mode: f.payment === 'paid' ? (f.payment_mode || 'cash') : '',
-        notes: f.notes || ''
-      });
-      setAdvSlot(null);
-      win(`Slot booked for ${f.name}!`, "📅");
-      fetchSlots(slotDate);
-      fetchBookings();
-      fetchStats();
-    } catch (e) {
-      err(e.message);
-      throw e;
-    }
-  }
+  // ── Derived state ──
+  const todayStr = formatDateISO(new Date());
+  const confirmedToday = bookings.filter(b => b.booking_date===todayStr && b.status==='confirmed');
+  const pendingToday   = confirmedToday.filter(b => b.payment_status==='pending');
+  const revenueToday   = confirmedToday.filter(b => b.payment_status==='paid').reduce((s,b)=>s+(parseFloat(b.amount)||0), 0);
+  const newLeadCount   = leads.filter(l => l.status === 'new').length;
 
-  function cancelSlotBooking(slot) {
-    if (!slot.booking_id) {
-      err("This slot has no linked booking.");
-      return;
-    }
-    ask({
-      title:"Cancel Slot Booking", icon:"🚫",
-      message:`Cancel ${slot.booked_name}'s booking? The slot becomes available again.`,
-      confirmLabel:"Cancel Booking",
-      danger:true,
-      onConfirm: async () => {
-        try {
-          await API.post('cancelBooking', { id: slot.booking_id });
-          win("Slot freed up — available again", "🚫");
-          fetchSlots(slotDate);
-          fetchBookings();
-          fetchStats();
-        } catch (e) { err(e.message); }
-      }
-    });
-  }
-
-  function blockSlotAction(slot) {
-    ask({
-      title:"Block This Slot", icon:"🚧",
-      message:`Block ${slot.slot_time} on ${formatDateNice(slot.slot_date)}? Use for maintenance or events.`,
-      confirmLabel:"Block Slot",
-      onConfirm: async () => {
-        try {
-          await API.post('blockSlot', { slot_id: slot.slot_id, reason: 'Blocked by admin' });
-          win("Slot blocked", "🚧");
-          fetchSlots(slotDate);
-        } catch (e) { err(e.message); }
-      }
-    });
-  }
-
-  function unblockSlotAction(slot) {
-    ask({
-      title:"Unblock Slot", icon:"✓",
-      message:`Make ${slot.slot_time} available again?`,
-      confirmLabel:"Unblock",
-      onConfirm: async () => {
-        try {
-          await API.post('unblockSlot', { slot_id: slot.slot_id });
-          win("Slot is now available", "✓");
-          fetchSlots(slotDate);
-        } catch (e) { err(e.message); }
-      }
-    });
-  }
-
-  /* ── Lead actions ── */
-  function updateLeadStatus(id, next) {
-    const lead = leads.find(l => l.lead_id === id);
-    const labels = { contacted:"Contacted", converted:"Converted ✓", lost:"Lost" };
-    const icons  = { contacted:"📞", converted:"🎉", lost:"❌" };
-    ask({
-      title:`Mark as ${labels[next]}`, icon: icons[next],
-      message:`Move "${lead?.name}" to ${labels[next]}?`,
-      confirmLabel: labels[next],
-      danger: next === "lost",
-      onConfirm: async () => {
-        try {
-          await API.post('updateLead', { id, status: next });
-          win(`${lead?.name} → ${labels[next]}`, icons[next]);
-          fetchLeads();
-          fetchStats();
-        } catch (e) { err(e.message); }
-      }
-    });
-  }
-
-  async function addLead(f) {
-    try {
-      await API.post('createLead', {
-        name: f.name,
-        phone: normalizePhone(f.phone),
-        sport: f.sport,
-        interest: f.interest,
-        source: normalizeSource(f.source),
-        notes: f.notes || ''
-      });
-      setShowLead(false);
-      win(`Lead added: ${f.name}`, "👤");
-      fetchLeads();
-      fetchStats();
-    } catch (e) {
-      err(e.message);
-      throw e;
-    }
-  }
-
-  function deleteLead(id) {
-    const lead = leads.find(l => l.lead_id === id);
-    ask({
-      title:"Remove Lead", icon:"🗑️",
-      message:`Remove "${lead?.name}" from the pipeline?`,
-      confirmLabel:"Remove",
-      danger:true,
-      onConfirm: async () => {
-        try {
-          await API.post('deleteLead', { id });
-          win(`Lead "${lead?.name}" removed`, "🗑️");
-          fetchLeads();
-        } catch (e) { err(e.message); }
-      }
-    });
-  }
-
-  /* ── Member actions ── */
-  async function addMember(f) {
-    try {
-      const planData = PASS_PLANS.find(p => p.key === f.plan);
-      await API.post('createMember', {
-        team_name: f.team,
-        plan_type: f.plan,
-        contact_name: f.contact,
-        contact_phone: normalizePhone(f.phone),
-        contact_email: f.email || '',
-        sport: f.sport,
-        max_members: parseInt(f.memberCount, 10) || 10,
-        amount_paid: parseInt(f.paid, 10) || planData?.price || 0,
-        notes: f.notes || ''
-      });
-      setShowPass(false);
-      win(`${planData?.label || "Pass"} created for ${f.team}!`, "🏅");
-      fetchMembers();
-      fetchStats();
-    } catch (e) {
-      err(e.message);
-      throw e;
-    }
-  }
-
-  function renewMember(id) {
-    const m = members.find(x => x.member_id === id);
-    ask({
-      title:"Renew Membership", icon:"🔄",
-      message:`Renew ${m?.plan_type} pass for "${m?.team_name}"?`,
-      confirmLabel:"Renew Now",
-      onConfirm: async () => {
-        try {
-          await API.post('renewMember', { id });
-          win(`${m?.team_name}'s membership renewed!`, "🔄");
-          fetchMembers();
-        } catch (e) { err(e.message); }
-      }
-    });
-  }
-
-  function cancelMember(id) {
-    const m = members.find(x => x.member_id === id);
-    ask({
-      title:"Cancel Membership", icon:"🚫",
-      message:`Cancel membership for "${m?.team_name}"?`,
-      confirmLabel:"Cancel Membership",
-      danger:true,
-      onConfirm: async () => {
-        try {
-          await API.post('cancelMember', { id });
-          win(`Membership cancelled for ${m?.team_name}`, "🚫");
-          fetchMembers();
-        } catch (e) { err(e.message); }
-      }
-    });
-  }
-
-  /* ── Computed ── */
-  const today = formatDateISO(new Date());
-  const confirmedToday = bookings.filter(b => b.booking_date === today && b.status === "confirmed");
-  const pendingToday = confirmedToday.filter(b => b.payment_status === "pending");
-  const revenueToday = confirmedToday.filter(b => b.payment_status === "paid").reduce((s,b) => s + (parseFloat(b.amount) || 0), 0);
-  const newLeadCount = leads.filter(l => l.status === "new").length;
-
-  // Phone search normalization — works with or without spaces, with or without +91
-  const filteredBookings = useMemo(() => {
-    if (!searchQ.trim()) return bookings;
-    const q = searchQ.trim().toLowerCase();
+  const filteredBookings = useMemo(()=>{
+    if(!searchQ.trim()) return bookings;
+    const q = searchQ.toLowerCase().trim();
     const qPhone = normalizePhone(searchQ);
-    return bookings.filter(b => {
-      if (b.booking_id && b.booking_id.toLowerCase().includes(q)) return true;
-      if (b.customer_name && b.customer_name.toLowerCase().includes(q)) return true;
-      if (qPhone && qPhone.length >= 4 && normalizePhone(b.phone).includes(qPhone)) return true;
-      return false;
-    });
+    return bookings.filter(b =>
+      (b.booking_id && b.booking_id.toLowerCase().includes(q)) ||
+      (b.customer_name && b.customer_name.toLowerCase().includes(q)) ||
+      (qPhone.length>=4 && normalizePhone(b.phone).includes(qPhone))
+    );
   }, [bookings, searchQ]);
 
-  // Slot filter — supports the avl / adv / booked / blocked / all toggle
-  const filteredSlots = useMemo(() => {
-    if (slotFilter === 'all') return slots;
-    return slots.filter(s => s.status === slotFilter);
-  }, [slots, slotFilter]);
+  // Group slots by time window — each window has 4 resources
+  const groupedSlots = useMemo(()=>{
+    const map = {};
+    slots.forEach(s => {
+      if(!map[s.slot_time]) map[s.slot_time] = {};
+      map[s.slot_time][s.resource] = s;
+    });
+    return Object.keys(map).sort().map(time => ({
+      slot_time: time,
+      turf: map[time].turf,
+      net1: map[time].net1,
+      net2: map[time].net2,
+      net3: map[time].net3
+    }));
+  }, [slots]);
+
+  // Slot filter
+  const filteredGrouped = useMemo(()=>{
+    if(slotFilter === 'all') return groupedSlots;
+    return groupedSlots.filter(g => {
+      const all = [g.turf, g.net1, g.net2, g.net3].filter(Boolean);
+      if(slotFilter === 'available') return all.some(r => r.status === 'available');
+      if(slotFilter === 'booked')    return all.some(r => r.status === 'booked');
+      if(slotFilter === 'advance')   return all.some(r => r.status === 'advance');
+      if(slotFilter === 'blocked')   return all.some(r => r.status === 'blocked');
+      return true;
+    });
+  }, [groupedSlots, slotFilter]);
+
+  // ── Actions ──
+  async function markPaid(id){
+    setConfirm({ show:true, title:'Mark as Paid?', message:'This booking will be recorded as paid.', confirmLabel:'Mark Paid', onConfirm: async()=>{
+      try {
+        await API.post('updateBooking', { id, payment_status:'paid', payment_mode:'cash' });
+        ok('Marked as paid');
+        loadSnapshot();
+      } catch(e){ err(e.message); }
+    }});
+  }
+
+  async function cancelBooking(id){
+    setConfirm({ show:true, title:'Cancel Booking?', message:'This will free up the slot. This action cannot be undone.', confirmLabel:'Cancel Booking', danger:true, onConfirm: async()=>{
+      try {
+        await API.post('cancelBooking', { id });
+        ok('Booking cancelled');
+        loadSnapshot();
+      } catch(e){ err(e.message); }
+    }});
+  }
+
+  async function blockSlot(slot_id){
+    const reason = prompt('Reason for blocking?');
+    if(!reason) return;
+    try {
+      await API.post('blockSlot', { slot_id, reason });
+      ok('Slot blocked');
+      loadSnapshot();
+    } catch(e){ err(e.message); }
+  }
+
+  async function unblockSlot(slot_id){
+    try {
+      await API.post('unblockSlot', { slot_id });
+      ok('Slot unblocked');
+      loadSnapshot();
+    } catch(e){ err(e.message); }
+  }
+
+  async function deleteLead(id){
+    setConfirm({ show:true, title:'Delete Lead?', message:'This will permanently remove this lead.', confirmLabel:'Delete', danger:true, onConfirm: async()=>{
+      try { await API.post('deleteLead', { id }); ok('Lead deleted'); loadSnapshot({ includeLeads: true }); }
+      catch(e){ err(e.message); }
+    }});
+  }
+
+  async function moveLeadStatus(id, status){
+    try {
+      await API.post('updateLead', { id, status });
+      ok('Lead moved to ' + status);
+      loadSnapshot({ includeLeads: true });
+    } catch(e){ err(e.message); }
+  }
+
+  async function renewMember(id){
+    setConfirm({ show:true, title:'Renew Membership?', message:'This will extend the membership from today.', confirmLabel:'Renew', onConfirm: async()=>{
+      try { await API.post('renewMember', { id }); ok('Membership renewed'); loadSnapshot({ includeMembers: true }); }
+      catch(e){ err(e.message); }
+    }});
+  }
+
+  async function cancelMember(id){
+    setConfirm({ show:true, title:'Cancel Membership?', message:'This will deactivate the membership.', confirmLabel:'Cancel Membership', danger:true, onConfirm: async()=>{
+      try { await API.post('cancelMember', { id }); ok('Membership cancelled'); loadSnapshot({ includeMembers: true }); }
+      catch(e){ err(e.message); }
+    }});
+  }
+
+  function signOut(){
+    sessionStorage.removeItem('hnr_admin_key');
+    setLoggedIn(false);
+  }
+
+  // ── Render ──
+  if(API_URL === "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE"){
+    return (
+      <div style={{ minHeight:'100vh', background:'#0a0a0a', color:'#fff', display:'grid', placeItems:'center', padding:24 }}>
+        <div style={{ maxWidth:560 }}>
+          <div style={{ fontSize:48, marginBottom:16 }}>⚙️</div>
+          <div style={{ fontSize:24, fontWeight:800, marginBottom:12 }}>Setup required</div>
+          <div style={{ fontSize:14, color:'#888', lineHeight:1.7, marginBottom:18 }}>
+            Open this HTML file in a text editor and replace the API_URL placeholder with your Apps Script Web App URL.
+          </div>
+          <pre style={{ background:'#141414', padding:'12px 14px', borderRadius:8, fontSize:12, color:'#c4f000', overflow:'auto', border:'1px solid #2a2a2a' }}>{`const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";`}</pre>
+        </div>
+      </div>
+    );
+  }
+
+  if(!loggedIn) return <LoginPage onLogin={()=>setLoggedIn(true)}/>;
 
   const navItems = [
-    { key:"bookings",     icon:"📅", label:"Bookings",     badge:null },
-    { key:"availability", icon:"🗓️",  label:"Availability",  badge:null },
-    { key:"leads",        icon:"👤", label:"Leads",         badge: newLeadCount > 0 ? newLeadCount : null },
-    { key:"passes",       icon:"🏅", label:"Passes",        badge:null },
-    { key:"revenue",      icon:"💰", label:"Revenue",       badge:null },
+    { key:'bookings',     label:'Bookings',     icon:'📅', badge: pendingToday.length },
+    { key:'availability', label:'Availability', icon:'⏱️' },
+    { key:'leads',        label:'Leads',        icon:'👤', badge: newLeadCount },
+    { key:'passes',       label:'Passes',       icon:'🎟️' },
+    { key:'revenue',      label:'Revenue',      icon:'💰' }
   ];
 
   return (
-    <div style={{ fontFamily:"'Outfit',system-ui,sans-serif", background:"#f1f2f4", minHeight:"100vh", color:"#111" }}>
-      <ConfirmModal config={confirm} onClose={closeConfirm} />
-      <Toast toast={toast} onClose={()=>setToast({show:false})} />
-      {showSpot && <SpotBookingModal onClose={()=>setShowSpot(false)} onBook={addSpotBooking} />}
-      {advSlot   && <AdvanceBookingModal slot={advSlot} onClose={()=>setAdvSlot(null)} onBook={bookAdvanceSlot} />}
-      {showPass  && <PassBookingModal onClose={()=>setShowPass(false)} onSave={addMember} />}
-      {showLead  && <AddLeadModal onClose={()=>setShowLead(false)} onSave={addLead} />}
-
+    <div style={{ minHeight:'100vh', background:'#f9fafb' }}>
       {/* ── Top Bar ── */}
-      <div style={{
-        background:"#0a0a0a", padding:"0 24px",
-        display:"flex", alignItems:"center", justifyContent:"space-between",
-        height:58, position:"sticky", top:0, zIndex:80, borderBottom:"1px solid #1a1a1a"
+      <div className="top-bar" style={{
+        background:'#0a0a0a', padding:'0 24px',
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        height:58, position:'sticky', top:0, zIndex:80, borderBottom:'1px solid #1a1a1a'
       }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <div style={{ width:36, height:36, borderRadius:10, background:"#f59e0b", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🏏</div>
+        <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+          <div style={{ width:32, height:32, borderRadius:8, background:'linear-gradient(135deg,#c4f000,#94c800)', display:'grid', placeItems:'center', fontSize:16 }}>🏏</div>
           <div>
-            <div style={{ fontSize:14, fontWeight:800, color:"#fff", lineHeight:1.2, letterSpacing:"-.3px" }}>Hit N Run Sports Arena</div>
-            <div style={{ fontSize:10, color:"#444", letterSpacing:".06em", textTransform:"uppercase" }}>Admin Panel</div>
+            <div style={{ fontSize:14, fontWeight:800, color:'#fff', lineHeight:1.2, letterSpacing:'-.3px' }}>Hit N Run Sports Arena</div>
+            <div className="brand-sub" style={{ fontSize:10, color:'#444', letterSpacing:'.06em', textTransform:'uppercase' }}>Admin Panel</div>
           </div>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-          <div style={{ fontSize:12, color:"#444" }}>{formatDateLong()}</div>
-
-          {/* Live sync indicator */}
-          <div title={lastSync ? `Auto-refreshing every ${REFRESH_INTERVAL_MS/1000}s — last sync ${lastSync.toLocaleTimeString('en-IN')}` : "Connecting…"}
-            style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"#10b981", padding:"5px 10px", background:"#0f1a12", border:"1px solid #1a3a26", borderRadius:99, fontWeight:600 }}>
+        <div className="top-bar-actions" style={{ display:'flex', alignItems:'center', gap:14 }}>
+          <div className="top-bar-date" style={{ fontSize:12, color:'#444' }}>{formatDateLong()}</div>
+          <div title={lastSync ? `Auto-refreshing every ${REFRESH_INTERVAL_MS/1000}s · last sync ${lastSync.toLocaleTimeString('en-IN')}` : 'Connecting…'}
+            style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'#10b981', padding:'5px 10px', background:'#0f1a12', border:'1px solid #1a3a26', borderRadius:99, fontWeight:600 }}>
             <span className="live-dot-green"></span>
-            <span>Live · {lastSync ? relativeTime(lastSync, now) : "syncing…"}</span>
+            <span className="live-text-full">Live · {lastSync ? relativeTime(lastSync, now) : 'syncing…'}</span>
           </div>
-
-          <button onClick={() => { fetchBookings(); fetchLeads(); fetchMembers(); fetchSlots(slotDate); fetchStats(); setLastSync(new Date()); win("Refreshed", "🔄"); }}
-            title="Refresh all data now"
-            style={{ fontSize:12, color:"#aaa", background:"#1a1a1a", border:"1px solid #2a2a2a", borderRadius:7, padding:"6px 11px", cursor:"pointer", fontWeight:600 }}>🔄</button>
-          <button onClick={() => ask({ title:"Sign Out", icon:"👋", message:"Sign out of admin?", confirmLabel:"Sign Out",
-              onConfirm:()=>{ sessionStorage.removeItem('hnr_admin_key'); setLoggedIn(false); }
-            })}
-            style={{ fontSize:12, color:"#777", background:"none", border:"1px solid #2a2a2a", borderRadius:7, padding:"6px 13px", cursor:"pointer", fontWeight:600 }}>Sign out</button>
+          <button onClick={()=>loadSnapshot({ includeLeads: tab==='leads', includeMembers: tab==='passes' })}
+            style={{ padding:'7px 14px', background:'#1a1a1a', color:'#fff', borderRadius:8, fontSize:12, fontWeight:600, border:'1px solid #2a2a2a' }}>
+            ↻
+          </button>
+          <button onClick={signOut} style={{ padding:'7px 14px', background:'#1a1a1a', color:'#888', borderRadius:8, fontSize:12, fontWeight:600, border:'1px solid #2a2a2a' }}>Sign out</button>
         </div>
       </div>
 
       {/* ── Stat Cards ── */}
-      <div style={{ padding:"18px 24px 0", display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
+      <div className="stat-grid" style={{ padding:'18px 24px 0', display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
         {[
-          { label:"Bookings Today",  value: confirmedToday.length,                           accent:"#f59e0b", icon:"📅" },
-          { label:"Pending Payment", value: pendingToday.length,                             accent:"#ef4444", icon:"⏳" },
-          { label:"Revenue Today",   value: `₹${revenueToday.toLocaleString("en-IN")}`,      accent:"#10b981", icon:"💰" },
-          { label:"New Leads",       value: newLeadCount,                                    accent:"#6366f1", icon:"👤" },
+          { label:'Bookings Today',  value: confirmedToday.length, accent:'#f59e0b', icon:'📅' },
+          { label:'Pending Payment', value: pendingToday.length,   accent:'#ef4444', icon:'⏳' },
+          { label:'Revenue Today',   value: `₹${revenueToday.toLocaleString('en-IN')}`, accent:'#10b981', icon:'💰' },
+          { label:'New Leads',       value: newLeadCount, accent:'#6366f1', icon:'👤' }
         ].map(c => (
-          <div key={c.label} style={{
-            background:"#fff", borderRadius:14, padding:"16px 18px",
-            borderTop:`3px solid ${c.accent}`, boxShadow:"0 1px 4px rgba(0,0,0,.06)"
+          <div key={c.label} className="stat-card" style={{
+            background:'#fff', borderRadius:14, padding:'16px 18px',
+            borderTop:`3px solid ${c.accent}`, boxShadow:'0 1px 4px rgba(0,0,0,.06)'
           }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
-              <div style={{ fontSize:11, color:"#9ca3af", fontWeight:600, textTransform:"uppercase", letterSpacing:".04em" }}>{c.label}</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+              <div className="stat-card-label" style={{ fontSize:11, color:'#9ca3af', fontWeight:600, textTransform:'uppercase', letterSpacing:'.04em' }}>{c.label}</div>
               <div style={{ fontSize:16 }}>{c.icon}</div>
             </div>
-            <div style={{ fontSize:26, fontWeight:800, color:c.accent, lineHeight:1 }}>{c.value}</div>
+            <div className="stat-card-num" style={{ fontSize:26, fontWeight:800, color:c.accent, lineHeight:1 }}>{c.value}</div>
           </div>
         ))}
       </div>
 
       {/* ── Tab Bar ── */}
-      <div style={{ display:"flex", gap:2, padding:"16px 24px 0", flexWrap:"wrap" }}>
+      <div className="tab-bar" style={{ display:'flex', gap:2, padding:'16px 24px 0', flexWrap:'wrap' }}>
         {navItems.map(n => (
-          <button key={n.key} className="tab-btn" onClick={() => setTab(n.key)} style={{
-            padding:"9px 18px", borderRadius:"10px 10px 0 0",
-            border:"none", cursor:"pointer", fontSize:13, fontWeight:600,
-            background: tab === n.key ? "#fff" : "transparent",
-            color: tab === n.key ? "#111" : "#9ca3af",
-            borderBottom: tab === n.key ? "2.5px solid #f59e0b" : "2.5px solid transparent",
-            position:"relative"
+          <button key={n.key} onClick={()=>setTab(n.key)} style={{
+            padding:'9px 18px', borderRadius:'10px 10px 0 0',
+            fontSize:13, fontWeight:600,
+            background: tab===n.key ? '#fff' : 'transparent',
+            color: tab===n.key ? '#111' : '#9ca3af',
+            borderBottom: tab===n.key ? '2.5px solid #f59e0b' : '2.5px solid transparent'
           }}>
             {n.icon} {n.label}
-            {n.badge && <span style={{ marginLeft:6, background:"#6366f1", color:"#fff", fontSize:10, borderRadius:999, padding:"1px 7px", fontWeight:800 }}>{n.badge}</span>}
+            {n.badge>0 && <span style={{ marginLeft:6, background:'#6366f1', color:'#fff', fontSize:10, borderRadius:999, padding:'1px 7px', fontWeight:800 }}>{n.badge}</span>}
           </button>
         ))}
       </div>
 
       {/* ── Tab Content ── */}
-      <div style={{
-        background:"#fff", margin:"0 24px 28px",
-        borderRadius:"0 12px 12px 12px", padding:"24px",
-        border:"1px solid #e5e7eb", boxShadow:"0 2px 8px rgba(0,0,0,.05)"
+      <div className="content-card" style={{
+        background:'#fff', margin:'0 24px 28px',
+        borderRadius:'0 12px 12px 12px', padding:24,
+        border:'1px solid #e5e7eb', boxShadow:'0 2px 8px rgba(0,0,0,.05)'
       }}>
+        {loading && <LoadingBlock message="Loading dashboard…"/>}
 
-        {/* ━━━━━━ BOOKINGS TAB ━━━━━━ */}
-        {tab === "bookings" && (
+        {/* ━━━━━ BOOKINGS TAB ━━━━━ */}
+        {!loading && tab === 'bookings' && (
           <div className="anim-up">
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18, flexWrap:"wrap", gap:10 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:10 }}>
               <div>
                 <div style={{ fontSize:16, fontWeight:800 }}>All Bookings</div>
-                <div style={{ fontSize:12, color:"#9ca3af", marginTop:2 }}>{confirmedToday.length} today · {pendingToday.length} pending payment · {bookings.length} total</div>
+                <div style={{ fontSize:12, color:'#9ca3af' }}>{filteredBookings.length} {filteredBookings.length===1?'booking':'bookings'}</div>
               </div>
-              <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
-                <input
-                  placeholder="🔍  Search name, phone, ID…"
-                  value={searchQ} onChange={e=>setSearchQ(e.target.value)}
-                  style={{ ...INP, width:260 }}
-                />
-                <button className="action-btn" onClick={() => setShowSpot(true)} style={{
-                  padding:"9px 18px", background:"#f59e0b", color:"#000",
-                  border:"none", borderRadius:9, cursor:"pointer", fontSize:13,
-                  fontWeight:800, whiteSpace:"nowrap"
-                }}>⚡ Spot Booking</button>
+              <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="🔍 Search name, phone, ID…" style={{
+                  padding:'9px 14px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:13, minWidth:200, outline:'none'
+                }}/>
+                <button onClick={()=>setShowSpot(true)} style={{ padding:'9px 16px', background:'#f59e0b', color:'#fff', borderRadius:8, fontSize:13, fontWeight:700 }}>+ Walk-in</button>
               </div>
             </div>
 
-            {loadingBookings ? <LoadingBlock message="Loading bookings…" /> : (
-              <div style={{ overflowX:"auto" }}>
-                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
-                  <thead>
-                    <tr style={{ borderBottom:"2px solid #f3f4f6", background:"#fafafa" }}>
-                      {["ID","Customer","Sport","Date","Slot","Members","Amount","Type","Payment","Actions"].map(h => (
-                        <th key={h} style={{ padding:"9px 11px", textAlign:"left", color:"#9ca3af", fontWeight:700, fontSize:11, textTransform:"uppercase", letterSpacing:".05em", whiteSpace:"nowrap" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredBookings.map(b => {
-                      const sc = sportColor(b.sport);
-                      const pc = paymentBadge(b);
-                      const cancelled = b.status === "cancelled";
-                      const typeLabel = b.booking_type === "regular" ? "Regular" :
-                                        b.booking_type === "weekly_pass" ? "Weekly Pass" :
-                                        b.booking_type === "monthly_pass" ? "Monthly Pass" :
-                                        b.booking_type === "quarterly_pass" ? "Quarterly Pass" : b.booking_type;
-                      return (
-                        <tr key={b.booking_id} style={{ borderBottom:"1px solid #f3f4f6", opacity: cancelled ? .4 : 1, background: cancelled ? "#fafafa" : "#fff" }}>
-                          <td style={{ padding:"11px 11px", fontFamily:"monospace", fontSize:11, color:"#9ca3af" }}>{b.booking_id}</td>
-                          <td style={{ padding:"11px 11px" }}>
-                            <div style={{ fontWeight:700, fontSize:13 }}>{b.customer_name}</div>
-                            <div style={{ fontSize:11, color:"#9ca3af" }}>{formatPhone(b.phone)}</div>
-                          </td>
-                          <td style={{ padding:"11px 11px" }}><Badge bg={sc.bg} text={sc.text}>{b.sport}</Badge></td>
-                          <td style={{ padding:"11px 11px", whiteSpace:"nowrap", fontSize:12, color:"#6b7280" }}>{formatDateShort(b.booking_date)}</td>
-                          <td style={{ padding:"11px 11px", whiteSpace:"nowrap", fontWeight:600, fontSize:12 }}>{b.slot_time}</td>
-                          <td style={{ padding:"11px 11px", textAlign:"center", fontWeight:600 }}>{b.members_count}</td>
-                          <td style={{ padding:"11px 11px", fontWeight:700 }}>
-                            {b.amount > 0 ? `₹${parseInt(b.amount).toLocaleString("en-IN")}` : <span style={{ color:"#d1d5db" }}>—</span>}
-                          </td>
-                          <td style={{ padding:"11px 11px" }}>
-                            <span style={{ fontSize:11, color:"#6b7280" }}>{typeLabel}</span>
-                          </td>
-                          <td style={{ padding:"11px 11px" }}><Badge bg={pc.bg} text={pc.text}>{pc.label}</Badge></td>
-                          <td style={{ padding:"11px 11px" }}>
-                            {cancelled ? <span style={{ fontSize:11, color:"#ef4444", fontWeight:700 }}>✕ Cancelled</span> : (
-                              <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-                                {b.payment_status === "pending" && b.booking_type === "regular" && (
-                                  <button className="action-btn" onClick={() => markPaid(b.booking_id)} style={{
-                                    fontSize:11, padding:"5px 11px", background:"#dcfce7", color:"#14532d",
-                                    border:"none", borderRadius:6, cursor:"pointer", fontWeight:700 }}>💰 Mark Paid</button>
-                                )}
-                                <CancelBtn onClick={() => cancelBooking(b.booking_id)} label="Cancel" small />
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {filteredBookings.length === 0 && (
-                      <tr><td colSpan={10} style={{ padding:"40px", textAlign:"center", color:"#d1d5db", fontSize:14 }}>
-                        {searchQ ? `No bookings match "${searchQ}"` : "No bookings yet."}
-                      </td></tr>
+            {/* Desktop: table */}
+            <div className="bookings-table-wrap" style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+                <thead>
+                  <tr style={{ borderBottom:'2px solid #f3f4f6', background:'#fafafa' }}>
+                    {['ID','Customer','Sport','Type','Date','Slot','Players','Amount','Payment','Actions'].map(h => (
+                      <th key={h} style={{ padding:'9px 11px', textAlign:'left', color:'#9ca3af', fontWeight:700, fontSize:11, textTransform:'uppercase', letterSpacing:'.05em', whiteSpace:'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredBookings.map(b => {
+                    const sc = sportColor(b.sport);
+                    const pc = paymentBadge(b);
+                    const cancelled = b.status === 'cancelled';
+                    const kindLabel = b.booking_kind==='net' ? `🥅 Net (${b.resource})` : '🏏 Turf';
+                    return (
+                      <tr key={b.booking_id} style={{ borderBottom:'1px solid #f3f4f6', opacity: cancelled?.4:1, background: cancelled?'#fafafa':'#fff' }}>
+                        <td style={{ padding:'11px', fontFamily:'monospace', fontSize:11, color:'#9ca3af' }}>{b.booking_id}</td>
+                        <td style={{ padding:'11px' }}>
+                          <div style={{ fontWeight:700, fontSize:13 }}>{b.customer_name}</div>
+                          <div style={{ fontSize:11, color:'#9ca3af' }}>{formatPhone(b.phone)}</div>
+                        </td>
+                        <td style={{ padding:'11px' }}><Badge bg={sc.bg} text={sc.text}>{b.sport}</Badge></td>
+                        <td style={{ padding:'11px', fontSize:11, color:'#6b7280' }}>{kindLabel}</td>
+                        <td style={{ padding:'11px', whiteSpace:'nowrap', fontSize:12, color:'#6b7280' }}>{formatDateShort(b.booking_date)}</td>
+                        <td style={{ padding:'11px', whiteSpace:'nowrap', fontWeight:600, fontSize:12 }}>{b.slot_time}</td>
+                        <td style={{ padding:'11px', textAlign:'center', fontWeight:600 }}>{b.members_count}</td>
+                        <td style={{ padding:'11px', fontWeight:700 }}>{b.amount>0?`₹${parseInt(b.amount).toLocaleString('en-IN')}`:'—'}</td>
+                        <td style={{ padding:'11px' }}><Badge bg={pc.bg} text={pc.text}>{pc.label}</Badge></td>
+                        <td style={{ padding:'11px' }}>
+                          {cancelled ? <span style={{ fontSize:11, color:'#ef4444', fontWeight:700 }}>✕ Cancelled</span> : (
+                            <div style={{ display:'flex', gap:6 }}>
+                              {b.payment_status==='pending' && <button onClick={()=>markPaid(b.booking_id)} style={{ fontSize:11, padding:'5px 11px', background:'#dcfce7', color:'#14532d', borderRadius:6, fontWeight:700 }}>💰 Paid</button>}
+                              <CancelBtn onClick={()=>cancelBooking(b.booking_id)} small/>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredBookings.length===0 && (
+                    <tr><td colSpan={10} style={{ padding:40, textAlign:'center', color:'#d1d5db', fontSize:14 }}>
+                      {searchQ ? `No bookings match "${searchQ}"` : 'No bookings yet.'}
+                    </td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile: cards */}
+            <div className="bookings-mobile" style={{ flexDirection:'column', gap:10 }}>
+              {filteredBookings.length===0 && (
+                <div style={{ padding:'32px 16px', textAlign:'center', color:'#9ca3af', fontSize:13, border:'1.5px dashed #e5e7eb', borderRadius:12 }}>
+                  {searchQ ? `No bookings match "${searchQ}"` : 'No bookings yet.'}
+                </div>
+              )}
+              {filteredBookings.map(b => {
+                const sc = sportColor(b.sport);
+                const pc = paymentBadge(b);
+                const cancelled = b.status === 'cancelled';
+                return (
+                  <div key={b.booking_id} style={{ border:'1px solid #e5e7eb', borderRadius:12, padding:14, opacity: cancelled?.4:1, background: cancelled?'#fafafa':'#fff' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8, gap:8 }}>
+                      <div>
+                        <div style={{ fontWeight:800, fontSize:14 }}>{b.customer_name}</div>
+                        <div style={{ fontSize:11, color:'#9ca3af', marginTop:1 }}>{formatPhone(b.phone)}</div>
+                      </div>
+                      <Badge bg={pc.bg} text={pc.text}>{pc.label}</Badge>
+                    </div>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
+                      <Badge bg={sc.bg} text={sc.text}>{b.sport}</Badge>
+                      <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>{b.booking_kind==='net'?'🥅 Net':'🏏 Turf'}</span>
+                      <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>📅 {formatDateShort(b.booking_date)}</span>
+                      <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>⏰ {b.slot_time}</span>
+                      <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>👥 {b.members_count}</span>
+                      {b.amount>0 && <span style={{ fontSize:11, color:'#111', padding:'3px 9px', background:'#fef3c7', borderRadius:999, fontWeight:700 }}>₹{parseInt(b.amount).toLocaleString('en-IN')}</span>}
+                    </div>
+                    <div style={{ fontSize:10, color:'#9ca3af', fontFamily:'monospace', marginBottom: cancelled?0:10 }}>{b.booking_id}</div>
+                    {!cancelled && (
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                        {b.payment_status==='pending' && <button onClick={()=>markPaid(b.booking_id)} style={{ fontSize:11, padding:'6px 12px', background:'#dcfce7', color:'#14532d', borderRadius:7, fontWeight:700 }}>💰 Mark Paid</button>}
+                        <CancelBtn onClick={()=>cancelBooking(b.booking_id)} small/>
+                      </div>
                     )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* ━━━━━━ AVAILABILITY TAB ━━━━━━ */}
-        {tab === "availability" && (
+        {/* ━━━━━ AVAILABILITY TAB ━━━━━ */}
+        {!loading && tab === 'availability' && (
           <div className="anim-up">
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14, flexWrap:"wrap", gap:10 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:10 }}>
               <div>
                 <div style={{ fontSize:16, fontWeight:800 }}>Slot Availability</div>
-                <div style={{ fontSize:12, color:"#9ca3af", marginTop:2 }}>Click any available slot to create an advance booking</div>
+                <div style={{ fontSize:12, color:'#9ca3af' }}>Each slot has 1 turf + 3 nets</div>
               </div>
             </div>
 
-            {/* Date pills — next 15 days */}
-            <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:6 }}>
-              {next15.map((d,i) => (
-                <button key={d.iso} onClick={() => setSlotDate(d.iso)} style={{
-                  padding:"7px 14px", border:"none", borderRadius:8, cursor:"pointer",
-                  fontSize:12, fontWeight:700, whiteSpace:"nowrap",
-                  background: slotDate === d.iso ? "#f59e0b" : "#f3f4f6",
-                  color: slotDate === d.iso ? "#000" : "#6b7280",
-                  display:"flex", flexDirection:"column", alignItems:"center", gap:1, minWidth:64,
-                  transition:"all .15s"
+            <div className="date-strip-admin" style={{ display:'flex', gap:6, marginBottom:14, overflowX:'auto', paddingBottom:6 }}>
+              {getNext15Days().map(d => (
+                <button key={d.iso} onClick={()=>setSlotDate(d.iso)} style={{
+                  flexShrink:0, padding:'8px 14px', borderRadius:8, minWidth:78,
+                  background: slotDate===d.iso ? '#f59e0b' : '#f3f4f6',
+                  color: slotDate===d.iso ? '#fff' : '#374151',
+                  fontWeight:600, fontSize:12, textAlign:'center'
                 }}>
-                  <span>{d.label}</span>
-                  {i > 1 && <span style={{ fontSize:9, opacity:.7 }}>{d.weekday}</span>}
+                  <div style={{ fontSize:10, opacity:.75, fontWeight:700, textTransform:'uppercase' }}>{d.label}</div>
+                  <div style={{ fontSize:16, fontWeight:800, lineHeight:1.1 }}>{d.day}</div>
+                  <div style={{ fontSize:9, opacity:.7 }}>{d.weekday}</div>
                 </button>
               ))}
             </div>
 
-            {/* Status filter pills — NEW */}
-            <div style={{ display:"flex", gap:6, marginBottom:18, flexWrap:"wrap" }}>
-              {[
-                { key:'all',       label:'All',       count: slots.length,                                       bg:'#111',    activeBg:'#111',    activeColor:'#fff' },
-                { key:'available', label:'Available', count: slots.filter(s=>s.status==='available').length,     bg:'#dcfce7', activeBg:'#10b981', activeColor:'#fff' },
-                { key:'advance',   label:'Advance',   count: slots.filter(s=>s.status==='advance').length,       bg:'#dbeafe', activeBg:'#3b82f6', activeColor:'#fff' },
-                { key:'booked',    label:'Booked',    count: slots.filter(s=>s.status==='booked').length,        bg:'#fee2e2', activeBg:'#ef4444', activeColor:'#fff' },
-                { key:'blocked',   label:'Blocked',   count: slots.filter(s=>s.status==='blocked').length,       bg:'#f3f4f6', activeBg:'#6b7280', activeColor:'#fff' }
-              ].map(f => {
-                const active = slotFilter === f.key;
+            <div className="filter-row" style={{ display:'flex', gap:6, marginBottom:18, flexWrap:'wrap' }}>
+              {['all','available','booked','advance','blocked'].map(f => (
+                <button key={f} onClick={()=>setSlotFilter(f)} style={{
+                  padding:'7px 13px', borderRadius:7, fontSize:12, fontWeight:600,
+                  background: slotFilter===f ? '#111' : '#f3f4f6',
+                  color: slotFilter===f ? '#fff' : '#6b7280'
+                }}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>
+              ))}
+            </div>
+
+            {filteredGrouped.length === 0 && (
+              <div style={{ padding:'40px 16px', textAlign:'center', color:'#9ca3af', fontSize:13, border:'1.5px dashed #e5e7eb', borderRadius:12 }}>
+                No slots match this filter.
+              </div>
+            )}
+
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:12 }}>
+              {filteredGrouped.map(g => (
+                <SlotCard key={g.slot_time} group={g} onBlock={blockSlot} onUnblock={unblockSlot} onCancel={cancelBooking}/>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ━━━━━ LEADS TAB ━━━━━ */}
+        {!loading && tab === 'leads' && (
+          <div className="anim-up">
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:10 }}>
+              <div>
+                <div style={{ fontSize:16, fontWeight:800 }}>Lead Pipeline</div>
+                <div style={{ fontSize:12, color:'#9ca3af' }}>{leads.length} total · {newLeadCount} new</div>
+              </div>
+              <button onClick={()=>{ setEditingLead(null); setShowLead(true); }} style={{ padding:'9px 16px', background:'#6366f1', color:'#fff', borderRadius:8, fontSize:13, fontWeight:700 }}>+ New Lead</button>
+            </div>
+
+            <div className="lead-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14 }}>
+              {['new','contacted','qualified','converted'].map(status => {
+                const items = leads.filter(l => l.status === status);
                 return (
-                  <button key={f.key} className={`filter-pill ${active ? 'active' : ''}`} onClick={() => setSlotFilter(f.key)} style={{
-                    padding:"7px 14px", border:"none", borderRadius:999, cursor:"pointer",
-                    fontSize:12, fontWeight:700,
-                    background: active ? f.activeBg : "#f3f4f6",
-                    color: active ? f.activeColor : "#6b7280",
-                    display:"inline-flex", alignItems:"center", gap:8
-                  }}>
-                    {f.label}
-                    <span style={{
-                      background: active ? "rgba(255,255,255,.25)" : "#fff",
-                      color: active ? "#fff" : "#9ca3af",
-                      borderRadius:999, padding:"1px 8px", fontSize:10, fontWeight:800, minWidth:22, textAlign:"center"
-                    }}>{f.count}</span>
-                  </button>
+                  <div key={status} style={{ background:'#fafafa', borderRadius:12, padding:14, minHeight:200 }}>
+                    <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.08em', color:'#6b7280', marginBottom:12, display:'flex', justifyContent:'space-between' }}>
+                      <span>{status}</span><span style={{ color:'#111' }}>{items.length}</span>
+                    </div>
+                    {items.length===0 && <div style={{ fontSize:12, color:'#d1d5db', textAlign:'center', padding:20 }}>None</div>}
+                    {items.map(l => (
+                      <div key={l.lead_id} style={{ background:'#fff', borderRadius:8, padding:'10px 12px', marginBottom:8, border:'1px solid #e5e7eb', fontSize:12 }}>
+                        <div style={{ fontWeight:700 }}>{l.name}</div>
+                        <div style={{ color:'#9ca3af', fontSize:11 }}>{formatPhone(l.phone)}</div>
+                        {l.sport && <Badge bg="#dbeafe" text="#1e40af">{l.sport}</Badge>}
+                        <div style={{ display:'flex', gap:4, marginTop:8, flexWrap:'wrap' }}>
+                          <button onClick={()=>{ setEditingLead(l); setShowLead(true); }} style={{ fontSize:10, padding:'4px 8px', background:'#f3f4f6', borderRadius:5, fontWeight:600 }}>Edit</button>
+                          {status !== 'converted' && <button onClick={()=>moveLeadStatus(l.lead_id, nextStatus(status))} style={{ fontSize:10, padding:'4px 8px', background:'#dbeafe', color:'#1e40af', borderRadius:5, fontWeight:700 }}>→ {nextStatus(status)}</button>}
+                          <button onClick={()=>deleteLead(l.lead_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fef2f2', color:'#991b1b', borderRadius:5, fontWeight:600 }}>✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 );
               })}
             </div>
+          </div>
+        )}
 
-            {loadingSlots ? <LoadingBlock message={`Loading slots for ${formatDateNice(slotDate)}…`} /> : (
-              <>
-                {/* Slot grid */}
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(260px, 1fr))", gap:14 }}>
-                  {filteredSlots.map(slot => {
-                    const isAvail   = slot.status === "available";
-                    const isAdvance = slot.status === "advance";
-                    const isBooked  = slot.status === "booked";
-                    const isBlocked = slot.status === "blocked";
+        {/* ━━━━━ PASSES TAB ━━━━━ */}
+        {!loading && tab === 'passes' && (
+          <div className="anim-up">
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:10 }}>
+              <div>
+                <div style={{ fontSize:16, fontWeight:800 }}>Memberships & Passes</div>
+                <div style={{ fontSize:12, color:'#9ca3af' }}>{members.length} active</div>
+              </div>
+              <button onClick={()=>{ setEditingMember(null); setShowPass(true); }} style={{ padding:'9px 16px', background:'#6366f1', color:'#fff', borderRadius:8, fontSize:13, fontWeight:700 }}>+ New Pass</button>
+            </div>
 
-                    const sportSet = !!slot.sport;
-                    const sc = sportColor(slot.sport || "Other");
+            <div style={{ marginBottom:24, padding:16, background:'#f9fafb', borderRadius:10 }}>
+              <div style={{ fontSize:11, fontWeight:800, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:10 }}>Available Plans</div>
+              <div className="pass-pricing" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
+                {PLANS.map(p => (
+                  <div key={p.key} style={{ background:'#fff', padding:'10px 12px', borderRadius:8, border:'1px solid #e5e7eb', fontSize:12 }}>
+                    <div style={{ fontWeight:700, fontSize:12 }}>{p.label}</div>
+                    <div style={{ color:'#9ca3af', fontSize:10, marginTop:2 }}>{p.days}d · {p.category}{p.hours_quota?` · ${p.hours_quota}hr`:''}{p.max_members?` · ${p.max_members} members`:''}</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:'#f59e0b', marginTop:4 }}>₹{p.price.toLocaleString('en-IN')}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-                    const bg     = isAvail ? "#f0fdf4"  : isAdvance ? "#eff6ff"  : isBooked ? "#fef2f2" : "#f9fafb";
-                    const border = isAvail ? "#86efac"  : isAdvance ? "#93c5fd"  : isBooked ? "#fca5a5" : "#d1d5db";
-
-                    return (
-                      <div key={slot.slot_id} className="slot-card" style={{
-                        background:bg, border:`1.5px solid ${border}`, borderRadius:14, padding:"15px 17px",
-                        cursor: isAvail ? "pointer" : "default"
-                      }} onClick={() => isAvail && setAdvSlot(slot)}>
-                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:9 }}>
-                          <div style={{ fontWeight:800, fontSize:14 }}>{slot.slot_time}</div>
-                          {sportSet ? <Badge bg={sc.bg} text={sc.text}>{slot.sport}</Badge> :
-                            <span style={{ fontSize:10, color:"#9ca3af", fontWeight:600, fontStyle:"italic" }}>Any sport</span>}
-                        </div>
-                        <div style={{ fontSize:12, color:"#6b7280", marginBottom:10, display:"flex", gap:14, flexWrap:"wrap" }}>
-                          <span>💰 ₹{parseInt(slot.price || 0).toLocaleString("en-IN")}</span>
-                        </div>
-
-                        {(isBooked || isAdvance) && slot.booked_name && (
-                          <div style={{ background:"rgba(255,255,255,0.7)", borderRadius:8, padding:"7px 10px", marginBottom:10, border:"1px solid rgba(0,0,0,.05)" }}>
-                            <div style={{ fontWeight:700, fontSize:12 }}>{slot.booked_name}</div>
-                            <div style={{ color:"#6b7280", fontSize:11 }}>{formatPhone(slot.booked_phone)}</div>
-                          </div>
-                        )}
-
-                        {isBlocked && slot.block_reason && (
-                          <div style={{ background:"rgba(255,255,255,0.7)", borderRadius:8, padding:"7px 10px", marginBottom:10, fontSize:11, color:"#6b7280", border:"1px solid rgba(0,0,0,.05)" }}>
-                            <strong>Blocked:</strong> {slot.block_reason}
-                          </div>
-                        )}
-
-                        <div style={{ display:"flex", gap:7, alignItems:"center", flexWrap:"wrap" }}>
-                          {isAvail && (
-                            <>
-                              <button className="action-btn" onClick={(e) => { e.stopPropagation(); setAdvSlot(slot); }} style={{
-                                flex:1, padding:"8px 0", background:"#f59e0b", color:"#000",
-                                border:"none", borderRadius:8, fontSize:12, fontWeight:800, cursor:"pointer"
-                              }}>📅 Book Slot</button>
-                              <button onClick={(e)=>{ e.stopPropagation(); blockSlotAction(slot); }} title="Block this slot" style={{
-                                padding:"8px 11px", background:"#fff", color:"#6b7280",
-                                border:"1px solid #e5e7eb", borderRadius:8, fontSize:11, fontWeight:700, cursor:"pointer"
-                              }}>🚧</button>
-                            </>
-                          )}
-                          {(isAdvance || isBooked) && (
-                            <CancelBtn onClick={(e)=>{ e.stopPropagation(); cancelSlotBooking(slot); }} label="Cancel" small />
-                          )}
-                          {isBlocked && (
-                            <button onClick={(e)=>{ e.stopPropagation(); unblockSlotAction(slot); }} style={{
-                              flex:1, padding:"8px 0", background:"#111", color:"#fff",
-                              border:"none", borderRadius:8, fontSize:12, fontWeight:800, cursor:"pointer"
-                            }}>✓ Unblock</button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+            <div style={{ display:'grid', gap:10 }}>
+              {members.length === 0 && (
+                <div style={{ padding:40, textAlign:'center', color:'#d1d5db', fontSize:13, border:'1.5px dashed #e5e7eb', borderRadius:12 }}>
+                  No memberships yet. Click "New Pass" to create one.
                 </div>
-                {filteredSlots.length === 0 && (
-                  <EmptyState icon="📭"
-                    title={`No ${slotFilter === 'all' ? '' : slotFilter + ' '}slots for ${formatDateNice(slotDate)}`}
-                    sub={slotFilter !== 'all' ? "Try a different filter." : "Slot rows may not have been generated for this date yet."}
-                  />
-                )}
+              )}
+              {members.map(m => {
+                const expired = m.is_expired || m.status === 'cancelled';
+                return (
+                  <div key={m.member_id} style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:10, padding:'14px 18px', opacity: expired?.5:1, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+                    <div style={{ flex:1, minWidth:200 }}>
+                      <div style={{ fontWeight:800, fontSize:14 }}>{m.team_name} <span style={{ fontWeight:400, color:'#9ca3af', fontSize:12 }}>· {m.plan_label}</span></div>
+                      <div style={{ fontSize:11, color:'#9ca3af', marginTop:2 }}>{m.contact_name} · {formatPhone(m.contact_phone)}</div>
+                      <div style={{ display:'flex', gap:6, marginTop:8, flexWrap:'wrap' }}>
+                        <Badge bg={m.category==='turf'?'#fef3c7':'#dbeafe'} text={m.category==='turf'?'#854d0e':'#1e40af'}>{m.category}</Badge>
+                        <Badge bg={m.status==='active'&&!m.is_expired?'#d1fae5':'#fee2e2'} text={m.status==='active'&&!m.is_expired?'#065f46':'#991b1b'}>{m.is_expired?'Expired':m.status}</Badge>
+                        <span style={{ fontSize:11, color:'#6b7280' }}>{m.days_left>0?`${m.days_left} days left`:m.days_left===0?'Expires today':`Expired ${-m.days_left}d ago`}</span>
+                      </div>
+                    </div>
+                    <div style={{ fontSize:13, fontWeight:700, color:'#10b981' }}>₹{parseInt(m.amount_paid||0).toLocaleString('en-IN')}</div>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button onClick={()=>{ setEditingMember(m); setShowPass(true); }} style={{ fontSize:11, padding:'6px 11px', background:'#f3f4f6', borderRadius:6, fontWeight:600 }}>Edit</button>
+                      {(expired || m.status==='cancelled') && <button onClick={()=>renewMember(m.member_id)} style={{ fontSize:11, padding:'6px 11px', background:'#dcfce7', color:'#14532d', borderRadius:6, fontWeight:700 }}>Renew</button>}
+                      {m.status==='active' && <CancelBtn onClick={()=>cancelMember(m.member_id)} small/>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ━━━━━ REVENUE TAB ━━━━━ */}
+        {!loading && tab === 'revenue' && (
+          <div className="anim-up">
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:10 }}>
+              <div>
+                <div style={{ fontSize:16, fontWeight:800 }}>Revenue Report</div>
+                <div style={{ fontSize:12, color:'#9ca3af' }}>Confirmed paid bookings only</div>
+              </div>
+              <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+                <input type="date" value={revenueRange.from} onChange={e=>setRevenueRange({...revenueRange, from:e.target.value})} style={{ padding:'7px 10px', borderRadius:6, border:'1.5px solid #e5e7eb', fontSize:12 }}/>
+                <span style={{ color:'#9ca3af' }}>→</span>
+                <input type="date" value={revenueRange.to} onChange={e=>setRevenueRange({...revenueRange, to:e.target.value})} style={{ padding:'7px 10px', borderRadius:6, border:'1.5px solid #e5e7eb', fontSize:12 }}/>
+                <button onClick={fetchRevenue} style={{ padding:'7px 14px', background:'#111', color:'#fff', borderRadius:6, fontSize:12, fontWeight:700 }}>Apply</button>
+              </div>
+            </div>
+
+            {!revenue && <LoadingBlock message="Computing…"/>}
+            {revenue && (
+              <>
+                <div className="revenue-cards" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14, marginBottom:28 }}>
+                  <div style={{ background:'linear-gradient(135deg,#10b981,#059669)', color:'#fff', padding:20, borderRadius:14 }}>
+                    <div style={{ fontSize:11, opacity:.85, fontWeight:700, textTransform:'uppercase', letterSpacing:'.06em' }}>Total Revenue</div>
+                    <div style={{ fontSize:32, fontWeight:800, marginTop:6 }}>₹{revenue.total.toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style={{ background:'#fff', border:'1px solid #e5e7eb', padding:20, borderRadius:14 }}>
+                    <div style={{ fontSize:11, color:'#9ca3af', fontWeight:700, textTransform:'uppercase', letterSpacing:'.06em' }}>Bookings</div>
+                    <div style={{ fontSize:32, fontWeight:800, marginTop:6 }}>{revenue.bookings_count}</div>
+                  </div>
+                  <div style={{ background:'#fff', border:'1px solid #e5e7eb', padding:20, borderRadius:14 }}>
+                    <div style={{ fontSize:11, color:'#9ca3af', fontWeight:700, textTransform:'uppercase', letterSpacing:'.06em' }}>Avg / Booking</div>
+                    <div style={{ fontSize:32, fontWeight:800, marginTop:6 }}>₹{revenue.bookings_count>0?Math.round(revenue.total/revenue.bookings_count).toLocaleString('en-IN'):0}</div>
+                  </div>
+                </div>
+
+                <div className="revenue-split" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:800, marginBottom:12 }}>By Payment Mode</div>
+                    {Object.entries(revenue.by_payment_mode || {}).map(([mode, val]) => (
+                      <div key={mode} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid #f3f4f6' }}>
+                        <span style={{ textTransform:'capitalize', fontSize:13 }}>{mode || 'Unknown'}</span>
+                        <span style={{ fontWeight:700, fontSize:13 }}>₹{parseFloat(val).toLocaleString('en-IN')}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:800, marginBottom:12 }}>By Sport</div>
+                    {Object.entries(revenue.by_sport || {}).map(([sport, val]) => (
+                      <div key={sport} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid #f3f4f6' }}>
+                        <span style={{ fontSize:13 }}>{sport}</span>
+                        <span style={{ fontWeight:700, fontSize:13 }}>₹{parseFloat(val).toLocaleString('en-IN')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
           </div>
         )}
-
-        {/* ━━━━━━ LEADS TAB ━━━━━━ */}
-        {tab === "leads" && (
-          <div className="anim-up">
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
-              <div>
-                <div style={{ fontSize:16, fontWeight:800 }}>Lead Pipeline</div>
-                <div style={{ fontSize:12, color:"#9ca3af", marginTop:2 }}>{leads.length} total · {newLeadCount} new</div>
-              </div>
-              <button className="action-btn" onClick={() => setShowLead(true)} style={{
-                fontSize:13, padding:"9px 18px", background:"#f59e0b", color:"#000",
-                border:"none", borderRadius:9, cursor:"pointer", fontWeight:800
-              }}>+ Add Lead</button>
-            </div>
-
-            {loadingLeads ? <LoadingBlock message="Loading leads…" /> : (
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14 }}>
-                {["new","contacted","converted","lost"].map(s => {
-                  const sc = leadStatusColor(s);
-                  const grp = leads.filter(l => l.status === s);
-                  const icons = { new:"🆕", contacted:"📞", converted:"🎉", lost:"❌" };
-                  const labels = { new:"New", contacted:"Contacted", converted:"Converted", lost:"Lost" };
-                  return (
-                    <div key={s}>
-                      <div style={{ fontSize:11, fontWeight:800, color:"#6b7280", textTransform:"uppercase", letterSpacing:".07em", marginBottom:10, display:"flex", alignItems:"center", gap:7 }}>
-                        <span>{icons[s]}</span>
-                        <span>{labels[s]}</span>
-                        <span style={{ background:sc.bg, color:sc.text, borderRadius:999, padding:"2px 8px", fontSize:11 }}>{grp.length}</span>
-                      </div>
-                      <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
-                        {grp.map(l => {
-                          const sportC = sportColor(l.sport || "Cricket");
-                          return (
-                            <div key={l.lead_id} className="card-hover" style={{ background:"#f9fafb", border:"1px solid #e5e7eb", borderRadius:12, padding:"12px 13px" }}>
-                              <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:4 }}>
-                                <div style={{ fontWeight:800, fontSize:13 }}>{l.name}</div>
-                                <button onClick={() => deleteLead(l.lead_id)} style={{ background:"none", border:"none", color:"#d1d5db", cursor:"pointer", fontSize:13, lineHeight:1, padding:0, fontWeight:700 }} title="Remove">✕</button>
-                              </div>
-                              <div style={{ fontSize:11, color:"#9ca3af", marginBottom:8 }}>{formatPhone(l.phone)} · <span style={{ color:"#6b7280" }}>{displaySource(l.source)}</span></div>
-                              <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:7 }}>
-                                {l.interest && <Badge bg={sc.bg} text={sc.text}>{l.interest}</Badge>}
-                                {l.sport && <Badge bg={sportC.bg} text={sportC.text}>{l.sport}</Badge>}
-                              </div>
-                              {l.notes && <div style={{ fontSize:11, color:"#9ca3af", marginBottom:8, fontStyle:"italic", lineHeight:1.5 }}>"{l.notes}"</div>}
-                              {s !== "converted" && s !== "lost" && (
-                                <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
-                                  {s === "new" && (
-                                    <button onClick={() => updateLeadStatus(l.lead_id,"contacted")} style={{ fontSize:10, padding:"4px 10px", background:"#fef3c7", color:"#92400e", border:"none", borderRadius:6, cursor:"pointer", fontWeight:700 }}>📞 Mark Contacted</button>
-                                  )}
-                                  {s === "contacted" && (
-                                    <button onClick={() => updateLeadStatus(l.lead_id,"converted")} style={{ fontSize:10, padding:"4px 10px", background:"#dcfce7", color:"#14532d", border:"none", borderRadius:6, cursor:"pointer", fontWeight:700 }}>🎉 Converted</button>
-                                  )}
-                                  <button onClick={() => updateLeadStatus(l.lead_id,"lost")} style={{ fontSize:10, padding:"4px 10px", background:"#fee2e2", color:"#991b1b", border:"none", borderRadius:6, cursor:"pointer", fontWeight:700 }}>❌ Lost</button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {grp.length === 0 && (
-                          <div style={{ fontSize:12, color:"#e5e7eb", textAlign:"center", padding:"16px 0", border:"1.5px dashed #e5e7eb", borderRadius:10 }}>Empty</div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ━━━━━━ PASSES TAB ━━━━━━ */}
-        {tab === "passes" && (
-          <div className="anim-up">
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, flexWrap:"wrap", gap:10 }}>
-              <div>
-                <div style={{ fontSize:16, fontWeight:800 }}>Passes & Memberships</div>
-                <div style={{ fontSize:12, color:"#9ca3af", marginTop:2 }}>Manage recurring access plans for teams and individuals</div>
-              </div>
-              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                <span style={{ fontSize:12, background:"#dcfce7", color:"#14532d", padding:"5px 14px", borderRadius:999, fontWeight:700 }}>
-                  {members.filter(m=>m.status==="active" && !m.is_expired).length} Active
-                </span>
-                <span style={{ fontSize:12, background:"#fee2e2", color:"#991b1b", padding:"5px 14px", borderRadius:999, fontWeight:700 }}>
-                  {members.filter(m=>m.is_expired || m.status==="expired").length} Expired
-                </span>
-                <button className="action-btn" onClick={() => setShowPass(true)} style={{ padding:"9px 18px", background:"#f59e0b", color:"#000", border:"none", borderRadius:9, cursor:"pointer", fontSize:13, fontWeight:800 }}>+ New Pass</button>
-              </div>
-            </div>
-
-            {/* Pricing cards */}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:24 }}>
-              {PASS_PLANS.map(p => (
-                <div key={p.key} style={{ borderRadius:14, padding:"16px 18px", background:"#f9fafb", border:"1px solid #e5e7eb" }}>
-                  <div style={{ fontSize:13, fontWeight:700, color:"#6b7280", marginBottom:4 }}>{p.label}</div>
-                  <div style={{ fontSize:26, fontWeight:800, color:"#f59e0b" }}>₹{p.price.toLocaleString("en-IN")}</div>
-                  <div style={{ fontSize:12, color:"#9ca3af", marginTop:3 }}>{p.days} days full access</div>
-                  <button className="action-btn" onClick={() => setShowPass(true)} style={{ marginTop:12, width:"100%", padding:"7px 0", background:"#111", color:"#fff", border:"none", borderRadius:8, fontSize:12, fontWeight:700, cursor:"pointer" }}>Create {p.label}</button>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ fontSize:12, fontWeight:700, color:"#9ca3af", textTransform:"uppercase", letterSpacing:".05em", marginBottom:12 }}>All Passes</div>
-
-            {loadingMembers ? <LoadingBlock message="Loading members…" /> : (
-              <div style={{ display:"grid", gap:12 }}>
-                {members.map(m => {
-                  const isActive = m.status === "active" && !m.is_expired;
-                  const isExpiring = isActive && m.days_left <= 7 && m.days_left >= 0;
-                  const isExpired = m.is_expired || m.status === "expired";
-                  const sportC = sportColor(m.sport || "Cricket");
-                  const planLabel = m.plan_type === "weekly" ? "Weekly" : m.plan_type === "monthly" ? "Monthly" : m.plan_type === "quarterly" ? "Quarterly" : m.plan_type;
-
-                  return (
-                    <div key={m.member_id} style={{
-                      background: isExpired ? "#fafafa" : "#fff",
-                      border:"1px solid #e5e7eb", borderRadius:14, padding:"16px 20px",
-                      opacity: m.status === "cancelled" ? .5 : 1
-                    }}>
-                      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:8, flexWrap:"wrap", gap:8 }}>
-                        <div>
-                          <div style={{ fontSize:15, fontWeight:800 }}>{m.team_name}</div>
-                          <div style={{ fontSize:12, color:"#9ca3af", marginTop:2 }}>
-                            {m.contact_name} · {formatPhone(m.contact_phone)}
-                          </div>
-                        </div>
-                        <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
-                          <Badge bg={sportC.bg} text={sportC.text}>{m.sport || "Any"}</Badge>
-                          <Badge bg="#ede9fe" text="#5b21b6">{planLabel}</Badge>
-                          {isActive && !isExpiring && <Badge bg="#dcfce7" text="#14532d">Active · {m.days_left}d left</Badge>}
-                          {isExpiring && <Badge bg="#fef3c7" text="#92400e">Expiring · {m.days_left}d left</Badge>}
-                          {isExpired && <Badge bg="#fee2e2" text="#991b1b">Expired</Badge>}
-                          {m.status === "cancelled" && <Badge bg="#f3f4f6" text="#6b7280">Cancelled</Badge>}
-                        </div>
-                      </div>
-                      <div style={{ display:"flex", gap:16, fontSize:12, color:"#6b7280", marginTop:4, flexWrap:"wrap" }}>
-                        <span>📅 {formatDateShort(m.start_date)} – {formatDateShort(m.end_date)}</span>
-                        <span>👥 {m.max_members} members max</span>
-                        {m.amount_paid > 0 && <span>💰 ₹{parseInt(m.amount_paid).toLocaleString("en-IN")}</span>}
-                      </div>
-                      {m.notes && <div style={{ fontSize:12, color:"#9ca3af", marginTop:6, fontStyle:"italic" }}>"{m.notes}"</div>}
-                      {m.status !== "cancelled" && (
-                        <div style={{ display:"flex", gap:8, marginTop:12 }}>
-                          {(isExpired || isExpiring) && (
-                            <button className="action-btn" onClick={() => renewMember(m.member_id)} style={{ padding:"7px 18px", background:"#111", color:"#fff", border:"none", borderRadius:8, fontSize:12, fontWeight:700, cursor:"pointer" }}>🔄 Renew</button>
-                          )}
-                          {isActive && <CancelBtn onClick={() => cancelMember(m.member_id)} label="Cancel Pass" small />}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {members.length === 0 && <EmptyState icon="🏅" title="No passes yet" sub="Create your first membership to get started." />}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ━━━━━━ REVENUE TAB ━━━━━━ */}
-        {tab === "revenue" && (
-          <div className="anim-up">
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
-              <div>
-                <div style={{ fontSize:16, fontWeight:800 }}>Revenue Snapshot</div>
-                <div style={{ fontSize:12, color:"#9ca3af", marginTop:2 }}>
-                  {new Date().toLocaleDateString('en-IN', { month:'long', year:'numeric' })}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:28 }}>
-              {[
-                { label:"Today Collected", value:`₹${revenueToday.toLocaleString("en-IN")}`,
-                  sub:`${confirmedToday.filter(b=>b.payment_status==='paid').length} of ${confirmedToday.length} paid`,
-                  accent:"#10b981", icon:"✅" },
-                { label:"Today Pending", value:`₹${pendingToday.reduce((s,b)=>s+(parseFloat(b.amount)||0), 0).toLocaleString("en-IN")}`,
-                  sub:`${pendingToday.length} bookings pending`,
-                  accent:"#f59e0b", icon:"⏳" },
-                { label:"Month Total", value:`₹${(revenue?.total || 0).toLocaleString("en-IN")}`,
-                  sub:`${revenue?.bookings_count || 0} paid bookings`,
-                  accent:"#6366f1", icon:"📊" },
-              ].map(c => (
-                <div key={c.label} style={{
-                  background:"#f9fafb", borderRadius:14, padding:"20px 22px",
-                  border:"1px solid #e5e7eb", borderLeft:`4px solid ${c.accent}`
-                }}>
-                  <div style={{ fontSize:28, fontWeight:800, color:c.accent }}>{c.value}</div>
-                  <div style={{ fontSize:13, fontWeight:700, marginTop:4 }}>{c.label}</div>
-                  <div style={{ fontSize:11, color:"#9ca3af", marginTop:3 }}>{c.sub}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24 }}>
-              {/* Today's breakdown by type */}
-              <div>
-                <div style={{ fontSize:12, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:".05em", marginBottom:12 }}>Today's Breakdown</div>
-                <table style={{ width:"100%", fontSize:13, borderCollapse:"collapse" }}>
-                  <thead><tr style={{ borderBottom:"2px solid #f3f4f6" }}>
-                    {["Type","Count","Amount","Status"].map(h=>(
-                      <th key={h} style={{ padding:"8px 10px", textAlign:"left", color:"#9ca3af", fontWeight:700, fontSize:11, textTransform:"uppercase" }}>{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>
-                    {(() => {
-                      const reg = confirmedToday.filter(b => b.booking_type === 'regular');
-                      const passes = confirmedToday.filter(b => b.booking_type && b.booking_type.indexOf('pass') > -1);
-                      const regPaid = reg.filter(b => b.payment_status === 'paid').length;
-                      const regAmount = reg.filter(b => b.payment_status === 'paid').reduce((s,b) => s + (parseFloat(b.amount) || 0), 0);
-                      return [
-                        { src:"Regular bookings", count: reg.length, amt:`₹${regAmount.toLocaleString("en-IN")}`, status:`${regPaid} paid · ${reg.length - regPaid} pending` },
-                        { src:"Pass bookings", count: passes.length, amt:"—", status:"Covered by pass" },
-                      ];
-                    })().map(r=>(
-                      <tr key={r.src} style={{ borderBottom:"1px solid #f3f4f6" }}>
-                        <td style={{ padding:"11px 10px" }}>{r.src}</td>
-                        <td style={{ padding:"11px 10px", fontWeight:600 }}>{r.count}</td>
-                        <td style={{ padding:"11px 10px", fontWeight:700 }}>{r.amt}</td>
-                        <td style={{ padding:"11px 10px", color:"#6b7280" }}>{r.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pass / Membership Revenue */}
-              <div>
-                <div style={{ fontSize:12, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:".05em", marginBottom:12 }}>Pass / Membership Revenue</div>
-                <div style={{ display:"grid", gap:10 }}>
-                  {(() => {
-                    const activeMembers = members.filter(m => m.status === 'active' && !m.is_expired);
-                    const expiringSoon = activeMembers.filter(m => m.days_left <= 7);
-                    const expiredMembers = members.filter(m => m.is_expired || m.status === 'expired');
-                    const monthStart = formatDateISO(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-                    const passRevenue = members.filter(m => m.start_date >= monthStart).reduce((s,m) => s + (parseFloat(m.amount_paid) || 0), 0);
-                    return [
-                      { label:"Active Passes", value: activeMembers.length, accent:"#10b981", icon:"✅" },
-                      { label:"Pass Revenue (This Month)", value:`₹${passRevenue.toLocaleString("en-IN")}`, accent:"#6366f1", icon:"💳" },
-                      { label:"Renewals Due (≤7 days)", value: expiringSoon.length, accent:"#f59e0b", icon:"🔄" },
-                      { label:"Expired Passes", value: expiredMembers.length, accent:"#ef4444", icon:"⛔" },
-                    ];
-                  })().map(c => (
-                    <div key={c.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:"#f9fafb", borderRadius:10, padding:"12px 16px", border:"1px solid #e5e7eb" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:9 }}>
-                        <span>{c.icon}</span>
-                        <span style={{ fontSize:13, fontWeight:500, color:"#374151" }}>{c.label}</span>
-                      </div>
-                      <span style={{ fontSize:17, fontWeight:800, color:c.accent }}>{c.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Sport-wise breakdown */}
-            {revenue?.by_sport && Object.keys(revenue.by_sport).length > 0 && (
-              <div style={{ marginTop:28 }}>
-                <div style={{ fontSize:12, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:".05em", marginBottom:14 }}>Revenue by Sport (This Month)</div>
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(180px, 1fr))", gap:10 }}>
-                  {Object.entries(revenue.by_sport).sort((a,b) => b[1] - a[1]).map(([sport, amt]) => {
-                    const sc = sportColor(sport);
-                    const pct = revenue.total > 0 ? Math.round((amt / revenue.total) * 100) : 0;
-                    return (
-                      <div key={sport} style={{ background:"#f9fafb", borderRadius:12, padding:"14px 16px", border:"1px solid #e5e7eb" }}>
-                        <Badge bg={sc.bg} text={sc.text}>{sport || "—"}</Badge>
-                        <div style={{ fontSize:18, fontWeight:800, marginTop:8 }}>₹{Math.round(amt).toLocaleString("en-IN")}</div>
-                        <div style={{ height:5, background:"#e5e7eb", borderRadius:3, marginTop:8, overflow:"hidden" }}>
-                          <div style={{ width:`${pct}%`, height:"100%", background:sc.text, borderRadius:3 }}></div>
-                        </div>
-                        <div style={{ fontSize:11, color:"#9ca3af", marginTop:4 }}>{pct}% of total</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
       </div>
+
+      <Toast toast={toast} onClose={()=>setToast({show:false})}/>
+      <ConfirmModal config={confirm} onClose={()=>setConfirm({show:false})}/>
+      {showSpot && <SpotBookingModal onClose={()=>setShowSpot(false)} defaultDate={slotDate} onCreate={()=>{ ok('Booking created'); loadSnapshot(); }}/>}
+      {showPass && <PassModal editing={editingMember} onClose={()=>{setShowPass(false); setEditingMember(null);}} onCreate={()=>{ ok(editingMember?'Updated':'Pass created'); loadSnapshot({ includeMembers:true }); }}/>}
+      {showLead && <LeadModal editing={editingLead} onClose={()=>{setShowLead(false); setEditingLead(null);}} onSave={()=>{ ok(editingLead?'Updated':'Lead added'); loadSnapshot({ includeLeads:true }); }}/>}
     </div>
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
+function nextStatus(s){
+  if(s==='new') return 'contacted';
+  if(s==='contacted') return 'qualified';
+  if(s==='qualified') return 'converted';
+  return s;
+}
+
+// ──────────────────────────────────────────────────────────
+// SLOT CARD — shows 1 turf + 3 nets for a time window
+// ──────────────────────────────────────────────────────────
+function SlotCard({ group, onBlock, onUnblock, onCancel }){
+  const { slot_time, turf, net1, net2, net3 } = group;
+  const nets = [net1, net2, net3].filter(Boolean);
+
+  function statusColor(s){
+    if(!s) return { bg:'#fafafa', text:'#9ca3af' };
+    if(s.status === 'available') return { bg:'#d1fae5', text:'#065f46' };
+    if(s.status === 'booked')    return { bg:'#fef3c7', text:'#854d0e' };
+    if(s.status === 'advance')   return { bg:'#dbeafe', text:'#1e40af' };
+    if(s.status === 'blocked')   return { bg:'#e5e7eb', text:'#374151' };
+    return { bg:'#fafafa', text:'#9ca3af' };
+  }
+
+  return (
+    <div className="slot-card-mobile" style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:12, padding:14, boxShadow:'0 1px 3px rgba(0,0,0,.04)' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+        <div style={{ fontFamily:'monospace', fontSize:14, fontWeight:800 }}>{slot_time}</div>
+      </div>
+
+      {/* Turf row */}
+      {turf && (
+        <div className="resource-row" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 12px', background: statusColor(turf).bg, borderRadius:8, marginBottom:6 }}>
+          <div>
+            <div style={{ fontSize:11, fontWeight:800, color: statusColor(turf).text, letterSpacing:'.04em' }}>🏏 TURF · ₹{turf.price}</div>
+            {turf.status !== 'available' && turf.booked_name && (
+              <div style={{ fontSize:11, color:'#374151', marginTop:2, fontWeight:600 }}>{turf.booked_name} · {formatPhone(turf.booked_phone)}</div>
+            )}
+            {turf.status === 'blocked' && turf.block_reason && (
+              <div style={{ fontSize:11, color:'#6b7280', marginTop:2, fontStyle:'italic' }}>{turf.block_reason}</div>
+            )}
+          </div>
+          <div style={{ display:'flex', gap:4 }}>
+            {turf.status === 'available' && <button onClick={()=>onBlock(turf.slot_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', borderRadius:5, fontWeight:700 }}>Block</button>}
+            {turf.status === 'blocked'   && <button onClick={()=>onUnblock(turf.slot_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', borderRadius:5, fontWeight:700 }}>Unblock</button>}
+            {(turf.status==='booked'||turf.status==='advance') && turf.booking_id && <button onClick={()=>onCancel(turf.booking_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', color:'#991b1b', borderRadius:5, fontWeight:700 }}>✕</button>}
+          </div>
+        </div>
+      )}
+
+      {/* Nets */}
+      {nets.map((net, idx) => (
+        <div key={net.slot_id} className="resource-row" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 12px', background: statusColor(net).bg, borderRadius:8, marginBottom:6 }}>
+          <div>
+            <div style={{ fontSize:11, fontWeight:800, color: statusColor(net).text, letterSpacing:'.04em' }}>🥅 NET {idx+1} · ₹{net.price}</div>
+            {net.status !== 'available' && net.booked_name && (
+              <div style={{ fontSize:11, color:'#374151', marginTop:2, fontWeight:600 }}>{net.booked_name} · {formatPhone(net.booked_phone)}</div>
+            )}
+            {net.status === 'blocked' && net.block_reason && (
+              <div style={{ fontSize:11, color:'#6b7280', marginTop:2, fontStyle:'italic' }}>{net.block_reason}</div>
+            )}
+          </div>
+          <div style={{ display:'flex', gap:4 }}>
+            {net.status === 'available' && <button onClick={()=>onBlock(net.slot_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', borderRadius:5, fontWeight:700 }}>Block</button>}
+            {net.status === 'blocked'   && <button onClick={()=>onUnblock(net.slot_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', borderRadius:5, fontWeight:700 }}>Unblock</button>}
+            {(net.status==='booked'||net.status==='advance') && net.booking_id && <button onClick={()=>onCancel(net.booking_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', color:'#991b1b', borderRadius:5, fontWeight:700 }}>✕</button>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// ERROR BOUNDARY
+// ──────────────────────────────────────────────────────────
+class ErrorBoundary extends React.Component {
+  constructor(p){ super(p); this.state = { error: null }; }
+  static getDerivedStateFromError(e){ return { error: e }; }
+  componentDidCatch(e, i){ console.error('Admin crashed:', e, i); }
+  render(){
+    if(this.state.error){
+      return (
+        <div style={{ minHeight:'100vh', background:'#0a0a0a', color:'#fff', display:'grid', placeItems:'center', padding:24, fontFamily:'Outfit,system-ui,sans-serif' }}>
+          <div style={{ maxWidth:520 }}>
+            <div style={{ fontSize:48, marginBottom:16 }}>⚠️</div>
+            <div style={{ fontSize:22, fontWeight:800, marginBottom:10 }}>Dashboard hit an error</div>
+            <div style={{ fontSize:13, color:'#888', lineHeight:1.7, marginBottom:18 }}>Try refreshing. If it persists, share the error below.</div>
+            <pre style={{ background:'#1a1a1a', padding:'12px 14px', borderRadius:10, fontSize:12, color:'#f59e0b', border:'1px solid #2a2a2a', overflowX:'auto', whiteSpace:'pre-wrap', maxHeight:200 }}>{String(this.state.error?.message || this.state.error)}</pre>
+            <button onClick={()=>location.reload()} style={{ marginTop:18, padding:'10px 24px', background:'#f59e0b', color:'#000', border:'none', borderRadius:8, fontSize:13, fontWeight:800, cursor:'pointer' }}>Reload Dashboard</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<ErrorBoundary><App/></ErrorBoundary>);
 </script>
 </body>
 </html>
