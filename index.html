@@ -48,6 +48,17 @@
     .spin{animation:spin .9s linear infinite}
     .shimmer{background:linear-gradient(90deg,var(--surface) 0%,var(--surface-2) 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite}
 
+    /* Visible loading on dark hero */
+    .loading-dot{
+      width:8px;height:8px;border-radius:50%;background:var(--lime);
+      display:inline-block;animation:loading-bounce 1s ease-in-out infinite;
+      box-shadow:0 0 12px rgba(196,240,0,.5)
+    }
+    @keyframes loading-bounce{
+      0%,100%{opacity:.3;transform:scale(.8)}
+      50%{opacity:1;transform:scale(1.1)}
+    }
+
     .stage-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
     .orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18;animation:float-orb 16s ease-in-out infinite}
     .orb-1{width:460px;height:460px;background:#c4f000;top:-120px;left:-100px}
@@ -456,7 +467,7 @@ function Hero({ liveSlotsToday }){
         Book your<br/><span className="accent">ground.</span>
       </h1>
       <p className="hero-sub anim-rise" style={{animationDelay:'.15s'}}>
-        Dehradun's premier multi-sport turf in <strong>Panditwari</strong>. <strong>Cricket</strong>, <strong>Football</strong>, and dedicated <strong>cricket net practice</strong>. From ₹400/hour · Pay at venue · No fuss.
+        Dehradun's premier multi-sport <strong>turf</strong> in <strong>Panditwari</strong>. <strong>Cricket</strong> & <strong>Football</strong> on full astro turf, plus dedicated cricket net practice. ₹1,200/hour for turf · Pay at venue · No fuss.
       </p>
       <div className="hero-ctas anim-rise" style={{animationDelay:'.25s'}}>
         <button className="btn-primary" onClick={scroll}>
@@ -467,11 +478,18 @@ function Hero({ liveSlotsToday }){
       </div>
       <div className="hero-stats anim-rise" style={{animationDelay:'.4s'}}>
         <div>
-          <div className="hero-stat-num">{liveSlotsToday===null ? <span className="shimmer" style={{display:'inline-block',width:50,height:34,borderRadius:6}}/> : liveSlotsToday}</div>
-          <div className="hero-stat-lbl">Slots open today</div>
+          <div className="hero-stat-num">
+            {liveSlotsToday===null ? (
+              <span className="loading-pulse" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:18,color:'var(--lime)',fontFamily:'var(--body)',fontWeight:600,letterSpacing:0}}>
+                <span className="loading-dot"></span>
+                Loading
+              </span>
+            ) : liveSlotsToday}
+          </div>
+          <div className="hero-stat-lbl">{liveSlotsToday===null ? 'Checking availability…' : 'Slots open today'}</div>
         </div>
-        <div><div className="hero-stat-num">₹400</div><div className="hero-stat-lbl">Net practice/hr</div></div>
-        <div><div className="hero-stat-num">3</div><div className="hero-stat-lbl">Concurrent nets</div></div>
+        <div><div className="hero-stat-num">₹1,200</div><div className="hero-stat-lbl">Full turf / hr</div></div>
+        <div><div className="hero-stat-num">₹400</div><div className="hero-stat-lbl">Net practice / hr</div></div>
         <div><div className="hero-stat-num">15</div><div className="hero-stat-lbl">Day booking window</div></div>
       </div>
     </section>
@@ -887,17 +905,19 @@ function App(){
   const [liveSlotsToday, setLiveSlotsToday] = useState(null);
   const [toast, setToast] = useState({ show:false });
 
+  // Single API call — Net Practice query returns all slots where ANY booking is possible
+  // (since net-bookable ⊃ turf-bookable). Cuts hero load time in half.
+  const refreshSlotCount = async () => {
+    try {
+      const today = formatDateISO(new Date());
+      const slots = await API.get('getSlots', { date: today, sport: 'Cricket Net Practice' });
+      setLiveSlotsToday(slots?.length || 0);
+    } catch(_) { setLiveSlotsToday(0); }
+  };
+
   useEffect(()=>{
     if (API_URL === "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") return;
-    (async()=>{
-      try {
-        const today = formatDateISO(new Date());
-        // Count both turf-eligible and net-eligible slot openings
-        const turf = await API.get('getSlots', { date: today, sport: 'Cricket' });
-        const net  = await API.get('getSlots', { date: today, sport: 'Cricket Net Practice' });
-        setLiveSlotsToday((turf?.length || 0) + (net?.length || 0));
-      } catch(_) { setLiveSlotsToday(0); }
-    })();
+    refreshSlotCount();
   }, []);
 
   if (API_URL === "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") return <ConfigError/>;
@@ -910,14 +930,7 @@ function App(){
 
   function reset(){
     setBooking(null);
-    (async()=>{
-      try {
-        const today = formatDateISO(new Date());
-        const turf = await API.get('getSlots', { date: today, sport: 'Cricket' });
-        const net  = await API.get('getSlots', { date: today, sport: 'Cricket Net Practice' });
-        setLiveSlotsToday((turf?.length || 0) + (net?.length || 0));
-      } catch(_) {}
-    })();
+    refreshSlotCount();
     setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}), 100);
   }
 

@@ -86,7 +86,7 @@
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
 const API_URL = "https://script.google.com/macros/s/AKfycbxIDzTFvD5st7rGeS1qL4O-spmysAase9ZFigXB0rPnlyHm3W6AlWQwNLh4Wz4m92kM2A/exec";
-const REFRESH_INTERVAL_MS = 30000; // 30s auto-refresh
+const REFRESH_INTERVAL_MS = 15000; // 15s auto-refresh
 
 // PLANS — must match Code.gs PLANS array
 const PLANS = [
@@ -301,26 +301,41 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
     booking_date: defaultDate || formatDateISO(new Date()),
     slot_time:'',
     members_count: 1,
-    amount:'',
+    amount: 1200,
     payment_status:'pending',
     payment_mode:''
   });
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
+  const [availSlots, setAvailSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
-  // Auto-suggest amount based on kind
+  // Fetch available slots whenever date or kind changes
   useEffect(()=>{
-    if(!form.amount){
-      setForm(f => ({ ...f, amount: f.booking_kind==='turf' ? 1200 : 400 }));
-    }
-  }, [form.booking_kind]);
+    let cancelled = false;
+    (async ()=>{
+      setLoadingSlots(true);
+      setForm(f => ({ ...f, slot_time: '' })); // reset selected time on date/kind change
+      try {
+        const sport = form.booking_kind === 'turf' ? form.sport : 'Cricket Net Practice';
+        const slots = await API.get('getSlots', { date: form.booking_date, sport });
+        if (!cancelled) setAvailSlots(slots || []);
+      } catch(e) {
+        if (!cancelled) { setAvailSlots([]); setErr('Could not load available slots: ' + e.message); }
+      } finally {
+        if (!cancelled) setLoadingSlots(false);
+      }
+    })();
+    return ()=>{ cancelled = true; };
+  }, [form.booking_date, form.booking_kind, form.sport]);
 
   function setKind(k){
     setForm(f => ({
       ...f,
       booking_kind: k,
       sport: k==='turf' ? 'Cricket' : 'Cricket Net Practice',
-      amount: k==='turf' ? 1200 : 400
+      amount: k==='turf' ? 1200 : 400,
+      slot_time: ''
     }));
   }
 
@@ -328,7 +343,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
     setErr(null);
     if(!form.customer_name.trim()){ setErr('Customer name required'); return; }
     if(normalizePhone(form.phone).length !== 10){ setErr('Valid 10-digit phone required'); return; }
-    if(!form.slot_time){ setErr('Slot time required'); return; }
+    if(!form.slot_time){ setErr('Please pick an available time slot'); return; }
     setSubmitting(true);
     try {
       const result = await API.post('createSpotBooking', {
@@ -344,7 +359,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
         payment_status: form.payment_status,
         payment_mode: form.payment_mode
       });
-      onCreate(result);
+      onCreate(result);  // includes result.booking for optimistic UI
       onClose();
     } catch(e){ setErr(e.message); setSubmitting(false); }
   }
@@ -357,7 +372,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
       display:'grid', placeItems:'center', padding:16, overflowY:'auto'
     }}>
       <div className="modal-inner" style={{
-        background:'#fff', borderRadius:16, padding:24, maxWidth:520, width:'100%',
+        background:'#fff', borderRadius:16, padding:24, maxWidth:560, width:'100%',
         boxShadow:'0 24px 80px rgba(0,0,0,.3)', maxHeight:'92vh', overflowY:'auto'
       }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:18 }}>
@@ -369,7 +384,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
         </div>
 
         {/* Kind toggle */}
-        <div style={{ display:'flex', gap:8, marginBottom:18, background:'#f3f4f6', padding:4, borderRadius:10 }}>
+        <div style={{ display:'flex', gap:8, marginBottom:14, background:'#f3f4f6', padding:4, borderRadius:10 }}>
           <button onClick={()=>setKind('turf')} style={{
             flex:1, padding:'10px 14px', borderRadius:7,
             background: form.booking_kind==='turf'?'#fff':'transparent',
@@ -386,6 +401,58 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
           }}>🥅 Net · ₹400/hr</button>
         </div>
 
+        {/* Date + Sport on top */}
+        <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+          <div>
+            <label style={lblStyle}>Date *</label>
+            <input type="date" value={form.booking_date} onChange={e=>setForm({...form, booking_date:e.target.value})} style={inputStyle}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Sport</label>
+            <select value={form.sport} onChange={e=>setForm({...form, sport:e.target.value})} style={inputStyle}>
+              {sportOptions.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Time slot grid */}
+        <div style={{ marginBottom:18 }}>
+          <label style={lblStyle}>
+            Available Time Slots * {form.slot_time && <span style={{ color:'#10b981', fontWeight:700, textTransform:'none', letterSpacing:0 }}>· Selected: {form.slot_time}</span>}
+          </label>
+          {loadingSlots ? (
+            <div style={{ padding:'20px 16px', background:'#f9fafb', borderRadius:8, textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:10, color:'#6b7280', fontSize:13 }}>
+              <Spinner small/> Loading available slots…
+            </div>
+          ) : availSlots.length === 0 ? (
+            <div style={{ padding:'20px 16px', background:'#fef2f2', border:'1px dashed #fecaca', borderRadius:8, textAlign:'center', color:'#991b1b', fontSize:13 }}>
+              No {form.booking_kind === 'turf' ? 'turf' : 'net'} slots available for this date.
+              {form.booking_kind === 'turf' && ' All slots may have net bookings or be booked.'}
+            </div>
+          ) : (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap:6, maxHeight:200, overflowY:'auto', padding:4, background:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb' }}>
+              {availSlots.map(s => {
+                const active = form.slot_time === s.slot_time;
+                return (
+                  <button key={s.slot_id} type="button" onClick={()=>setForm({...form, slot_time: s.slot_time, amount: form.amount || s.price})}
+                    style={{
+                      padding:'9px 8px', borderRadius:7,
+                      background: active ? '#f59e0b' : '#fff',
+                      color: active ? '#fff' : '#111',
+                      border: '1.5px solid ' + (active ? '#f59e0b' : '#e5e7eb'),
+                      fontSize:12, fontWeight:700, lineHeight:1.3, cursor:'pointer'
+                    }}>
+                    <div style={{ fontFamily:'monospace' }}>{s.slot_time}</div>
+                    {s.nets_available !== undefined && (
+                      <div style={{ fontSize:9, fontWeight:600, opacity:.8, marginTop:2 }}>{s.nets_available}/3 free</div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
           <div>
             <label style={lblStyle}>Customer Name *</label>
@@ -398,20 +465,6 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
           <div>
             <label style={lblStyle}>Email</label>
             <input type="email" value={form.email} onChange={e=>setForm({...form, email:e.target.value})} placeholder="optional" style={inputStyle}/>
-          </div>
-          <div>
-            <label style={lblStyle}>Sport</label>
-            <select value={form.sport} onChange={e=>setForm({...form, sport:e.target.value})} style={inputStyle}>
-              {sportOptions.map(s => <option key={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={lblStyle}>Date *</label>
-            <input type="date" value={form.booking_date} onChange={e=>setForm({...form, booking_date:e.target.value})} style={inputStyle}/>
-          </div>
-          <div>
-            <label style={lblStyle}>Time *</label>
-            <input value={form.slot_time} onChange={e=>setForm({...form, slot_time:e.target.value})} placeholder="14:00-15:00" style={inputStyle}/>
           </div>
           <div>
             <label style={lblStyle}>Players</label>
@@ -429,7 +482,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
             </select>
           </div>
           {form.payment_status === 'paid' && (
-            <div>
+            <div style={{ gridColumn:'span 2' }}>
               <label style={lblStyle}>Payment Mode</label>
               <select value={form.payment_mode} onChange={e=>setForm({...form, payment_mode:e.target.value})} style={inputStyle}>
                 <option value="">-- select --</option>
@@ -445,7 +498,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
 
         <div style={{ display:'flex', gap:8, marginTop:20, justifyContent:'flex-end' }}>
           <button onClick={onClose} style={{ padding:'11px 18px', background:'#f3f4f6', color:'#374151', borderRadius:8, fontWeight:700, fontSize:13 }}>Cancel</button>
-          <button onClick={submit} disabled={submitting} style={{ padding:'11px 22px', background: submitting?'#d1d5db':'#f59e0b', color: submitting?'#6b7280':'#fff', borderRadius:8, fontWeight:800, fontSize:13, display:'inline-flex', alignItems:'center', gap:8 }}>
+          <button onClick={submit} disabled={submitting || !form.slot_time} style={{ padding:'11px 22px', background: (submitting||!form.slot_time)?'#d1d5db':'#f59e0b', color: (submitting||!form.slot_time)?'#6b7280':'#fff', borderRadius:8, fontWeight:800, fontSize:13, display:'inline-flex', alignItems:'center', gap:8 }}>
             {submitting && <Spinner small/>}{submitting?'Creating…':'Create Booking'}
           </button>
         </div>
@@ -736,14 +789,19 @@ function App(){
   function ok(message){ setToast({ show:true, message }); }
   function err(message){ setToast({ show:true, message, isError:true }); }
 
+  const [refreshing, setRefreshing] = useState(false);
+
   // ── FAST INITIAL LOAD: one combined call ──
   const loadSnapshot = useCallback(async (opts={}) => {
+    setRefreshing(true);
     try {
       const params = {
         date: opts.date || slotDate,
         includeLeads: opts.includeLeads ? 'true' : '',
         includeMembers: opts.includeMembers ? 'true' : ''
       };
+      // noCache bypass — used by manual refresh button to force fresh data
+      if (opts.noCache) params.noCache = '1';
       const snap = await API.get('getDashboardSnapshot', params);
       setBookings(snap.bookings || []);
       setSlots(snap.slots || []);
@@ -753,6 +811,8 @@ function App(){
       setLastSync(new Date());
     } catch(e){
       err('Failed to load: ' + e.message);
+    } finally {
+      setRefreshing(false);
     }
   }, [slotDate]);
 
@@ -877,20 +937,28 @@ function App(){
   async function markPaid(id){
     setConfirm({ show:true, title:'Mark as Paid?', message:'This booking will be recorded as paid.', confirmLabel:'Mark Paid', onConfirm: async()=>{
       try {
+        // Optimistic update
+        setBookings(prev => prev.map(b => b.booking_id===id ? {...b, payment_status:'paid', payment_mode:'cash'} : b));
         await API.post('updateBooking', { id, payment_status:'paid', payment_mode:'cash' });
         ok('Marked as paid');
-        loadSnapshot();
-      } catch(e){ err(e.message); }
+        loadSnapshot({ noCache: true });
+      } catch(e){ err(e.message); loadSnapshot({ noCache: true }); }
     }});
   }
 
   async function cancelBooking(id){
     setConfirm({ show:true, title:'Cancel Booking?', message:'This will free up the slot. This action cannot be undone.', confirmLabel:'Cancel Booking', danger:true, onConfirm: async()=>{
       try {
+        // Optimistic update
+        const booking = bookings.find(b => b.booking_id === id);
+        setBookings(prev => prev.map(b => b.booking_id===id ? {...b, status:'cancelled'} : b));
+        if (booking?.slot_id) {
+          setSlots(prev => prev.map(s => s.slot_id===booking.slot_id ? {...s, status:'available', booking_id:'', booked_name:'', booked_phone:'', sport:''} : s));
+        }
         await API.post('cancelBooking', { id });
         ok('Booking cancelled');
-        loadSnapshot();
-      } catch(e){ err(e.message); }
+        loadSnapshot({ noCache: true });
+      } catch(e){ err(e.message); loadSnapshot({ noCache: true }); }
     }});
   }
 
@@ -898,46 +966,58 @@ function App(){
     const reason = prompt('Reason for blocking?');
     if(!reason) return;
     try {
+      setSlots(prev => prev.map(s => s.slot_id===slot_id ? {...s, status:'blocked', block_reason:reason} : s));
       await API.post('blockSlot', { slot_id, reason });
       ok('Slot blocked');
-      loadSnapshot();
-    } catch(e){ err(e.message); }
+      loadSnapshot({ noCache: true });
+    } catch(e){ err(e.message); loadSnapshot({ noCache: true }); }
   }
 
   async function unblockSlot(slot_id){
     try {
+      setSlots(prev => prev.map(s => s.slot_id===slot_id ? {...s, status:'available', block_reason:''} : s));
       await API.post('unblockSlot', { slot_id });
       ok('Slot unblocked');
-      loadSnapshot();
-    } catch(e){ err(e.message); }
+      loadSnapshot({ noCache: true });
+    } catch(e){ err(e.message); loadSnapshot({ noCache: true }); }
   }
 
   async function deleteLead(id){
     setConfirm({ show:true, title:'Delete Lead?', message:'This will permanently remove this lead.', confirmLabel:'Delete', danger:true, onConfirm: async()=>{
-      try { await API.post('deleteLead', { id }); ok('Lead deleted'); loadSnapshot({ includeLeads: true }); }
-      catch(e){ err(e.message); }
+      try {
+        setLeads(prev => prev.filter(l => l.lead_id !== id));
+        await API.post('deleteLead', { id });
+        ok('Lead deleted');
+        loadSnapshot({ includeLeads: true, noCache: true });
+      } catch(e){ err(e.message); loadSnapshot({ includeLeads: true, noCache: true }); }
     }});
   }
 
   async function moveLeadStatus(id, status){
     try {
+      setLeads(prev => prev.map(l => l.lead_id===id ? {...l, status} : l));
       await API.post('updateLead', { id, status });
       ok('Lead moved to ' + status);
-      loadSnapshot({ includeLeads: true });
-    } catch(e){ err(e.message); }
+      loadSnapshot({ includeLeads: true, noCache: true });
+    } catch(e){ err(e.message); loadSnapshot({ includeLeads: true, noCache: true }); }
   }
 
   async function renewMember(id){
     setConfirm({ show:true, title:'Renew Membership?', message:'This will extend the membership from today.', confirmLabel:'Renew', onConfirm: async()=>{
-      try { await API.post('renewMember', { id }); ok('Membership renewed'); loadSnapshot({ includeMembers: true }); }
+      try { await API.post('renewMember', { id }); ok('Membership renewed'); loadSnapshot({ includeMembers: true, noCache: true }); }
       catch(e){ err(e.message); }
     }});
   }
 
   async function cancelMember(id){
     setConfirm({ show:true, title:'Cancel Membership?', message:'This will deactivate the membership.', confirmLabel:'Cancel Membership', danger:true, onConfirm: async()=>{
-      try { await API.post('cancelMember', { id }); ok('Membership cancelled'); loadSnapshot({ includeMembers: true }); }
-      catch(e){ err(e.message); }
+      try {
+        setMembers(prev => prev.map(m => m.member_id===id ? {...m, status:'cancelled'} : m));
+        await API.post('cancelMember', { id });
+        ok('Membership cancelled');
+        loadSnapshot({ includeMembers: true, noCache: true });
+      }
+      catch(e){ err(e.message); loadSnapshot({ includeMembers: true, noCache: true }); }
     }});
   }
 
@@ -990,13 +1070,31 @@ function App(){
         <div className="top-bar-actions" style={{ display:'flex', alignItems:'center', gap:14 }}>
           <div className="top-bar-date" style={{ fontSize:12, color:'#444' }}>{formatDateLong()}</div>
           <div title={lastSync ? `Auto-refreshing every ${REFRESH_INTERVAL_MS/1000}s · last sync ${lastSync.toLocaleTimeString('en-IN')}` : 'Connecting…'}
-            style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'#10b981', padding:'5px 10px', background:'#0f1a12', border:'1px solid #1a3a26', borderRadius:99, fontWeight:600 }}>
-            <span className="live-dot-green"></span>
-            <span className="live-text-full">Live · {lastSync ? relativeTime(lastSync, now) : 'syncing…'}</span>
+            style={{
+              display:'flex', alignItems:'center', gap:6, fontSize:11,
+              color: refreshing ? '#f59e0b' : '#10b981',
+              padding:'5px 10px',
+              background: refreshing ? '#1a1410' : '#0f1a12',
+              border:'1px solid ' + (refreshing ? '#3a2a1a' : '#1a3a26'),
+              borderRadius:99, fontWeight:600,
+              transition: 'all .2s'
+            }}>
+            {refreshing
+              ? <span className="spin" style={{ display:'inline-block', width:7, height:7, border:'1.5px solid #f59e0b', borderTopColor:'transparent', borderRadius:'50%' }}/>
+              : <span className="live-dot-green"></span>}
+            <span className="live-text-full">{refreshing ? 'Syncing…' : `Live · ${lastSync ? relativeTime(lastSync, now) : 'syncing…'}`}</span>
           </div>
-          <button onClick={()=>loadSnapshot({ includeLeads: tab==='leads', includeMembers: tab==='passes' })}
-            style={{ padding:'7px 14px', background:'#1a1a1a', color:'#fff', borderRadius:8, fontSize:12, fontWeight:600, border:'1px solid #2a2a2a' }}>
-            ↻
+          <button onClick={()=>loadSnapshot({ includeLeads: tab==='leads', includeMembers: tab==='passes', noCache: true })}
+            disabled={refreshing}
+            title="Refresh now (skips cache)"
+            style={{
+              padding:'7px 14px', background:'#1a1a1a',
+              color: refreshing ? '#666' : '#fff',
+              borderRadius:8, fontSize:14, fontWeight:600, border:'1px solid #2a2a2a',
+              minWidth:36, display:'inline-flex', alignItems:'center', justifyContent:'center',
+              cursor: refreshing ? 'wait' : 'pointer'
+            }}>
+            {refreshing ? <Spinner small/> : '↻'}
           </button>
           <button onClick={signOut} style={{ padding:'7px 14px', background:'#1a1a1a', color:'#888', borderRadius:8, fontSize:12, fontWeight:600, border:'1px solid #2a2a2a' }}>Sign out</button>
         </div>
@@ -1361,9 +1459,34 @@ function App(){
 
       <Toast toast={toast} onClose={()=>setToast({show:false})}/>
       <ConfirmModal config={confirm} onClose={()=>setConfirm({show:false})}/>
-      {showSpot && <SpotBookingModal onClose={()=>setShowSpot(false)} defaultDate={slotDate} onCreate={()=>{ ok('Booking created'); loadSnapshot(); }}/>}
-      {showPass && <PassModal editing={editingMember} onClose={()=>{setShowPass(false); setEditingMember(null);}} onCreate={()=>{ ok(editingMember?'Updated':'Pass created'); loadSnapshot({ includeMembers:true }); }}/>}
-      {showLead && <LeadModal editing={editingLead} onClose={()=>{setShowLead(false); setEditingLead(null);}} onSave={()=>{ ok(editingLead?'Updated':'Lead added'); loadSnapshot({ includeLeads:true }); }}/>}
+      {showSpot && <SpotBookingModal
+        onClose={()=>setShowSpot(false)}
+        defaultDate={slotDate}
+        onCreate={(result)=>{
+          // OPTIMISTIC UPDATE — show the booking instantly without waiting for reload
+          if (result && result.booking) {
+            setBookings(prev => [result.booking, ...prev]);
+            // Also mark the slot as booked locally so Availability tab is consistent
+            setSlots(prev => prev.map(s =>
+              s.slot_id === result.booking.slot_id
+                ? { ...s, status: (result.booking.booking_date > formatDateISO(new Date()) ? 'advance' : 'booked'),
+                    sport: result.booking.sport, booking_id: result.booking.booking_id,
+                    booked_name: result.booking.customer_name, booked_phone: result.booking.phone }
+                : s
+            ));
+          }
+          // Show email status in the toast
+          let msg = 'Booking created · ' + (result?.booking_id || '');
+          if (result?.email_sent) msg += ' · email sent';
+          else if (result?.booking?.email) msg += ' · ⚠ email FAILED (check Apps Script logs)';
+          else msg += ' · no customer email';
+          ok(msg);
+          // Reconcile from server in background (will pick up anything we missed)
+          loadSnapshot({ noCache: true });
+        }}
+      />}
+      {showPass && <PassModal editing={editingMember} onClose={()=>{setShowPass(false); setEditingMember(null);}} onCreate={()=>{ ok(editingMember?'Updated':'Pass created'); loadSnapshot({ includeMembers:true, noCache:true }); }}/>}
+      {showLead && <LeadModal editing={editingLead} onClose={()=>{setShowLead(false); setEditingLead(null);}} onSave={()=>{ ok(editingLead?'Updated':'Lead added'); loadSnapshot({ includeLeads:true, noCache:true }); }}/>}
     </div>
   );
 }
