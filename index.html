@@ -466,7 +466,7 @@ const { useState, useEffect, useMemo, useRef, useCallback } = React;
 /* ═══════════════════════════════════════════
    CONFIG — paste your Apps Script Web App URL
 ═══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxIW747v-r1nDBHXHgcUWn6xgJWJaxEvotvfYAMSLXggyp12D78Kxwtzz6DtT6Z9xKQTQ/exec";
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
 
 const VENUE = {
   name:    "Hit N Run Sports Arena",
@@ -475,7 +475,7 @@ const VENUE = {
   phone:   "+91 98765 43210",
   whatsapp:"919876543210",
   maps:    "https://maps.google.com/?q=Hit+N+Run+Sports+Arena",
-  hours:   "6 AM – 10 PM · 365 days a year",
+  hours:   "Mon–Fri 8 AM – 4:30 PM · Sat–Sun 6 AM – 11:30 PM",
   email:   "hello@hitnrun.example"
 };
 
@@ -506,14 +506,9 @@ const API = {
    CONSTANTS
 ═══════════════════════════════════════════ */
 const SPORTS = [
-  { key: "Cricket",    icon: "🏏" },
-  { key: "Football",   icon: "⚽" },
-  { key: "Badminton",  icon: "🏸" },
-  { key: "Basketball", icon: "🏀" },
-  { key: "Tennis",     icon: "🎾" },
-  { key: "Volleyball", icon: "🏐" },
-  { key: "Kabaddi",    icon: "🤼" },
-  { key: "Other",      icon: "🎯" }
+  { key: "Cricket",              icon: "🏏" },
+  { key: "Football",             icon: "⚽" },
+  { key: "Cricket Net Practice", icon: "🥅" }
 ];
 
 const PASS_PLANS = [
@@ -677,8 +672,8 @@ function Hero({ liveSlotsToday }) {
       </h1>
 
       <p className="hero-sub anim-rise" style={{ animationDelay: '.15s' }}>
-        Pune's premier multi-sport turf. <strong>Cricket, Football, Badminton</strong> and whatever else you're into.
-        Open 6 AM to 10 PM, every single day. No advance payment. No fuss.
+        Pune's premier multi-sport turf. <strong>Cricket, Football, and dedicated net practice.</strong> Open every day —
+        weekdays 8 AM to 4:30 PM, weekends 6 AM to 11:30 PM. No advance payment. No fuss.
       </p>
 
       <div className="hero-ctas anim-rise" style={{ animationDelay: '.25s' }}>
@@ -701,7 +696,7 @@ function Hero({ liveSlotsToday }) {
           <div className="hero-stat-lbl">Slots open today</div>
         </div>
         <div>
-          <div className="hero-stat-num">8</div>
+          <div className="hero-stat-num">3</div>
           <div className="hero-stat-lbl">Sports available</div>
         </div>
         <div>
@@ -709,8 +704,8 @@ function Hero({ liveSlotsToday }) {
           <div className="hero-stat-lbl">Day booking window</div>
         </div>
         <div>
-          <div className="hero-stat-num">6–10</div>
-          <div className="hero-stat-lbl">Open AM to PM daily</div>
+          <div className="hero-stat-num">365</div>
+          <div className="hero-stat-lbl">Days open per year</div>
         </div>
       </div>
     </section>
