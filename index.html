@@ -392,7 +392,7 @@ function getNext15Days(){
   });
 }
 function normalizePhone(p){ if(!p) return ''; return String(p).replace(/\D/g,'').slice(-10); }
-function isValidEmail(e){ if(!e) return true; return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+function isValidEmail(e){ if(!e) return false; return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 function buildCalendarLink(b){
   const [s,e]=b.slot_time.split('-').map(s=>s.trim().replace(':',''));
   const date=b.booking_date.replace(/-/g,'');
@@ -508,19 +508,55 @@ function BookingWidget({ onComplete }){
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Client-side slot cache keyed by date|sport. Eliminates refetch when user
+  // toggles back to a date+sport they've already viewed.
+  const slotCacheRef = useRef({});
+
   const sportObj = SPORTS.find(s => s.key === sport);
 
   useEffect(()=>{
     if(!sport){ setSlots([]); return; }
+    const key = date + '|' + sport;
+    const cached = slotCacheRef.current[key];
+    if (cached) {
+      setSlots(cached);
+      setSelectedSlot(null);
+      setLoadingSlots(false);
+      // refresh in background for staleness
+      (async()=>{
+        try {
+          const fresh = await API.get('getSlots', { date, sport });
+          slotCacheRef.current[key] = fresh || [];
+          setSlots(fresh || []);
+        } catch(_){}
+      })();
+      return;
+    }
     let cancelled = false;
     (async()=>{
       setLoadingSlots(true);
       setSelectedSlot(null);
       try {
         const data = await API.get('getSlots', { date, sport });
-        if(!cancelled) setSlots(data || []);
+        if(!cancelled) {
+          const safe = data || [];
+          setSlots(safe);
+          slotCacheRef.current[key] = safe;
+        }
       } catch(e) { if(!cancelled){ setError(e.message); setSlots([]); } }
       finally { if(!cancelled) setLoadingSlots(false); }
+
+      // Prefetch next 2 days in background (fire-and-forget) — makes date switching instant
+      const idx = next15.findIndex(d => d.iso === date);
+      [1,2].forEach(off => {
+        const nextDate = next15[idx + off];
+        if (!nextDate) return;
+        const nextKey = nextDate.iso + '|' + sport;
+        if (slotCacheRef.current[nextKey]) return;
+        API.get('getSlots', { date: nextDate.iso, sport }).then(d => {
+          slotCacheRef.current[nextKey] = d || [];
+        }).catch(()=>{});
+      });
     })();
     return ()=>{ cancelled = true; };
   }, [date, sport]);
@@ -552,12 +588,13 @@ function BookingWidget({ onComplete }){
       const result = await API.post('createBooking', {
         customer_name: form.name.trim(),
         phone: normalizePhone(form.phone),
-        email: form.email.trim() || '',
+        email: form.email.trim(),
         sport: sport,
         slot_id: selectedSlot.slot_id,
         members_count: parseInt(form.members,10) || 1,
         notes: form.notes.trim() || ''
       });
+      slotCacheRef.current = {}; // invalidate local cache after successful booking
       onComplete({
         ...result,
         booking_date: selectedSlot.slot_date,
@@ -683,9 +720,10 @@ function BookingWidget({ onComplete }){
                 <input type="text" className="form-input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Your full name" autoComplete="name"/>
               </div>
               <div className="form-field">
-                <label className="form-label">Email (for confirmation)</label>
-                <input type="email" className="form-input" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="you@example.com" autoComplete="email"/>
+                <label className="form-label">Email * <span style={{ textTransform:'none', letterSpacing:0, fontWeight:500, color:'var(--text-3)' }}>(for booking confirmation)</span></label>
+                <input type="email" className="form-input" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="you@example.com" autoComplete="email" required/>
                 {!isValidEmail(form.email) && form.email && <div className="field-hint" style={{color:'var(--danger)'}}>Looks like an invalid email</div>}
+                {!form.email && <div className="field-hint">Required — we'll send your booking ID and venue details here</div>}
               </div>
               <div className="form-field">
                 <label className="form-label">Players</label>
