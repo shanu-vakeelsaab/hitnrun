@@ -969,7 +969,8 @@ function App(){
   const isFirstBookingsLoadRef = useRef(true);
   const audioCtxRef = useRef(null);
 
-  // Play a two-tone "ding" using Web Audio (no external file needed)
+  // Play a loud, bell-like alarm — 3 rings over ~2.5s, rich harmonics like a real bell.
+  // Modeled on PetPooja-style order alerts.
   function playNotificationSound(){
     try {
       if (!audioCtxRef.current) {
@@ -977,20 +978,41 @@ function App(){
       }
       const ctx = audioCtxRef.current;
       if (ctx.state === 'suspended') ctx.resume();
-      // Two-tone ding: high then low
-      [880, 660].forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        const t = ctx.currentTime + i * 0.18;
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.35, t + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
-        osc.start(t);
-        osc.stop(t + 0.5);
+
+      // Master gain — controls overall loudness
+      const master = ctx.createGain();
+      master.gain.value = 0.9; // loud but not clipping
+      master.connect(ctx.destination);
+
+      // Ring the bell 3 times: at 0s, 0.85s, 1.7s
+      [0, 0.85, 1.7].forEach(delay => {
+        const t0 = ctx.currentTime + delay;
+
+        // A bell has a fundamental + odd harmonics that create its shimmering character.
+        // These ratios approximate a real church bell's overtone series.
+        const harmonics = [
+          { freq: 880,  gain: 0.55, dur: 0.9 },   // A5 — fundamental (bright, carries)
+          { freq: 1320, gain: 0.35, dur: 0.7 },   // E6 — 3rd harmonic
+          { freq: 1760, gain: 0.22, dur: 0.6 },   // A6 — octave
+          { freq: 2640, gain: 0.12, dur: 0.4 }    // E7 — high shimmer
+        ];
+
+        harmonics.forEach(({ freq, gain: maxGain, dur }) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          osc.connect(gain);
+          gain.connect(master);
+
+          // Bell envelope: snap attack, long exponential decay (rings out)
+          gain.gain.setValueAtTime(0, t0);
+          gain.gain.linearRampToValueAtTime(maxGain, t0 + 0.005);
+          gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+
+          osc.start(t0);
+          osc.stop(t0 + dur + 0.05);
+        });
       });
     } catch(e) { console.warn('Audio playback failed:', e); }
   }
@@ -1012,7 +1034,7 @@ function App(){
   }
 
   async function enableNotifications(){
-    // Unlock audio context with this user gesture
+    // Unlock audio context so sound works (always succeeds, even in private mode)
     try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -1022,27 +1044,22 @@ function App(){
       }
     } catch(_){}
 
-    // Request browser notification permission
-    if ('Notification' in window) {
-      try {
-        const perm = await Notification.requestPermission();
-        if (perm !== 'granted') {
-          err('Notification permission denied. Enable it in browser settings.');
-          return;
-        }
-      } catch(e) { err('Could not request notification permission'); return; }
+    // Try desktop notifications quietly (bonus layer — sound works regardless)
+    if ('Notification' in window && Notification.permission === 'default') {
+      try { await Notification.requestPermission(); } catch(_) {}
     }
 
+    // Always enable — sound + on-page toast work no matter what
     setNotifEnabled(true);
     localStorage.setItem('hnr_notifs_enabled', '1');
-    playNotificationSound();  // test sound to confirm + unlock audio
-    ok('Alerts enabled - sound + desktop notifications active');
+    playNotificationSound();
+    ok('🔔 Alerts ON');
   }
 
   function disableNotifications(){
     setNotifEnabled(false);
     localStorage.removeItem('hnr_notifs_enabled');
-    ok('Alerts disabled');
+    ok('🔕 Alerts OFF');
   }
 
   // Restore notification setting on mount
