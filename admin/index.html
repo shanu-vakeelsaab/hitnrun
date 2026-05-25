@@ -968,53 +968,122 @@ function App(){
   const seenBookingsRef = useRef(new Set());
   const isFirstBookingsLoadRef = useRef(true);
   const audioCtxRef = useRef(null);
+  const bellAudioUrlRef = useRef(null);
 
-  // Loud bell-like alarm — 3 rings over ~2.5s, similar to PetPooja order alerts.
+  // Build a 2.5s bell WAV once and cache the blob URL. HTML5 Audio plays
+  // this reliably even when the page has been backgrounded — much more
+  // dependable than Web Audio API for ongoing alerts.
+  useEffect(() => {
+    if (bellAudioUrlRef.current) return;
+    try {
+      bellAudioUrlRef.current = generateBellWavUrl();
+      console.log('[bell] WAV generated and cached');
+    } catch(e) {
+      console.warn('[bell] WAV generation failed (will fall back to Web Audio):', e);
+    }
+    return () => {
+      if (bellAudioUrlRef.current) {
+        try { URL.revokeObjectURL(bellAudioUrlRef.current); } catch(_){}
+        bellAudioUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  // Build a 3-ring bell sound as a WAV in memory. Returns a blob URL.
+  function generateBellWavUrl(){
+    const sampleRate = 22050;
+    const totalDuration = 2.5;
+    const totalSamples = Math.floor(sampleRate * totalDuration);
+    const samples = new Float32Array(totalSamples);
+
+    // 3 rings, each ~0.7s decay
+    [0, 0.8, 1.6].forEach(startTime => {
+      const startIdx = Math.floor(startTime * sampleRate);
+      const ringSamples = Math.floor(0.7 * sampleRate);
+      for (let i = 0; i < ringSamples; i++) {
+        const idx = startIdx + i;
+        if (idx >= totalSamples) break;
+        const t = i / sampleRate;
+        const env = Math.exp(-t * 4); // fast-attack, exp-decay envelope
+        const s = (
+          Math.sin(2*Math.PI*1000*t) * 0.45 +  // fundamental
+          Math.sin(2*Math.PI*1500*t) * 0.30 +  // 3rd harmonic
+          Math.sin(2*Math.PI*2000*t) * 0.15    // 5th harmonic shimmer
+        ) * env;
+        samples[idx] = Math.max(-1, Math.min(1, samples[idx] + s));
+      }
+    });
+
+    // Pack into 16-bit PCM WAV
+    const dataLen = samples.length * 2;
+    const buf = new ArrayBuffer(44 + dataLen);
+    const v = new DataView(buf);
+    const writeStr = (off, str) => { for (let i = 0; i < str.length; i++) v.setUint8(off + i, str.charCodeAt(i)); };
+    writeStr(0, 'RIFF'); v.setUint32(4, 36 + dataLen, true); writeStr(8, 'WAVE');
+    writeStr(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2, true);
+    v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    writeStr(36, 'data'); v.setUint32(40, dataLen, true);
+    for (let i = 0; i < samples.length; i++) {
+      const c = Math.max(-1, Math.min(1, samples[i]));
+      v.setInt16(44 + i*2, c < 0 ? c * 0x8000 : c * 0x7FFF, true);
+    }
+    return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  }
+
+  // Loud bell-like alarm — 3 rings over ~2.5s. Primary: HTML5 Audio (reliable),
+  // fallback: Web Audio API (if blob URL not available for some reason).
   async function playNotificationSound(){
+    // PRIMARY: HTML5 Audio via cached WAV blob
+    if (bellAudioUrlRef.current) {
+      try {
+        const audio = new Audio(bellAudioUrlRef.current);
+        audio.volume = 1.0;
+        const p = audio.play();
+        if (p && p.catch) {
+          p.catch(e => {
+            console.warn('[bell] HTML5 Audio play() rejected, trying Web Audio:', e);
+            playBellViaWebAudio();
+          });
+        }
+        console.log('[bell] played via HTML5 Audio');
+        return;
+      } catch(e) {
+        console.warn('[bell] HTML5 Audio failed, falling back:', e);
+      }
+    }
+    // FALLBACK: Web Audio (used when blob URL unavailable)
+    playBellViaWebAudio();
+  }
+
+  async function playBellViaWebAudio(){
     try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
       const ctx = audioCtxRef.current;
-
-      // CRITICAL: must await resume before scheduling sound
       if (ctx.state === 'suspended') {
-        try { await ctx.resume(); } catch(e) { console.warn('[bell] resume failed:', e); }
+        try { await ctx.resume(); } catch(_){}
       }
-      console.log('[bell] playing, ctx state:', ctx.state);
-
-      // 3 rings at 0s, 0.8s, 1.6s
       [0, 0.8, 1.6].forEach(delay => {
         const t0 = ctx.currentTime + delay;
-
-        // Use two oscillators per ring for a richer "bell" tone.
-        // Conservative gains so the sum stays well under 1.0 (no clipping).
-        const tones = [
-          { freq: 1000, gain: 0.45, type: 'sine', dur: 0.7 },     // bright fundamental
-          { freq: 1500, gain: 0.30, type: 'sine', dur: 0.55 },    // 3rd harmonic shimmer
-          { freq: 2000, gain: 0.15, type: 'triangle', dur: 0.4 }  // high overtone for clarity
-        ];
-
-        tones.forEach(({ freq, gain: maxGain, type, dur }) => {
+        [
+          { freq: 1000, gain: 0.45, dur: 0.7 },
+          { freq: 1500, gain: 0.30, dur: 0.55 },
+          { freq: 2000, gain: 0.15, dur: 0.4 }
+        ].forEach(({ freq, gain: g0, dur }) => {
           const osc = ctx.createOscillator();
           const g = ctx.createGain();
-          osc.type = type;
-          osc.frequency.value = freq;
-          osc.connect(g);
-          g.connect(ctx.destination);
-
-          // Snap-attack + long decay envelope (bell-like)
+          osc.type = 'sine'; osc.frequency.value = freq;
+          osc.connect(g); g.connect(ctx.destination);
           g.gain.setValueAtTime(0, t0);
-          g.gain.linearRampToValueAtTime(maxGain, t0 + 0.005);
+          g.gain.linearRampToValueAtTime(g0, t0 + 0.005);
           g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
-
-          osc.start(t0);
-          osc.stop(t0 + dur + 0.05);
+          osc.start(t0); osc.stop(t0 + dur + 0.05);
         });
       });
-    } catch(e) {
-      console.error('[bell] FAILED:', e);
-    }
+      console.log('[bell] played via Web Audio fallback');
+    } catch(e) { console.error('[bell] all audio failed:', e); }
   }
 
   function showBrowserNotification(b){
