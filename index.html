@@ -325,7 +325,7 @@
 <script type="text/babel">
 const { useState, useEffect, useMemo, useRef } = React;
 
-const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+const API_URL = "https://hitnrun-api.vercel.app/api";
 
 const VENUE = {
   name:    "Hit N Run Sports Arena",
@@ -427,7 +427,7 @@ function ConfigError(){
         <div style={{fontSize:14,color:'var(--text-2)',lineHeight:1.7}}>
           This booking page needs your Google Apps Script Web App URL. Open the HTML file, find:
         </div>
-        <pre>{`const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";`}</pre>
+        <pre>{`const API_URL = "https://hitnrun-api.vercel.app/api";`}</pre>
         <div style={{fontSize:13,color:'var(--text-2)',lineHeight:1.7}}>
           Replace it with your live URL (looks like<br/>
           <code style={{color:'var(--lime)'}}>https://script.google.com/macros/s/AKfycb.../exec</code>) and refresh.
