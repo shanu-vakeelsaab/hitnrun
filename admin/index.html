@@ -969,52 +969,52 @@ function App(){
   const isFirstBookingsLoadRef = useRef(true);
   const audioCtxRef = useRef(null);
 
-  // Play a loud, bell-like alarm — 3 rings over ~2.5s, rich harmonics like a real bell.
-  // Modeled on PetPooja-style order alerts.
-  function playNotificationSound(){
+  // Loud bell-like alarm — 3 rings over ~2.5s, similar to PetPooja order alerts.
+  async function playNotificationSound(){
     try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
       const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') ctx.resume();
 
-      // Master gain — controls overall loudness
-      const master = ctx.createGain();
-      master.gain.value = 0.9; // loud but not clipping
-      master.connect(ctx.destination);
+      // CRITICAL: must await resume before scheduling sound
+      if (ctx.state === 'suspended') {
+        try { await ctx.resume(); } catch(e) { console.warn('[bell] resume failed:', e); }
+      }
+      console.log('[bell] playing, ctx state:', ctx.state);
 
-      // Ring the bell 3 times: at 0s, 0.85s, 1.7s
-      [0, 0.85, 1.7].forEach(delay => {
+      // 3 rings at 0s, 0.8s, 1.6s
+      [0, 0.8, 1.6].forEach(delay => {
         const t0 = ctx.currentTime + delay;
 
-        // A bell has a fundamental + odd harmonics that create its shimmering character.
-        // These ratios approximate a real church bell's overtone series.
-        const harmonics = [
-          { freq: 880,  gain: 0.55, dur: 0.9 },   // A5 — fundamental (bright, carries)
-          { freq: 1320, gain: 0.35, dur: 0.7 },   // E6 — 3rd harmonic
-          { freq: 1760, gain: 0.22, dur: 0.6 },   // A6 — octave
-          { freq: 2640, gain: 0.12, dur: 0.4 }    // E7 — high shimmer
+        // Use two oscillators per ring for a richer "bell" tone.
+        // Conservative gains so the sum stays well under 1.0 (no clipping).
+        const tones = [
+          { freq: 1000, gain: 0.45, type: 'sine', dur: 0.7 },     // bright fundamental
+          { freq: 1500, gain: 0.30, type: 'sine', dur: 0.55 },    // 3rd harmonic shimmer
+          { freq: 2000, gain: 0.15, type: 'triangle', dur: 0.4 }  // high overtone for clarity
         ];
 
-        harmonics.forEach(({ freq, gain: maxGain, dur }) => {
+        tones.forEach(({ freq, gain: maxGain, type, dur }) => {
           const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sine';
+          const g = ctx.createGain();
+          osc.type = type;
           osc.frequency.value = freq;
-          osc.connect(gain);
-          gain.connect(master);
+          osc.connect(g);
+          g.connect(ctx.destination);
 
-          // Bell envelope: snap attack, long exponential decay (rings out)
-          gain.gain.setValueAtTime(0, t0);
-          gain.gain.linearRampToValueAtTime(maxGain, t0 + 0.005);
-          gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+          // Snap-attack + long decay envelope (bell-like)
+          g.gain.setValueAtTime(0, t0);
+          g.gain.linearRampToValueAtTime(maxGain, t0 + 0.005);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
 
           osc.start(t0);
           osc.stop(t0 + dur + 0.05);
         });
       });
-    } catch(e) { console.warn('Audio playback failed:', e); }
+    } catch(e) {
+      console.error('[bell] FAILED:', e);
+    }
   }
 
   function showBrowserNotification(b){
