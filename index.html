@@ -325,7 +325,7 @@
 <script type="text/babel">
 const { useState, useEffect, useMemo, useRef } = React;
 
-const API_URL = "https://hitnrun-api.vercel.app/api";
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
 
 const VENUE = {
   name:    "Hit N Run Sports Arena",
@@ -981,7 +981,7 @@ function App(){
       {booking
         ? <ConfirmationTicket booking={booking} onReset={reset}/>
         : <BookingWidget onComplete={complete}/>}
-      {!booking && <><Features/><PricingCallout/><PassCallout/><VenueInfo/></>}
+      {!booking && <><Features/><PricingCallout/><VenueInfo/></>}
       <Footer/>
       <Toast toast={toast} onClose={()=>setToast({show:false})}/>
     </>

@@ -85,7 +85,7 @@
 <script type="text/babel">
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
-const API_URL = "https://hitnrun-api.vercel.app/api";
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
 const REFRESH_INTERVAL_MS = 15000; // 15s auto-refresh
 
 // PLANS — must match Code.gs PLANS array
@@ -511,6 +511,174 @@ const lblStyle = { display:'block', fontSize:11, fontWeight:700, color:'#6b7280'
 const inputStyle = { width:'100%', padding:'10px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, outline:'none', background:'#fff' };
 
 // ──────────────────────────────────────────────────────────
+// EDIT BOOKING MODAL — change slot date/time and amount
+// ──────────────────────────────────────────────────────────
+function EditBookingModal({ booking, onClose, onSave }){
+  const [form, setForm] = useState({
+    booking_date: booking.booking_date,
+    slot_id: booking.slot_id,
+    slot_time: booking.slot_time,
+    amount: booking.amount,
+    notes: booking.notes || '',
+    members_count: booking.members_count || 1
+  });
+  const [availSlots, setAvailSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState(null);
+
+  // Fetch available slots whenever date changes (include the current slot too so admin can keep it)
+  useEffect(()=>{
+    let cancelled = false;
+    (async ()=>{
+      setLoadingSlots(true);
+      try {
+        const sport = booking.booking_kind === 'turf' ? booking.sport : 'Cricket Net Practice';
+        const slots = await API.get('getSlots', { date: form.booking_date, sport });
+        if (cancelled) return;
+        // Inject the current slot at the top so admin can choose to keep current
+        const list = (slots || []).slice();
+        if (form.booking_date === booking.booking_date) {
+          const hasCurrent = list.some(s => s.slot_id === booking.slot_id);
+          if (!hasCurrent) {
+            list.unshift({
+              slot_id: booking.slot_id,
+              slot_date: booking.booking_date,
+              slot_time: booking.slot_time,
+              resource: booking.resource,
+              price: booking.amount,
+              _current: true
+            });
+          }
+        }
+        setAvailSlots(list);
+      } catch(e) {
+        if (!cancelled) { setAvailSlots([]); setErr('Could not load slots: '+e.message); }
+      } finally {
+        if (!cancelled) setLoadingSlots(false);
+      }
+    })();
+    return ()=>{ cancelled = true; };
+  }, [form.booking_date]);
+
+  async function submit(){
+    setErr(null);
+    if (!form.slot_id) { setErr('Pick a slot'); return; }
+    setSubmitting(true);
+    try {
+      await API.post('updateBooking', {
+        id: booking.booking_id,
+        slot_id: form.slot_id,
+        amount: parseInt(form.amount, 10) || 0,
+        notes: form.notes,
+        members_count: parseInt(form.members_count, 10) || 1
+      });
+      onSave();
+      onClose();
+    } catch(e){ setErr(e.message); setSubmitting(false); }
+  }
+
+  return (
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{
+      position:'fixed', inset:0, background:'rgba(0,0,0,.5)', zIndex:140,
+      display:'grid', placeItems:'center', padding:16, overflowY:'auto'
+    }}>
+      <div className="modal-inner" style={{
+        background:'#fff', borderRadius:16, padding:24, maxWidth:600, width:'100%',
+        boxShadow:'0 24px 80px rgba(0,0,0,.3)', maxHeight:'92vh', overflowY:'auto'
+      }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:18 }}>
+          <div>
+            <div style={{ fontSize:20, fontWeight:800 }}>Edit Booking</div>
+            <div style={{ fontSize:12, color:'#9ca3af', marginTop:2, fontFamily:'monospace' }}>{booking.booking_id} · {booking.customer_name}</div>
+          </div>
+          <button onClick={onClose} style={{ fontSize:22, color:'#9ca3af', padding:0, lineHeight:1 }}>×</button>
+        </div>
+
+        <div style={{ background:'#f9fafb', padding:12, borderRadius:8, marginBottom:16, fontSize:13 }}>
+          <div style={{ color:'#6b7280', fontSize:11, textTransform:'uppercase', letterSpacing:'.06em', fontWeight:700, marginBottom:4 }}>Current</div>
+          <div><strong>{booking.sport}</strong> · {formatDateShort(booking.booking_date)} · {booking.slot_time} · ₹{booking.amount}</div>
+        </div>
+
+        <div style={{ marginBottom:14 }}>
+          <label style={lblStyle}>Date</label>
+          <input type="date" value={form.booking_date}
+            onChange={e=>setForm({...form, booking_date:e.target.value, slot_id:''})}
+            style={inputStyle}/>
+        </div>
+
+        <div style={{ marginBottom:16 }}>
+          <label style={lblStyle}>
+            Slot {form.slot_id && <span style={{ textTransform:'none', color:'#10b981', fontWeight:700, letterSpacing:0 }}>· Selected</span>}
+          </label>
+          {loadingSlots ? (
+            <div style={{ padding:'20px', background:'#f9fafb', borderRadius:8, textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:10, color:'#6b7280', fontSize:13 }}>
+              <Spinner small/> Loading slots…
+            </div>
+          ) : availSlots.length === 0 ? (
+            <div style={{ padding:'20px', background:'#fef2f2', border:'1px dashed #fecaca', borderRadius:8, textAlign:'center', color:'#991b1b', fontSize:13 }}>
+              No slots available for this date.
+            </div>
+          ) : (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap:6, maxHeight:240, overflowY:'auto', padding:6, background:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb' }}>
+              {availSlots.map(s => {
+                const active = form.slot_id === s.slot_id;
+                return (
+                  <button key={s.slot_id} type="button"
+                    onClick={()=>setForm({...form, slot_id:s.slot_id, slot_time:s.slot_time})}
+                    style={{
+                      padding:'9px 8px', borderRadius:7,
+                      background: active ? '#f59e0b' : (s._current ? '#ecfdf5' : '#fff'),
+                      color: active ? '#fff' : '#111',
+                      border: '1.5px solid ' + (active ? '#f59e0b' : (s._current ? '#10b981' : '#e5e7eb')),
+                      fontSize:12, fontWeight:700, lineHeight:1.3, cursor:'pointer'
+                    }}>
+                    <div style={{ fontFamily:'monospace' }}>{s.slot_time}</div>
+                    {s._current && <div style={{ fontSize:9, opacity:.8 }}>current</div>}
+                    {s.nets_available !== undefined && !s._current && <div style={{ fontSize:9, opacity:.7 }}>{s.nets_available}/3 free</div>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+          <div>
+            <label style={lblStyle}>Amount (₹)</label>
+            <input type="number" value={form.amount}
+              onChange={e=>setForm({...form, amount:e.target.value})}
+              style={inputStyle}/>
+          </div>
+          <div>
+            <label style={lblStyle}>Players</label>
+            <input type="number" value={form.members_count}
+              onChange={e=>setForm({...form, members_count:e.target.value})}
+              min={1} style={inputStyle}/>
+          </div>
+        </div>
+
+        <div style={{ marginBottom:16 }}>
+          <label style={lblStyle}>Notes</label>
+          <textarea value={form.notes}
+            onChange={e=>setForm({...form, notes:e.target.value})}
+            style={{ ...inputStyle, minHeight:60, resize:'vertical' }}/>
+        </div>
+
+        {err && <div style={{ background:'#fef2f2', color:'#991b1b', padding:'10px 14px', borderRadius:8, fontSize:13, marginBottom:14 }}>⚠ {err}</div>}
+
+        <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+          <button onClick={onClose} style={{ padding:'11px 18px', background:'#f3f4f6', color:'#374151', borderRadius:8, fontWeight:700, fontSize:13 }}>Cancel</button>
+          <button onClick={submit} disabled={submitting || !form.slot_id} style={{ padding:'11px 22px', background:(submitting||!form.slot_id)?'#d1d5db':'#f59e0b', color:(submitting||!form.slot_id)?'#6b7280':'#fff', borderRadius:8, fontWeight:800, fontSize:13, display:'inline-flex', alignItems:'center', gap:8 }}>
+            {submitting && <Spinner small/>}{submitting?'Saving…':'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
 // PASS MODAL (create/edit member)
 // ──────────────────────────────────────────────────────────
 function PassModal({ onClose, onCreate, editing }){
@@ -784,12 +952,128 @@ function App(){
   const [editingMember, setEditingMember] = useState(null);
   const [showLead, setShowLead] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
-  const [revenueRange, setRevenueRange] = useState({ from:'', to:'' });
+  const [revenueRange, setRevenueRange] = useState(() => {
+    const today = formatDateISO(new Date());
+    return { from: today, to: today };
+  });
 
   function ok(message){ setToast({ show:true, message }); }
   function err(message){ setToast({ show:true, message, isError:true }); }
 
   const [refreshing, setRefreshing] = useState(false);
+  const [editingBooking, setEditingBooking] = useState(null);
+
+  // ── NOTIFICATIONS: sound + browser notification when new bookings arrive ──
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const seenBookingsRef = useRef(new Set());
+  const isFirstBookingsLoadRef = useRef(true);
+  const audioCtxRef = useRef(null);
+
+  // Play a two-tone "ding" using Web Audio (no external file needed)
+  function playNotificationSound(){
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
+      // Two-tone ding: high then low
+      [880, 660].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        const t = ctx.currentTime + i * 0.18;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.35, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        osc.start(t);
+        osc.stop(t + 0.5);
+      });
+    } catch(e) { console.warn('Audio playback failed:', e); }
+  }
+
+  function showBrowserNotification(b){
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    try {
+      const kindEmoji = b.booking_kind === 'net' ? '🥅' : '🏏';
+      const n = new Notification(`${kindEmoji} New Booking - ${b.customer_name}`, {
+        body: `${b.sport} · ${b.slot_time} · ${formatDateShort(b.booking_date)}\nRs ${b.amount} · ${b.members_count} player${b.members_count>1?'s':''}`,
+        tag: b.booking_id,
+        requireInteraction: false,
+        silent: true  // we play our own sound
+      });
+      n.onclick = () => { window.focus(); n.close(); };
+      setTimeout(() => n.close(), 12000);
+    } catch(e) { console.warn('Notification failed:', e); }
+  }
+
+  async function enableNotifications(){
+    // Unlock audio context with this user gesture
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtxRef.current.state === 'suspended') {
+        await audioCtxRef.current.resume();
+      }
+    } catch(_){}
+
+    // Request browser notification permission
+    if ('Notification' in window) {
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') {
+          err('Notification permission denied. Enable it in browser settings.');
+          return;
+        }
+      } catch(e) { err('Could not request notification permission'); return; }
+    }
+
+    setNotifEnabled(true);
+    localStorage.setItem('hnr_notifs_enabled', '1');
+    playNotificationSound();  // test sound to confirm + unlock audio
+    ok('Alerts enabled - sound + desktop notifications active');
+  }
+
+  function disableNotifications(){
+    setNotifEnabled(false);
+    localStorage.removeItem('hnr_notifs_enabled');
+    ok('Alerts disabled');
+  }
+
+  // Restore notification setting on mount
+  useEffect(() => {
+    if (loggedIn && localStorage.getItem('hnr_notifs_enabled') === '1' &&
+        'Notification' in window && Notification.permission === 'granted') {
+      setNotifEnabled(true);
+    }
+  }, [loggedIn]);
+
+  // Detect new bookings on every data refresh and fire alerts
+  useEffect(() => {
+    if (!bookings.length) return;
+    if (isFirstBookingsLoadRef.current) {
+      // First load: mark all current bookings as "seen" without firing alerts
+      bookings.forEach(b => seenBookingsRef.current.add(b.booking_id));
+      isFirstBookingsLoadRef.current = false;
+      return;
+    }
+    const newOnes = bookings.filter(b =>
+      !seenBookingsRef.current.has(b.booking_id) && b.status === 'confirmed'
+    );
+    newOnes.forEach(b => seenBookingsRef.current.add(b.booking_id));
+    if (newOnes.length && notifEnabled) {
+      playNotificationSound();
+      newOnes.forEach(showBrowserNotification);
+    }
+    if (newOnes.length) {
+      ok(`🔔 ${newOnes.length} new booking${newOnes.length>1?'s':''} arrived`);
+    }
+  }, [bookings, notifEnabled]);
 
   // ── FAST INITIAL LOAD: one combined call ──
   const loadSnapshot = useCallback(async (opts={}) => {
@@ -1084,6 +1368,20 @@ function App(){
               : <span className="live-dot-green"></span>}
             <span className="live-text-full">{refreshing ? 'Syncing…' : `Live · ${lastSync ? relativeTime(lastSync, now) : 'syncing…'}`}</span>
           </div>
+          <button
+            onClick={notifEnabled ? disableNotifications : enableNotifications}
+            title={notifEnabled ? 'Click to disable booking alerts' : 'Click to enable sound + notifications for new bookings'}
+            style={{
+              padding:'7px 12px',
+              background: notifEnabled ? '#10b981' : '#1a1a1a',
+              color: notifEnabled ? '#000' : '#fff',
+              borderRadius:8, fontSize:12, fontWeight:700,
+              border: '1px solid ' + (notifEnabled ? '#10b981' : '#2a2a2a'),
+              display:'inline-flex', alignItems:'center', gap:5
+            }}>
+            <span>{notifEnabled ? '🔔' : '🔕'}</span>
+            <span className="live-text-full">{notifEnabled ? 'Alerts ON' : 'Enable Alerts'}</span>
+          </button>
           <button onClick={()=>loadSnapshot({ includeLeads: tab==='leads', includeMembers: tab==='passes', noCache: true })}
             disabled={refreshing}
             title="Refresh now (skips cache)"
@@ -1193,8 +1491,9 @@ function App(){
                         <td style={{ padding:'11px' }}><Badge bg={pc.bg} text={pc.text}>{pc.label}</Badge></td>
                         <td style={{ padding:'11px' }}>
                           {cancelled ? <span style={{ fontSize:11, color:'#ef4444', fontWeight:700 }}>✕ Cancelled</span> : (
-                            <div style={{ display:'flex', gap:6 }}>
+                            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                               {b.payment_status==='pending' && <button onClick={()=>markPaid(b.booking_id)} style={{ fontSize:11, padding:'5px 11px', background:'#dcfce7', color:'#14532d', borderRadius:6, fontWeight:700 }}>💰 Paid</button>}
+                              <button onClick={()=>setEditingBooking(b)} style={{ fontSize:11, padding:'5px 11px', background:'#fef3c7', color:'#78350f', borderRadius:6, fontWeight:700 }}>✏️ Edit</button>
                               <CancelBtn onClick={()=>cancelBooking(b.booking_id)} small/>
                             </div>
                           )}
@@ -1243,6 +1542,7 @@ function App(){
                     {!cancelled && (
                       <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                         {b.payment_status==='pending' && <button onClick={()=>markPaid(b.booking_id)} style={{ fontSize:11, padding:'6px 12px', background:'#dcfce7', color:'#14532d', borderRadius:7, fontWeight:700 }}>💰 Mark Paid</button>}
+                        <button onClick={()=>setEditingBooking(b)} style={{ fontSize:11, padding:'6px 12px', background:'#fef3c7', color:'#78350f', borderRadius:7, fontWeight:700 }}>✏️ Edit</button>
                         <CancelBtn onClick={()=>cancelBooking(b.booking_id)} small/>
                       </div>
                     )}
@@ -1400,59 +1700,88 @@ function App(){
         {/* ━━━━━ REVENUE TAB ━━━━━ */}
         {!loading && tab === 'revenue' && (
           <div className="anim-up">
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:10 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16, flexWrap:'wrap', gap:12 }}>
               <div>
                 <div style={{ fontSize:16, fontWeight:800 }}>Revenue Report</div>
-                <div style={{ fontSize:12, color:'#9ca3af' }}>Confirmed paid bookings only</div>
+                <div style={{ fontSize:12, color:'#9ca3af' }}>Confirmed paid bookings · {revenueRange.from} → {revenueRange.to}</div>
               </div>
               <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
-                <input type="date" value={revenueRange.from} onChange={e=>setRevenueRange({...revenueRange, from:e.target.value})} style={{ padding:'7px 10px', borderRadius:6, border:'1.5px solid #e5e7eb', fontSize:12 }}/>
-                <span style={{ color:'#9ca3af' }}>→</span>
-                <input type="date" value={revenueRange.to} onChange={e=>setRevenueRange({...revenueRange, to:e.target.value})} style={{ padding:'7px 10px', borderRadius:6, border:'1.5px solid #e5e7eb', fontSize:12 }}/>
-                <button onClick={fetchRevenue} style={{ padding:'7px 14px', background:'#111', color:'#fff', borderRadius:6, fontSize:12, fontWeight:700 }}>Apply</button>
+                {[
+                  { label:'Today',   from: formatDateISO(new Date()), to: formatDateISO(new Date()) },
+                  { label:'7 days',  from: formatDateISO(new Date(Date.now()-6*86400000)), to: formatDateISO(new Date()) },
+                  { label:'30 days', from: formatDateISO(new Date(Date.now()-29*86400000)), to: formatDateISO(new Date()) },
+                  { label:'This Month', from: (()=>{ const d=new Date(); d.setDate(1); return formatDateISO(d); })(), to: formatDateISO(new Date()) }
+                ].map(preset => {
+                  const active = revenueRange.from === preset.from && revenueRange.to === preset.to;
+                  return (
+                    <button key={preset.label}
+                      onClick={()=>{ setRevenueRange({ from: preset.from, to: preset.to }); setTimeout(fetchRevenue, 0); }}
+                      style={{ padding:'6px 12px', background: active?'#111':'#f3f4f6', color: active?'#fff':'#374151', borderRadius:6, fontSize:11, fontWeight:700, border:'1px solid '+(active?'#111':'#e5e7eb') }}>
+                      {preset.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
+            <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap', marginBottom:18, padding:12, background:'#fafafa', border:'1px solid #f3f4f6', borderRadius:8 }}>
+              <span style={{ fontSize:12, color:'#6b7280', fontWeight:600 }}>Custom range:</span>
+              <input type="date" value={revenueRange.from} onChange={e=>setRevenueRange({...revenueRange, from:e.target.value})} style={{ padding:'7px 10px', borderRadius:6, border:'1.5px solid #e5e7eb', fontSize:12 }}/>
+              <span style={{ color:'#9ca3af' }}>→</span>
+              <input type="date" value={revenueRange.to} onChange={e=>setRevenueRange({...revenueRange, to:e.target.value})} style={{ padding:'7px 10px', borderRadius:6, border:'1.5px solid #e5e7eb', fontSize:12 }}/>
+              <button onClick={fetchRevenue} style={{ padding:'7px 14px', background:'#111', color:'#fff', borderRadius:6, fontSize:12, fontWeight:700 }}>Apply</button>
+            </div>
+
             {!revenue && <LoadingBlock message="Computing…"/>}
-            {revenue && (
+            {revenue && (() => {
+              const total = parseFloat(revenue.total) || 0;
+              const count = parseInt(revenue.bookings_count, 10) || 0;
+              return (
               <>
                 <div className="revenue-cards" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14, marginBottom:28 }}>
                   <div style={{ background:'linear-gradient(135deg,#10b981,#059669)', color:'#fff', padding:20, borderRadius:14 }}>
                     <div style={{ fontSize:11, opacity:.85, fontWeight:700, textTransform:'uppercase', letterSpacing:'.06em' }}>Total Revenue</div>
-                    <div style={{ fontSize:32, fontWeight:800, marginTop:6 }}>₹{revenue.total.toLocaleString('en-IN')}</div>
+                    <div style={{ fontSize:32, fontWeight:800, marginTop:6 }}>₹{total.toLocaleString('en-IN')}</div>
                   </div>
                   <div style={{ background:'#fff', border:'1px solid #e5e7eb', padding:20, borderRadius:14 }}>
-                    <div style={{ fontSize:11, color:'#9ca3af', fontWeight:700, textTransform:'uppercase', letterSpacing:'.06em' }}>Bookings</div>
-                    <div style={{ fontSize:32, fontWeight:800, marginTop:6 }}>{revenue.bookings_count}</div>
+                    <div style={{ fontSize:11, color:'#9ca3af', fontWeight:700, textTransform:'uppercase', letterSpacing:'.06em' }}>Paid Bookings</div>
+                    <div style={{ fontSize:32, fontWeight:800, marginTop:6 }}>{count}</div>
                   </div>
                   <div style={{ background:'#fff', border:'1px solid #e5e7eb', padding:20, borderRadius:14 }}>
                     <div style={{ fontSize:11, color:'#9ca3af', fontWeight:700, textTransform:'uppercase', letterSpacing:'.06em' }}>Avg / Booking</div>
-                    <div style={{ fontSize:32, fontWeight:800, marginTop:6 }}>₹{revenue.bookings_count>0?Math.round(revenue.total/revenue.bookings_count).toLocaleString('en-IN'):0}</div>
+                    <div style={{ fontSize:32, fontWeight:800, marginTop:6 }}>₹{count>0?Math.round(total/count).toLocaleString('en-IN'):0}</div>
                   </div>
                 </div>
 
                 <div className="revenue-split" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
                   <div>
                     <div style={{ fontSize:13, fontWeight:800, marginBottom:12 }}>By Payment Mode</div>
+                    {Object.keys(revenue.by_payment_mode || {}).length === 0 && (
+                      <div style={{ fontSize:13, color:'#9ca3af', padding:'10px 0' }}>No paid bookings in this range</div>
+                    )}
                     {Object.entries(revenue.by_payment_mode || {}).map(([mode, val]) => (
                       <div key={mode} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid #f3f4f6' }}>
                         <span style={{ textTransform:'capitalize', fontSize:13 }}>{mode || 'Unknown'}</span>
-                        <span style={{ fontWeight:700, fontSize:13 }}>₹{parseFloat(val).toLocaleString('en-IN')}</span>
+                        <span style={{ fontWeight:700, fontSize:13 }}>₹{(parseFloat(val)||0).toLocaleString('en-IN')}</span>
                       </div>
                     ))}
                   </div>
                   <div>
                     <div style={{ fontSize:13, fontWeight:800, marginBottom:12 }}>By Sport</div>
+                    {Object.keys(revenue.by_sport || {}).length === 0 && (
+                      <div style={{ fontSize:13, color:'#9ca3af', padding:'10px 0' }}>No paid bookings in this range</div>
+                    )}
                     {Object.entries(revenue.by_sport || {}).map(([sport, val]) => (
                       <div key={sport} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid #f3f4f6' }}>
                         <span style={{ fontSize:13 }}>{sport}</span>
-                        <span style={{ fontWeight:700, fontSize:13 }}>₹{parseFloat(val).toLocaleString('en-IN')}</span>
+                        <span style={{ fontWeight:700, fontSize:13 }}>₹{(parseFloat(val)||0).toLocaleString('en-IN')}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </>
-            )}
+              );
+            })()}
           </div>
         )}
       </div>
@@ -1465,6 +1794,8 @@ function App(){
         onCreate={(result)=>{
           // OPTIMISTIC UPDATE — show the booking instantly without waiting for reload
           if (result && result.booking) {
+            // Mark as seen FIRST so the new-booking alert doesn't fire for our own walk-in
+            seenBookingsRef.current.add(result.booking.booking_id);
             setBookings(prev => [result.booking, ...prev]);
             // Also mark the slot as booked locally so Availability tab is consistent
             setSlots(prev => prev.map(s =>
@@ -1487,6 +1818,14 @@ function App(){
       />}
       {showPass && <PassModal editing={editingMember} onClose={()=>{setShowPass(false); setEditingMember(null);}} onCreate={()=>{ ok(editingMember?'Updated':'Pass created'); loadSnapshot({ includeMembers:true, noCache:true }); }}/>}
       {showLead && <LeadModal editing={editingLead} onClose={()=>{setShowLead(false); setEditingLead(null);}} onSave={()=>{ ok(editingLead?'Updated':'Lead added'); loadSnapshot({ includeLeads:true, noCache:true }); }}/>}
+      {editingBooking && <EditBookingModal
+        booking={editingBooking}
+        onClose={()=>setEditingBooking(null)}
+        onSave={()=>{
+          ok('Booking updated');
+          loadSnapshot({ noCache: true });
+        }}
+      />}
     </div>
   );
 }
