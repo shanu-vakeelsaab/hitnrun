@@ -195,6 +195,18 @@
       .slot-meta{display:none}
     }
 
+    /* Duration picker */
+    .duration-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:520px}
+    .duration-card{background:var(--bg-alt);border:1.5px solid var(--border);border-radius:14px;padding:16px 14px;transition:all .15s;text-align:center;cursor:pointer;color:var(--text)}
+    .duration-card:hover:not(.disabled){border-color:var(--lime);transform:translateY(-2px)}
+    .duration-card.active{background:var(--lime);color:#000;border-color:var(--lime);transform:translateY(-2px);box-shadow:0 12px 32px rgba(196,240,0,.3)}
+    .duration-card.disabled{opacity:.35;cursor:not-allowed;background:transparent}
+    .dur-h{font-family:var(--display);font-size:20px;letter-spacing:.02em;margin-bottom:4px}
+    .dur-price{font-size:13px;font-weight:700;color:var(--lime)}
+    .duration-card.active .dur-price{color:#000}
+    .dur-sub{font-size:10px;font-weight:700;color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
+    @media (max-width:720px){.dur-h{font-size:16px}.dur-price{font-size:11px}}
+
     /* Form */
     .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
     @media (max-width:560px){.form-grid{grid-template-columns:1fr}}
@@ -502,6 +514,7 @@ function BookingWidget({ onComplete }){
   const [sport, setSport] = useState(null);
   const [slots, setSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [duration, setDuration] = useState(1);  // 1 / 2 / 3 hours
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [form, setForm] = useState({ name:'', phone:'', email:'', members:1, notes:'' });
   const [returning, setReturning] = useState(null);
@@ -578,6 +591,13 @@ function BookingWidget({ onComplete }){
     return ()=>{ cancelled = true; clearTimeout(t); };
   }, [form.phone]);
 
+  // Whenever the user picks a new slot, reset duration to 1 hr (and clamp later by max_duration).
+  useEffect(()=>{ setDuration(1); }, [selectedSlot && selectedSlot.slot_id]);
+
+  const maxDur = (selectedSlot && selectedSlot.max_duration) || 1;
+  const effectiveDuration = Math.min(duration, maxDur);
+  const totalPrice = selectedSlot ? parseInt(selectedSlot.price || 0) * effectiveDuration : 0;
+
   const canBook = selectedSlot && form.name.trim() && normalizePhone(form.phone).length === 10 && isValidEmail(form.email);
 
   async function submit(){
@@ -591,6 +611,7 @@ function BookingWidget({ onComplete }){
         email: form.email.trim(),
         sport: sport,
         slot_id: selectedSlot.slot_id,
+        duration_hrs: effectiveDuration,
         members_count: parseInt(form.members,10) || 1,
         notes: form.notes.trim() || ''
       });
@@ -598,9 +619,10 @@ function BookingWidget({ onComplete }){
       onComplete({
         ...result,
         booking_date: selectedSlot.slot_date,
-        slot_time: selectedSlot.slot_time,
+        slot_time: result.slot_time || selectedSlot.slot_time,
         sport: sport,
-        amount: selectedSlot.price,
+        amount: result.amount || totalPrice,
+        duration_hrs: effectiveDuration,
         members_count: parseInt(form.members,10) || 1,
         customer_name: form.name.trim(),
         email: form.email.trim()
@@ -692,6 +714,37 @@ function BookingWidget({ onComplete }){
           )}
         </div>
 
+        {/* STEP 3.5 — Duration picker (only when a slot is selected) */}
+        {selectedSlot && (
+          <div className="booking-step anim-rise-fast">
+            <div className="step-label">
+              <span className="step-num">⏱</span>
+              <span className="step-title">Duration</span>
+              <span className="step-meta">{maxDur >= 2 ? `Up to ${maxDur} hour${maxDur>1?'s':''} available` : '1 hour only'}</span>
+            </div>
+            <div className="duration-grid">
+              {[1,2,3].map(h => {
+                const disabled = h > maxDur;
+                const active = effectiveDuration === h;
+                const price = parseInt(selectedSlot.price || 0) * h;
+                return (
+                  <button
+                    key={h}
+                    className={`duration-card ${active?'active':''} ${disabled?'disabled':''}`}
+                    onClick={()=>!disabled && setDuration(h)}
+                    disabled={disabled}
+                    title={disabled ? 'Not enough consecutive slots available' : ''}
+                  >
+                    <div className="dur-h">{h} hr{h>1?'s':''}</div>
+                    <div className="dur-price">₹{price.toLocaleString('en-IN')}</div>
+                    {disabled && <div className="dur-sub">unavailable</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* STEP 4 */}
         {selectedSlot && (
           <div className="booking-step anim-rise-fast">
@@ -736,7 +789,7 @@ function BookingWidget({ onComplete }){
             </div>
             <div className="submit-row">
               <button className="btn-submit" onClick={submit} disabled={!canBook || submitting}>
-                {submitting ? <><Spinner small/> Booking…</> : <>Lock in slot · ₹{parseInt(selectedSlot.price||0).toLocaleString('en-IN')} <span>→</span></>}
+                {submitting ? <><Spinner small/> Booking…</> : <>Lock in {effectiveDuration > 1 ? `${effectiveDuration} hrs` : 'slot'} · ₹{totalPrice.toLocaleString('en-IN')} <span>→</span></>}
               </button>
               <div className="submit-note">💰 Pay at the venue — cash or UPI. Cancel anytime by calling us.</div>
               {error && <div style={{background:'rgba(239,68,68,.1)',border:'1px solid var(--danger)',borderRadius:12,padding:'12px 16px',fontSize:13,color:'#fca5a5'}}>⚠ {error}</div>}
@@ -777,6 +830,9 @@ function ConfirmationTicket({ booking, onReset }){
           <div className="ticket-row"><span className="ticket-label">Sport</span><span className="ticket-value big">{booking.sport}</span></div>
           <div className="ticket-row"><span className="ticket-label">Date</span><span className="ticket-value">{dateLong(booking.booking_date)}</span></div>
           <div className="ticket-row"><span className="ticket-label">Time</span><span className="ticket-value big" style={{fontSize:20}}>{booking.slot_time}</span></div>
+          {booking.duration_hrs > 1 && (
+            <div className="ticket-row"><span className="ticket-label">Duration</span><span className="ticket-value big">{booking.duration_hrs} hours</span></div>
+          )}
           <div className="ticket-row"><span className="ticket-label">Players</span><span className="ticket-value">{booking.members_count}</span></div>
           <div className="ticket-row"><span className="ticket-label">Amount</span><span className="ticket-value big lime">₹{parseInt(booking.amount||0).toLocaleString('en-IN')}</span></div>
         </div>

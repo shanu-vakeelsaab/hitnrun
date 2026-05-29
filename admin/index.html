@@ -300,6 +300,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
     booking_kind:'turf', sport:'Cricket',
     booking_date: defaultDate || formatDateISO(new Date()),
     slot_time:'',
+    duration_hrs: 1,
     members_count: 1,
     amount: 1200,
     payment_status:'pending',
@@ -315,7 +316,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
     let cancelled = false;
     (async ()=>{
       setLoadingSlots(true);
-      setForm(f => ({ ...f, slot_time: '' })); // reset selected time on date/kind change
+      setForm(f => ({ ...f, slot_time: '', duration_hrs: 1 })); // reset on date/kind change
       try {
         const sport = form.booking_kind === 'turf' ? form.sport : 'Cricket Net Practice';
         const slots = await API.get('getSlots', { date: form.booking_date, sport });
@@ -329,13 +330,26 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
     return ()=>{ cancelled = true; };
   }, [form.booking_date, form.booking_kind, form.sport]);
 
+  // Selected slot metadata for the duration picker
+  const selectedSlot = availSlots.find(s => s.slot_time === form.slot_time);
+  const maxDur = (selectedSlot && selectedSlot.max_duration) || 1;
+  const unitPrice = selectedSlot ? selectedSlot.price : (form.booking_kind === 'turf' ? 1200 : 400);
+
+  // Auto-update amount when slot/duration changes
+  useEffect(()=>{
+    if (selectedSlot) {
+      setForm(f => ({ ...f, amount: unitPrice * (f.duration_hrs || 1) }));
+    }
+  }, [form.slot_time, form.duration_hrs]);
+
   function setKind(k){
     setForm(f => ({
       ...f,
       booking_kind: k,
       sport: k==='turf' ? 'Cricket' : 'Cricket Net Practice',
       amount: k==='turf' ? 1200 : 400,
-      slot_time: ''
+      slot_time: '',
+      duration_hrs: 1
     }));
   }
 
@@ -354,6 +368,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
         booking_kind: form.booking_kind,
         booking_date: form.booking_date,
         slot_time: form.slot_time,
+        duration_hrs: parseInt(form.duration_hrs,10) || 1,
         members_count: parseInt(form.members_count,10)||1,
         amount: parseInt(form.amount,10)||0,
         payment_status: form.payment_status,
@@ -434,7 +449,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
               {availSlots.map(s => {
                 const active = form.slot_time === s.slot_time;
                 return (
-                  <button key={s.slot_id} type="button" onClick={()=>setForm({...form, slot_time: s.slot_time, amount: form.amount || s.price})}
+                  <button key={s.slot_id} type="button" onClick={()=>setForm({...form, slot_time: s.slot_time, duration_hrs: 1, amount: s.price})}
                     style={{
                       padding:'9px 8px', borderRadius:7,
                       background: active ? '#f59e0b' : '#fff',
@@ -446,12 +461,43 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
                     {s.nets_available !== undefined && (
                       <div style={{ fontSize:9, fontWeight:600, opacity:.8, marginTop:2 }}>{s.nets_available}/3 free</div>
                     )}
+                    {s.max_duration > 1 && (
+                      <div style={{ fontSize:9, fontWeight:600, opacity:.7, marginTop:1 }}>up to {s.max_duration}h</div>
+                    )}
                   </button>
                 );
               })}
             </div>
           )}
         </div>
+
+        {/* Duration picker — only when a slot is selected */}
+        {form.slot_time && (
+          <div style={{ marginBottom:18 }}>
+            <label style={lblStyle}>Duration {maxDur >= 2 && <span style={{ color:'#6b7280', fontWeight:600, textTransform:'none', letterSpacing:0 }}>· up to {maxDur} hours available</span>}</label>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
+              {[1,2,3].map(h => {
+                const disabled = h > maxDur;
+                const active = parseInt(form.duration_hrs,10) === h;
+                return (
+                  <button key={h} type="button" onClick={()=>!disabled && setForm({...form, duration_hrs:h})}
+                    disabled={disabled}
+                    style={{
+                      padding:'12px 10px', borderRadius:8,
+                      background: active ? '#f59e0b' : '#fff',
+                      color: active ? '#fff' : (disabled ? '#9ca3af' : '#111'),
+                      border: '1.5px solid ' + (active ? '#f59e0b' : '#e5e7eb'),
+                      fontSize:13, fontWeight:700, cursor: disabled ? 'not-allowed' : 'pointer',
+                      opacity: disabled ? 0.4 : 1
+                    }}>
+                    <div>{h} hr{h>1?'s':''}</div>
+                    <div style={{ fontSize:11, fontWeight:600, opacity:.85, marginTop:2 }}>₹{(unitPrice * h).toLocaleString('en-IN')}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
           <div>
@@ -518,6 +564,7 @@ function EditBookingModal({ booking, onClose, onSave }){
     booking_date: booking.booking_date,
     slot_id: booking.slot_id,
     slot_time: booking.slot_time,
+    duration_hrs: booking.duration_hrs || 1,
     amount: booking.amount,
     notes: booking.notes || '',
     members_count: booking.members_count || 1
@@ -526,6 +573,10 @@ function EditBookingModal({ booking, onClose, onSave }){
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
+
+  // Compute unit price (per-hour rate) from current booking
+  const currentDur = booking.duration_hrs || 1;
+  const unitPrice = Math.round((booking.amount || 0) / currentDur);
 
   // Fetch available slots whenever date changes (include the current slot too so admin can keep it)
   useEffect(()=>{
@@ -536,18 +587,25 @@ function EditBookingModal({ booking, onClose, onSave }){
         const sport = booking.booking_kind === 'turf' ? booking.sport : 'Cricket Net Practice';
         const slots = await API.get('getSlots', { date: form.booking_date, sport });
         if (cancelled) return;
-        // Inject the current slot at the top so admin can choose to keep current
         const list = (slots || []).slice();
         if (form.booking_date === booking.booking_date) {
           const hasCurrent = list.some(s => s.slot_id === booking.slot_id);
           if (!hasCurrent) {
+            // The booking's slot_time may span multiple hours (e.g. "14:00-17:00").
+            // For the slot picker we need the START hour as a 1-hr range like "14:00-15:00".
+            const [startStr] = String(booking.slot_time).split('-');
+            const [sh, sm] = startStr.split(':').map(Number);
+            const startMin = sh * 60 + (sm || 0);
+            const endMin = startMin + 60;
+            const fmt = m => String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
             list.unshift({
-              slot_id: booking.slot_id,
+              slot_id:   booking.slot_id,
               slot_date: booking.booking_date,
-              slot_time: booking.slot_time,
-              resource: booking.resource,
-              price: booking.amount,
-              _current: true
+              slot_time: fmt(startMin) + '-' + fmt(endMin),
+              resource:  booking.resource,
+              price:     unitPrice,
+              max_duration: 3,
+              _current:  true
             });
           }
         }
@@ -561,6 +619,18 @@ function EditBookingModal({ booking, onClose, onSave }){
     return ()=>{ cancelled = true; };
   }, [form.booking_date]);
 
+  const selectedSlot = availSlots.find(s => s.slot_id === form.slot_id);
+  // In edit mode, the admin can attempt up to 3 hrs — backend validates that the
+  // booking's own slots count as "free to itself" + checks neighbours for conflicts.
+  const maxDur = 3;
+
+  // Auto-update amount when duration changes (admin can override after)
+  useEffect(()=>{
+    if (form.duration_hrs && unitPrice) {
+      setForm(f => ({ ...f, amount: unitPrice * f.duration_hrs }));
+    }
+  }, [form.duration_hrs]);
+
   async function submit(){
     setErr(null);
     if (!form.slot_id) { setErr('Pick a slot'); return; }
@@ -569,6 +639,7 @@ function EditBookingModal({ booking, onClose, onSave }){
       await API.post('updateBooking', {
         id: booking.booking_id,
         slot_id: form.slot_id,
+        duration_hrs: parseInt(form.duration_hrs, 10) || 1,
         amount: parseInt(form.amount, 10) || 0,
         notes: form.notes,
         members_count: parseInt(form.members_count, 10) || 1
@@ -636,12 +707,41 @@ function EditBookingModal({ booking, onClose, onSave }){
                     <div style={{ fontFamily:'monospace' }}>{s.slot_time}</div>
                     {s._current && <div style={{ fontSize:9, opacity:.8 }}>current</div>}
                     {s.nets_available !== undefined && !s._current && <div style={{ fontSize:9, opacity:.7 }}>{s.nets_available}/3 free</div>}
+                    {s.max_duration > 1 && !s._current && (
+                      <div style={{ fontSize:9, opacity:.7 }}>up to {s.max_duration}h</div>
+                    )}
                   </button>
                 );
               })}
             </div>
           )}
         </div>
+
+        {/* Duration picker — extend / shrink the booking */}
+        {form.slot_id && (
+          <div style={{ marginBottom:16 }}>
+            <label style={lblStyle}>Duration <span style={{ color:'#6b7280', fontWeight:600, textTransform:'none', letterSpacing:0 }}>· extend or shrink the booking</span></label>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
+              {[1,2,3].map(h => {
+                const active = parseInt(form.duration_hrs,10) === h;
+                return (
+                  <button key={h} type="button" onClick={()=>setForm({...form, duration_hrs:h})}
+                    style={{
+                      padding:'12px 10px', borderRadius:8,
+                      background: active ? '#f59e0b' : '#fff',
+                      color: active ? '#fff' : '#111',
+                      border: '1.5px solid ' + (active ? '#f59e0b' : '#e5e7eb'),
+                      fontSize:13, fontWeight:700, cursor:'pointer'
+                    }}>
+                    <div>{h} hr{h>1?'s':''}</div>
+                    <div style={{ fontSize:11, fontWeight:600, opacity:.85, marginTop:2 }}>₹{(unitPrice * h).toLocaleString('en-IN')}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ fontSize:11, color:'#6b7280', marginTop:6 }}>If consecutive slots aren't free, the system will show an error.</div>
+          </div>
+        )}
 
         <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
           <div>
@@ -1571,7 +1671,12 @@ function App(){
                         <td style={{ padding:'11px' }}><Badge bg={sc.bg} text={sc.text}>{b.sport}</Badge></td>
                         <td style={{ padding:'11px', fontSize:11, color:'#6b7280' }}>{kindLabel}</td>
                         <td style={{ padding:'11px', whiteSpace:'nowrap', fontSize:12, color:'#6b7280' }}>{formatDateShort(b.booking_date)}</td>
-                        <td style={{ padding:'11px', whiteSpace:'nowrap', fontWeight:600, fontSize:12 }}>{b.slot_time}</td>
+                        <td style={{ padding:'11px', whiteSpace:'nowrap', fontWeight:600, fontSize:12 }}>
+                          {b.slot_time}
+                          {b.duration_hrs > 1 && (
+                            <div style={{ fontSize:10, color:'#f59e0b', fontWeight:700, marginTop:2 }}>{b.duration_hrs} hrs</div>
+                          )}
+                        </td>
                         <td style={{ padding:'11px', textAlign:'center', fontWeight:600 }}>{b.members_count}</td>
                         <td style={{ padding:'11px', fontWeight:700 }}>{b.amount>0?`₹${parseInt(b.amount).toLocaleString('en-IN')}`:'—'}</td>
                         <td style={{ padding:'11px' }}><Badge bg={pc.bg} text={pc.text}>{pc.label}</Badge></td>
@@ -1621,6 +1726,9 @@ function App(){
                       <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>{b.booking_kind==='net'?'🥅 Net':'🏏 Turf'}</span>
                       <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>📅 {formatDateShort(b.booking_date)}</span>
                       <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>⏰ {b.slot_time}</span>
+                      {b.duration_hrs > 1 && (
+                        <span style={{ fontSize:11, color:'#92400e', padding:'3px 9px', background:'#fef3c7', borderRadius:999, fontWeight:700 }}>⏱ {b.duration_hrs} hrs</span>
+                      )}
                       <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>👥 {b.members_count}</span>
                       {b.amount>0 && <span style={{ fontSize:11, color:'#111', padding:'3px 9px', background:'#fef3c7', borderRadius:999, fontWeight:700 }}>₹{parseInt(b.amount).toLocaleString('en-IN')}</span>}
                     </div>
