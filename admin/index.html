@@ -35,7 +35,6 @@
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
     @keyframes live-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: .55; } }
     @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-    @keyframes drawerSlide { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
     .anim-up { animation: rise .2s ease both; }
     .spin { animation: spin .8s linear infinite; }
@@ -46,30 +45,6 @@
       width: 7px; height: 7px; border-radius: 50%;
       background: #10b981; display: inline-block;
       animation: live-pulse 2s ease-in-out infinite;
-    }
-
-    /* Clickable booking row hover */
-    .booking-row:hover { background: #f8fafc !important; }
-    .booking-row:hover td:last-child { color: #f59e0b !important; }
-
-    /* Mobile booking card hover */
-    .bookings-mobile > div:hover { box-shadow: 0 4px 12px rgba(15,23,42,.08); transform: translateY(-1px); }
-
-    /* ═══════ PRINT STYLES — Today's Bookings Day Sheet ═══════ */
-    @media print {
-      @page { margin: 12mm; }
-      body { background: #fff !important; }
-      .top-bar, .stat-grid, .tab-bar, .filter-row, .bookings-mobile,
-      button, input, .content-card > div:first-child > div:last-child { display: none !important; }
-      .content-card { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important; }
-      .bookings-table-wrap { display: block !important; overflow: visible !important; }
-      .bookings-table-wrap td:last-child, .bookings-table-wrap th:last-child { display: none; }
-      .booking-row { page-break-inside: avoid; }
-      table { font-size: 12px !important; }
-      body::before {
-        content: "Hit N Run Sports Arena · Bookings Day Sheet · " attr(data-print-date);
-        display: block; font-size: 14px; font-weight: 800; padding: 0 0 12px; border-bottom: 2px solid #000; margin-bottom: 12px;
-      }
     }
 
     /* ═══════ MOBILE RESPONSIVE ═══════ */
@@ -1049,203 +1024,6 @@ function LeadModal({ onClose, onSave, editing }){
 }
 
 // ──────────────────────────────────────────────────────────
-// BOOKING DETAIL DRAWER — slide-in right panel with all info & actions
-// ──────────────────────────────────────────────────────────
-function DrawerSection({ title, children }){
-  return (
-    <div style={{ padding:'16px 22px', borderBottom:'1px solid #f1f5f9' }}>
-      <div style={{ fontSize:10.5, fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:10 }}>{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function InfoRow({ label, value, mono, highlight }){
-  return (
-    <div style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', fontSize:13, gap:12 }}>
-      <div style={{ color:'#64748b', flexShrink:0 }}>{label}</div>
-      <div style={{
-        color: highlight ? '#0f172a' : '#1e293b',
-        fontWeight: highlight ? 800 : 600,
-        fontSize: highlight ? 14 : 13,
-        fontFamily: mono ? 'ui-monospace,monospace' : 'inherit',
-        textAlign:'right'
-      }}>{value}</div>
-    </div>
-  );
-}
-
-function StatusPill({ bg, text, label }){
-  return (
-    <span style={{
-      fontSize:10.5, fontWeight:700, padding:'4px 10px',
-      background:bg, color:text, borderRadius:999, whiteSpace:'nowrap'
-    }}>{label}</span>
-  );
-}
-
-function ActionBtn({ as, href, target, onClick, bg, icon, label, disabled }){
-  const baseStyle = {
-    padding:'12px 10px', background: disabled ? '#cbd5e1' : bg, color:'#fff',
-    borderRadius:10, fontWeight:700, fontSize:13,
-    display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6,
-    textDecoration:'none', textAlign:'center', border:'none',
-    cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1
-  };
-  if (as === 'a' && !disabled){
-    return <a href={href} target={target} rel="noopener" style={baseStyle}><span>{icon}</span> {label}</a>;
-  }
-  return <button onClick={onClick} disabled={disabled} style={baseStyle}><span>{icon}</span> {label}</button>;
-}
-
-function formatDateFull(iso){
-  if (!iso) return '';
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', {
-    weekday:'long', day:'numeric', month:'long', year:'numeric'
-  });
-}
-
-function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit, onCancel }){
-  if (!booking) return null;
-
-  const customerBookings = (allBookings || [])
-    .filter(b => b.phone === booking.phone && b.booking_id !== booking.booking_id)
-    .sort((a, b) => String(b.created_at || b.booking_date || '').localeCompare(String(a.created_at || a.booking_date || '')))
-    .slice(0, 6);
-
-  const isCancelled = booking.status === 'cancelled';
-  const isPaid = booking.payment_status === 'paid';
-  const todayIso = formatDateISO(new Date());
-  const isToday = booking.booking_date === todayIso;
-  const isFuture = booking.booking_date > todayIso;
-
-  const phoneDigits = String(booking.phone || '').replace(/\D/g,'').slice(-10);
-  const waMessage = encodeURIComponent(
-    `Hi ${booking.customer_name}, this is Hit N Run Arena.\n\n` +
-    `Your booking for ${booking.sport} on ${formatDateShort(booking.booking_date)} at ${booking.slot_time} is confirmed.\n` +
-    `Booking ID: ${booking.booking_id}\n` +
-    (isPaid
-      ? 'Payment received, thank you!'
-      : `Please pay ₹${parseInt(booking.amount||0).toLocaleString('en-IN')} at the venue (cash or UPI).`)
-  );
-  const waUrl   = phoneDigits.length === 10 ? `https://wa.me/91${phoneDigits}?text=${waMessage}` : '#';
-  const telUrl  = phoneDigits.length === 10 ? `tel:+91${phoneDigits}` : '#';
-  const sc = sportColor(booking.sport);
-
-  return (
-    <div onClick={e=>e.target===e.currentTarget && onClose()} style={{
-      position:'fixed', inset:0, background:'rgba(15,23,42,.55)', zIndex:150,
-      display:'flex', justifyContent:'flex-end', backdropFilter:'blur(2px)'
-    }}>
-      <div style={{
-        width:'min(460px, 100vw)', height:'100vh', background:'#fff',
-        boxShadow:'-20px 0 60px rgba(0,0,0,.2)', overflowY:'auto',
-        animation:'drawerSlide .25s ease-out'
-      }}>
-        {/* Header */}
-        <div style={{ padding:'20px 22px 16px', borderBottom:'1px solid #e5e7eb', position:'sticky', top:0, background:'#fff', zIndex:1 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:21, fontWeight:800, color:'#0f172a', lineHeight:1.2 }}>{booking.customer_name}</div>
-              <div style={{ fontSize:13, color:'#64748b', marginTop:5 }}>
-                {formatPhone(booking.phone)}
-                {booking.email && <><br/><span style={{ fontSize:12 }}>{booking.email}</span></>}
-              </div>
-            </div>
-            <button onClick={onClose} title="Close" style={{ fontSize:26, color:'#94a3b8', padding:'0 4px', lineHeight:1, background:'transparent', border:'none', cursor:'pointer' }}>×</button>
-          </div>
-          <div style={{ display:'flex', gap:6, marginTop:12, flexWrap:'wrap' }}>
-            <StatusPill bg={sc.bg} text={sc.text} label={booking.sport}/>
-            <StatusPill bg='#f1f5f9' text='#475569' label={booking.booking_kind === 'net' ? '🥅 Net' : '🏏 Turf'}/>
-            {isPaid
-              ? <StatusPill bg='#dcfce7' text='#14532d' label='✓ Paid'/>
-              : <StatusPill bg='#fef3c7' text='#92400e' label='💰 Pending'/>
-            }
-            {isCancelled && <StatusPill bg='#fee2e2' text='#991b1b' label='✕ Cancelled'/>}
-            {isToday && !isCancelled && <StatusPill bg='#dbeafe' text='#1e40af' label='Today'/>}
-            {isFuture && !isCancelled && <StatusPill bg='#ede9fe' text='#6d28d9' label='Upcoming'/>}
-          </div>
-        </div>
-
-        {/* Quick Action Buttons */}
-        {!isCancelled && (
-          <div style={{ padding:'14px 22px', borderBottom:'1px solid #f1f5f9', display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-            {!isPaid && <ActionBtn onClick={()=>onMarkPaid(booking.booking_id)} bg='#10b981' icon='💰' label='Mark Paid'/>}
-            <ActionBtn as='a' href={waUrl} target='_blank' bg='#25d366' icon='💬' label='WhatsApp' disabled={phoneDigits.length !== 10}/>
-            <ActionBtn as='a' href={telUrl} bg='#0ea5e9' icon='📞' label='Call' disabled={phoneDigits.length !== 10}/>
-            <ActionBtn onClick={()=>onEdit(booking)} bg='#6366f1' icon='✏' label='Edit'/>
-          </div>
-        )}
-
-        {/* Booking Details */}
-        <DrawerSection title='Booking Details'>
-          <InfoRow label='Booking ID' value={booking.booking_id} mono/>
-          <InfoRow label='Sport' value={booking.sport}/>
-          <InfoRow label='Date' value={formatDateFull(booking.booking_date)}/>
-          <InfoRow label='Time' value={booking.slot_time} highlight/>
-          {booking.duration_hrs > 1 && <InfoRow label='Duration' value={`${booking.duration_hrs} hours`} highlight/>}
-          <InfoRow label='Players' value={booking.members_count || 1}/>
-          {booking.resource && <InfoRow label='Resource' value={String(booking.resource).toUpperCase()}/>}
-        </DrawerSection>
-
-        {/* Payment */}
-        <DrawerSection title='Payment'>
-          <InfoRow label='Amount' value={`₹${parseInt(booking.amount||0).toLocaleString('en-IN')}`} highlight/>
-          <InfoRow label='Status' value={isPaid ? '✓ Paid' : '⏳ Pending'}/>
-          {booking.payment_mode && <InfoRow label='Mode' value={String(booking.payment_mode).toUpperCase()}/>}
-        </DrawerSection>
-
-        {/* Notes */}
-        {booking.notes && (
-          <DrawerSection title='Notes'>
-            <div style={{ padding:'10px 12px', background:'#f8fafc', borderRadius:8, fontSize:13, color:'#334155', whiteSpace:'pre-wrap', lineHeight:1.5 }}>
-              {booking.notes}
-            </div>
-          </DrawerSection>
-        )}
-
-        {/* Customer History */}
-        {customerBookings.length > 0 && (
-          <DrawerSection title={`Customer History · ${customerBookings.length} previous booking${customerBookings.length>1?'s':''}`}>
-            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-              {customerBookings.map(b => (
-                <div key={b.booking_id} style={{
-                  padding:'10px 12px', background:'#f8fafc', borderRadius:8,
-                  display:'flex', justifyContent:'space-between', alignItems:'center', gap:8
-                }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:'#0f172a' }}>{b.sport} · {formatDateShort(b.booking_date)}</div>
-                    <div style={{ fontSize:11, color:'#64748b', marginTop:2 }}>
-                      {b.slot_time}{b.duration_hrs > 1 ? ` (${b.duration_hrs}h)` : ''}
-                      {' · ₹'}{parseInt(b.amount||0).toLocaleString('en-IN')}
-                    </div>
-                  </div>
-                  <Badge {...(b.payment_status==='paid' ? {bg:'#dcfce7',text:'#14532d'} : {bg:'#fef3c7',text:'#92400e'})}>
-                    {b.payment_status==='paid' ? 'Paid' : 'Pending'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </DrawerSection>
-        )}
-
-        {/* Danger zone */}
-        {!isCancelled && (
-          <div style={{ padding:'18px 22px 24px' }}>
-            <button onClick={()=>onCancel(booking.booking_id, booking.customer_name)} style={{
-              width:'100%', padding:'13px', background:'#fef2f2', color:'#991b1b',
-              borderRadius:10, fontWeight:700, fontSize:13, border:'1px solid #fecaca', cursor:'pointer'
-            }}>
-              ✕ Cancel This Booking
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────────────────────
 // MAIN APP
 // ──────────────────────────────────────────────────────────
 function App(){
@@ -1284,12 +1062,6 @@ function App(){
 
   const [refreshing, setRefreshing] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
-
-  // ── NEW UI STATE: drawer + filter chips ──
-  const [selectedBookingId, setSelectedBookingId] = useState(null);
-  const [dateFilter, setDateFilter] = useState('all');     // 'today' | 'tomorrow' | 'week' | 'all'
-  const [sportFilter, setSportFilter] = useState('all');   // 'all' | 'cricket' | 'football' | 'net'
-  const [paymentFilter, setPaymentFilter] = useState('all'); // 'all' | 'pending' | 'paid'
 
   // ── NOTIFICATIONS: sound + browser notification when new bookings arrive ──
   const [notifEnabled, setNotifEnabled] = useState(false);
@@ -1592,46 +1364,15 @@ function App(){
   const newLeadCount   = leads.filter(l => l.status === 'new').length;
 
   const filteredBookings = useMemo(()=>{
-    const today = formatDateISO(new Date());
-    const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate()+1);
-    const tomorrow = formatDateISO(tomorrowDate);
-    const weekEndDate = new Date(); weekEndDate.setDate(weekEndDate.getDate()+7);
-    const weekEnd = formatDateISO(weekEndDate);
-
-    let list = bookings;
-
-    // Date filter
-    if (dateFilter === 'today')        list = list.filter(b => b.booking_date === today);
-    else if (dateFilter === 'tomorrow') list = list.filter(b => b.booking_date === tomorrow);
-    else if (dateFilter === 'week')     list = list.filter(b => b.booking_date >= today && b.booking_date <= weekEnd);
-
-    // Sport filter
-    if (sportFilter === 'cricket')  list = list.filter(b => String(b.sport||'').toLowerCase() === 'cricket');
-    else if (sportFilter === 'football') list = list.filter(b => String(b.sport||'').toLowerCase() === 'football');
-    else if (sportFilter === 'net')      list = list.filter(b => String(b.sport||'').toLowerCase().includes('net'));
-
-    // Payment filter (skip cancelled bookings here so admin can find "still owed money")
-    if (paymentFilter === 'pending') list = list.filter(b => b.payment_status === 'pending' && b.status !== 'cancelled');
-    else if (paymentFilter === 'paid') list = list.filter(b => b.payment_status === 'paid');
-
-    // Text search
-    const q = (searchQ || '').toLowerCase().trim();
-    if (q) {
-      const qPhone = normalizePhone(searchQ);
-      list = list.filter(b =>
-        (b.booking_id && b.booking_id.toLowerCase().includes(q)) ||
-        (b.customer_name && b.customer_name.toLowerCase().includes(q)) ||
-        (qPhone.length >= 4 && normalizePhone(b.phone).includes(qPhone))
-      );
-    }
-
-    return list;
-  }, [bookings, searchQ, dateFilter, sportFilter, paymentFilter]);
-
-  const selectedBooking = useMemo(
-    () => bookings.find(b => b.booking_id === selectedBookingId) || null,
-    [bookings, selectedBookingId]
-  );
+    if(!searchQ.trim()) return bookings;
+    const q = searchQ.toLowerCase().trim();
+    const qPhone = normalizePhone(searchQ);
+    return bookings.filter(b =>
+      (b.booking_id && b.booking_id.toLowerCase().includes(q)) ||
+      (b.customer_name && b.customer_name.toLowerCase().includes(q)) ||
+      (qPhone.length>=4 && normalizePhone(b.phone).includes(qPhone))
+    );
+  }, [bookings, searchQ]);
 
   // Group slots by time window — each window has 4 resources
   const groupedSlots = useMemo(()=>{
@@ -1675,20 +1416,16 @@ function App(){
     }});
   }
 
-  async function cancelBooking(id, customerName){
-    const msg = customerName
-      ? `This will cancel ${customerName}'s booking and free up all linked slots. This cannot be undone.`
-      : 'This will free up the slot. This action cannot be undone.';
-    setConfirm({ show:true, title:'Cancel Booking?', message: msg, confirmLabel:'Yes, Cancel', danger:true, onConfirm: async()=>{
+  async function cancelBooking(id){
+    setConfirm({ show:true, title:'Cancel Booking?', message:'This will free up the slot. This action cannot be undone.', confirmLabel:'Cancel Booking', danger:true, onConfirm: async()=>{
       try {
         // Optimistic update
         const booking = bookings.find(b => b.booking_id === id);
         setBookings(prev => prev.map(b => b.booking_id===id ? {...b, status:'cancelled'} : b));
         if (booking?.slot_id) {
-          setSlots(prev => prev.map(s => s.booking_id===id ? {...s, status:'available', booking_id:'', booked_name:'', booked_phone:'', sport:''} : s));
+          setSlots(prev => prev.map(s => s.slot_id===booking.slot_id ? {...s, status:'available', booking_id:'', booked_name:'', booked_phone:'', sport:''} : s));
         }
         await API.post('cancelBooking', { id });
-        setSelectedBookingId(null); // close drawer
         ok('Booking cancelled');
         loadSnapshot({ noCache: true });
       } catch(e){ err(e.message); loadSnapshot({ noCache: true }); }
@@ -1847,32 +1584,24 @@ function App(){
         </div>
       </div>
 
-      {/* ── Stat Cards (clickable to filter) ── */}
+      {/* ── Stat Cards ── */}
       <div className="stat-grid" style={{ padding:'18px 24px 0', display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
         {[
-          { label:'Bookings Today',  value: confirmedToday.length, accent:'#f59e0b', icon:'📅',
-            onClick: () => { setTab('bookings'); setDateFilter('today'); setPaymentFilter('all'); setSportFilter('all'); } },
-          { label:'Pending Payment', value: pendingToday.length,   accent:'#ef4444', icon:'⏳',
-            onClick: () => { setTab('bookings'); setDateFilter('today'); setPaymentFilter('pending'); setSportFilter('all'); } },
-          { label:'Revenue Today',   value: `₹${revenueToday.toLocaleString('en-IN')}`, accent:'#10b981', icon:'💰',
-            onClick: () => { setTab('revenue'); } },
-          { label:'New Leads',       value: newLeadCount, accent:'#6366f1', icon:'👤',
-            onClick: () => { setTab('leads'); } }
+          { label:'Bookings Today',  value: confirmedToday.length, accent:'#f59e0b', icon:'📅' },
+          { label:'Pending Payment', value: pendingToday.length,   accent:'#ef4444', icon:'⏳' },
+          { label:'Revenue Today',   value: `₹${revenueToday.toLocaleString('en-IN')}`, accent:'#10b981', icon:'💰' },
+          { label:'New Leads',       value: newLeadCount, accent:'#6366f1', icon:'👤' }
         ].map(c => (
-          <button key={c.label} onClick={c.onClick} className="stat-card" style={{
+          <div key={c.label} className="stat-card" style={{
             background:'#fff', borderRadius:14, padding:'16px 18px',
-            borderTop:`3px solid ${c.accent}`, boxShadow:'0 1px 4px rgba(0,0,0,.06)',
-            textAlign:'left', cursor:'pointer', border:'none', borderTop:`3px solid ${c.accent}`,
-            transition:'transform .15s, box-shadow .15s'
-          }}
-          onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'; }}
-          onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 1px 4px rgba(0,0,0,.06)'; }}>
+            borderTop:`3px solid ${c.accent}`, boxShadow:'0 1px 4px rgba(0,0,0,.06)'
+          }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-              <div className="stat-card-label" style={{ fontSize:11, color:'#9ca3af', fontWeight:700, textTransform:'uppercase', letterSpacing:'.06em' }}>{c.label}</div>
+              <div className="stat-card-label" style={{ fontSize:11, color:'#9ca3af', fontWeight:600, textTransform:'uppercase', letterSpacing:'.04em' }}>{c.label}</div>
               <div style={{ fontSize:16 }}>{c.icon}</div>
             </div>
-            <div className="stat-card-num" style={{ fontSize:28, fontWeight:800, color:c.accent, lineHeight:1, letterSpacing:'-0.02em' }}>{c.value}</div>
-          </button>
+            <div className="stat-card-num" style={{ fontSize:26, fontWeight:800, color:c.accent, lineHeight:1 }}>{c.value}</div>
+          </div>
         ))}
       </div>
 
@@ -1903,99 +1632,26 @@ function App(){
         {/* ━━━━━ BOOKINGS TAB ━━━━━ */}
         {!loading && tab === 'bookings' && (
           <div className="anim-up">
-            {/* Header row: title + actions */}
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, flexWrap:'wrap', gap:10 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:10 }}>
               <div>
-                <div style={{ fontSize:18, fontWeight:800, color:'#0f172a' }}>Bookings</div>
-                <div style={{ fontSize:12, color:'#64748b', marginTop:2 }}>
-                  {filteredBookings.length} shown · click any row for full details
-                </div>
+                <div style={{ fontSize:16, fontWeight:800 }}>All Bookings</div>
+                <div style={{ fontSize:12, color:'#9ca3af' }}>{filteredBookings.length} {filteredBookings.length===1?'booking':'bookings'}</div>
               </div>
               <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
                 <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="🔍 Search name, phone, ID…" style={{
-                  padding:'10px 14px', border:'1.5px solid #e5e7eb', borderRadius:10, fontSize:13, minWidth:220, outline:'none'
+                  padding:'9px 14px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:13, minWidth:200, outline:'none'
                 }}/>
-                <button onClick={()=>window.print()} title="Print today's bookings" style={{
-                  padding:'10px 14px', background:'#fff', color:'#475569', border:'1.5px solid #e5e7eb',
-                  borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer'
-                }}>🖨 Print</button>
-                <button onClick={()=>setShowSpot(true)} style={{
-                  padding:'10px 16px', background:'#f59e0b', color:'#fff', borderRadius:10,
-                  fontSize:13, fontWeight:700, boxShadow:'0 2px 6px rgba(245,158,11,.3)'
-                }}>+ New Booking</button>
+                <button onClick={()=>setShowSpot(true)} style={{ padding:'9px 16px', background:'#f59e0b', color:'#fff', borderRadius:8, fontSize:13, fontWeight:700 }}>+ Walk-in</button>
               </div>
-            </div>
-
-            {/* Filter chips */}
-            <div style={{ display:'flex', gap:6, marginBottom:14, flexWrap:'wrap', alignItems:'center' }}>
-              {/* Date filter */}
-              <div style={{ display:'flex', gap:4, padding:3, background:'#f1f5f9', borderRadius:10 }}>
-                {[
-                  { k:'today', label:'Today' },
-                  { k:'tomorrow', label:'Tomorrow' },
-                  { k:'week', label:'This Week' },
-                  { k:'all', label:'All Dates' }
-                ].map(o => (
-                  <button key={o.k} onClick={()=>setDateFilter(o.k)} style={{
-                    padding:'7px 14px', borderRadius:7,
-                    background: dateFilter===o.k ? '#fff' : 'transparent',
-                    color: dateFilter===o.k ? '#0f172a' : '#64748b',
-                    fontSize:12, fontWeight:700, cursor:'pointer', border:'none',
-                    boxShadow: dateFilter===o.k ? '0 1px 2px rgba(0,0,0,.06)' : 'none'
-                  }}>{o.label}</button>
-                ))}
-              </div>
-
-              {/* Sport filter */}
-              <div style={{ display:'flex', gap:4, padding:3, background:'#f1f5f9', borderRadius:10 }}>
-                {[
-                  { k:'all', label:'All Sports' },
-                  { k:'cricket', label:'🏏 Cricket' },
-                  { k:'football', label:'⚽ Football' },
-                  { k:'net', label:'🥅 Net' }
-                ].map(o => (
-                  <button key={o.k} onClick={()=>setSportFilter(o.k)} style={{
-                    padding:'7px 14px', borderRadius:7,
-                    background: sportFilter===o.k ? '#fff' : 'transparent',
-                    color: sportFilter===o.k ? '#0f172a' : '#64748b',
-                    fontSize:12, fontWeight:700, cursor:'pointer', border:'none',
-                    boxShadow: sportFilter===o.k ? '0 1px 2px rgba(0,0,0,.06)' : 'none'
-                  }}>{o.label}</button>
-                ))}
-              </div>
-
-              {/* Payment filter */}
-              <div style={{ display:'flex', gap:4, padding:3, background:'#f1f5f9', borderRadius:10 }}>
-                {[
-                  { k:'all', label:'All Payments' },
-                  { k:'pending', label:'⏳ Pending' },
-                  { k:'paid', label:'✓ Paid' }
-                ].map(o => (
-                  <button key={o.k} onClick={()=>setPaymentFilter(o.k)} style={{
-                    padding:'7px 14px', borderRadius:7,
-                    background: paymentFilter===o.k ? '#fff' : 'transparent',
-                    color: paymentFilter===o.k ? '#0f172a' : '#64748b',
-                    fontSize:12, fontWeight:700, cursor:'pointer', border:'none',
-                    boxShadow: paymentFilter===o.k ? '0 1px 2px rgba(0,0,0,.06)' : 'none'
-                  }}>{o.label}</button>
-                ))}
-              </div>
-
-              {(dateFilter!=='all' || sportFilter!=='all' || paymentFilter!=='all' || searchQ) && (
-                <button onClick={()=>{ setDateFilter('all'); setSportFilter('all'); setPaymentFilter('all'); setSearchQ(''); }} style={{
-                  padding:'7px 12px', background:'transparent', color:'#ef4444',
-                  fontSize:12, fontWeight:700, border:'1px solid #fecaca', borderRadius:7, cursor:'pointer'
-                }}>✕ Clear filters</button>
-              )}
             </div>
 
             {/* Desktop: table */}
             <div className="bookings-table-wrap" style={{ overflowX:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
                 <thead>
-                  <tr style={{ borderBottom:'2px solid #f1f5f9', background:'#f8fafc' }}>
-                    {['Customer','Sport','Date · Time','Players','Amount','Status',''].map(h => (
-                      <th key={h} style={{ padding:'11px 12px', textAlign:'left', color:'#64748b', fontWeight:700, fontSize:11, textTransform:'uppercase', letterSpacing:'.06em', whiteSpace:'nowrap' }}>{h}</th>
+                  <tr style={{ borderBottom:'2px solid #f3f4f6', background:'#fafafa' }}>
+                    {['ID','Customer','Sport','Type','Date','Slot','Players','Amount','Payment','Actions'].map(h => (
+                      <th key={h} style={{ padding:'9px 11px', textAlign:'left', color:'#9ca3af', fontWeight:700, fontSize:11, textTransform:'uppercase', letterSpacing:'.05em', whiteSpace:'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -2004,47 +1660,40 @@ function App(){
                     const sc = sportColor(b.sport);
                     const pc = paymentBadge(b);
                     const cancelled = b.status === 'cancelled';
-                    const kindLabel = b.booking_kind==='net' ? `Net Practice` : 'Turf';
+                    const kindLabel = b.booking_kind==='net' ? `🥅 Net (${b.resource})` : '🏏 Turf';
                     return (
-                      <tr key={b.booking_id} onClick={()=>setSelectedBookingId(b.booking_id)} className="booking-row" style={{
-                        borderBottom:'1px solid #f1f5f9',
-                        opacity: cancelled ? .55 : 1,
-                        background: cancelled ? '#fafafa' : '#fff',
-                        cursor:'pointer', transition:'background .12s'
-                      }}>
-                        <td style={{ padding:'12px' }}>
-                          <div style={{ fontWeight:700, fontSize:14, color:'#0f172a' }}>{b.customer_name}</div>
-                          <div style={{ fontSize:11, color:'#64748b', marginTop:2, display:'flex', gap:8, alignItems:'center' }}>
-                            <span>{formatPhone(b.phone)}</span>
-                            <span style={{ fontFamily:'monospace', color:'#94a3b8' }}>· {b.booking_id}</span>
-                          </div>
+                      <tr key={b.booking_id} style={{ borderBottom:'1px solid #f3f4f6', opacity: cancelled?.4:1, background: cancelled?'#fafafa':'#fff' }}>
+                        <td style={{ padding:'11px', fontFamily:'monospace', fontSize:11, color:'#9ca3af' }}>{b.booking_id}</td>
+                        <td style={{ padding:'11px' }}>
+                          <div style={{ fontWeight:700, fontSize:13 }}>{b.customer_name}</div>
+                          <div style={{ fontSize:11, color:'#9ca3af' }}>{formatPhone(b.phone)}</div>
                         </td>
-                        <td style={{ padding:'12px' }}>
-                          <Badge bg={sc.bg} text={sc.text}>{b.sport}</Badge>
-                          <div style={{ fontSize:10, color:'#94a3b8', marginTop:3 }}>{kindLabel}</div>
+                        <td style={{ padding:'11px' }}><Badge bg={sc.bg} text={sc.text}>{b.sport}</Badge></td>
+                        <td style={{ padding:'11px', fontSize:11, color:'#6b7280' }}>{kindLabel}</td>
+                        <td style={{ padding:'11px', whiteSpace:'nowrap', fontSize:12, color:'#6b7280' }}>{formatDateShort(b.booking_date)}</td>
+                        <td style={{ padding:'11px', whiteSpace:'nowrap', fontWeight:600, fontSize:12 }}>
+                          {b.slot_time}
+                          {b.duration_hrs > 1 && (
+                            <div style={{ fontSize:10, color:'#f59e0b', fontWeight:700, marginTop:2 }}>{b.duration_hrs} hrs</div>
+                          )}
                         </td>
-                        <td style={{ padding:'12px', whiteSpace:'nowrap' }}>
-                          <div style={{ fontWeight:600, fontSize:13, color:'#0f172a' }}>{b.slot_time}</div>
-                          <div style={{ fontSize:11, color:'#64748b', marginTop:2 }}>
-                            {formatDateShort(b.booking_date)}
-                            {b.duration_hrs > 1 && <span style={{ color:'#f59e0b', fontWeight:700, marginLeft:6 }}>· {b.duration_hrs}h</span>}
-                          </div>
+                        <td style={{ padding:'11px', textAlign:'center', fontWeight:600 }}>{b.members_count}</td>
+                        <td style={{ padding:'11px', fontWeight:700 }}>{b.amount>0?`₹${parseInt(b.amount).toLocaleString('en-IN')}`:'—'}</td>
+                        <td style={{ padding:'11px' }}><Badge bg={pc.bg} text={pc.text}>{pc.label}</Badge></td>
+                        <td style={{ padding:'11px' }}>
+                          {cancelled ? <span style={{ fontSize:11, color:'#ef4444', fontWeight:700 }}>✕ Cancelled</span> : (
+                            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                              {b.payment_status==='pending' && <button onClick={()=>markPaid(b.booking_id)} style={{ fontSize:11, padding:'5px 11px', background:'#dcfce7', color:'#14532d', borderRadius:6, fontWeight:700 }}>💰 Paid</button>}
+                              <button onClick={()=>setEditingBooking(b)} style={{ fontSize:11, padding:'5px 11px', background:'#fef3c7', color:'#78350f', borderRadius:6, fontWeight:700 }}>✏️ Edit</button>
+                              <CancelBtn onClick={()=>cancelBooking(b.booking_id)} small/>
+                            </div>
+                          )}
                         </td>
-                        <td style={{ padding:'12px', textAlign:'center', fontWeight:600 }}>{b.members_count}</td>
-                        <td style={{ padding:'12px', fontWeight:800, fontSize:14, color:'#0f172a' }}>
-                          {b.amount>0 ? `₹${parseInt(b.amount).toLocaleString('en-IN')}` : '—'}
-                        </td>
-                        <td style={{ padding:'12px' }}>
-                          {cancelled
-                            ? <Badge bg='#fee2e2' text='#991b1b'>✕ Cancelled</Badge>
-                            : <Badge bg={pc.bg} text={pc.text}>{pc.label}</Badge>}
-                        </td>
-                        <td style={{ padding:'12px', textAlign:'right', color:'#94a3b8', fontSize:18 }}>›</td>
                       </tr>
                     );
                   })}
                   {filteredBookings.length===0 && (
-                    <tr><td colSpan={7} style={{ padding:48, textAlign:'center', color:'#94a3b8', fontSize:14 }}>
+                    <tr><td colSpan={10} style={{ padding:40, textAlign:'center', color:'#d1d5db', fontSize:14 }}>
                       {searchQ ? `No bookings match "${searchQ}"` : 'No bookings yet.'}
                     </td></tr>
                   )}
@@ -2064,34 +1713,33 @@ function App(){
                 const pc = paymentBadge(b);
                 const cancelled = b.status === 'cancelled';
                 return (
-                  <div key={b.booking_id} onClick={()=>setSelectedBookingId(b.booking_id)} style={{
-                    border:'1px solid #e5e7eb', borderRadius:12, padding:14,
-                    opacity: cancelled ? .55 : 1, background: cancelled ? '#fafafa' : '#fff',
-                    cursor:'pointer', transition:'transform .12s, box-shadow .12s',
-                    position:'relative'
-                  }}>
+                  <div key={b.booking_id} style={{ border:'1px solid #e5e7eb', borderRadius:12, padding:14, opacity: cancelled?.4:1, background: cancelled?'#fafafa':'#fff' }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8, gap:8 }}>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontWeight:800, fontSize:15, color:'#0f172a' }}>{b.customer_name}</div>
-                        <div style={{ fontSize:11, color:'#64748b', marginTop:2 }}>{formatPhone(b.phone)}</div>
+                      <div>
+                        <div style={{ fontWeight:800, fontSize:14 }}>{b.customer_name}</div>
+                        <div style={{ fontSize:11, color:'#9ca3af', marginTop:1 }}>{formatPhone(b.phone)}</div>
                       </div>
-                      {cancelled
-                        ? <Badge bg='#fee2e2' text='#991b1b'>✕ Cancelled</Badge>
-                        : <Badge bg={pc.bg} text={pc.text}>{pc.label}</Badge>}
+                      <Badge bg={pc.bg} text={pc.text}>{pc.label}</Badge>
                     </div>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
                       <Badge bg={sc.bg} text={sc.text}>{b.sport}</Badge>
-                      <span style={{ fontSize:11, color:'#475569', padding:'3px 9px', background:'#f1f5f9', borderRadius:999, fontWeight:600 }}>📅 {formatDateShort(b.booking_date)}</span>
-                      <span style={{ fontSize:11, color:'#475569', padding:'3px 9px', background:'#f1f5f9', borderRadius:999, fontWeight:600 }}>⏰ {b.slot_time}</span>
+                      <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>{b.booking_kind==='net'?'🥅 Net':'🏏 Turf'}</span>
+                      <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>📅 {formatDateShort(b.booking_date)}</span>
+                      <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>⏰ {b.slot_time}</span>
                       {b.duration_hrs > 1 && (
-                        <span style={{ fontSize:11, color:'#92400e', padding:'3px 9px', background:'#fef3c7', borderRadius:999, fontWeight:700 }}>⏱ {b.duration_hrs}h</span>
+                        <span style={{ fontSize:11, color:'#92400e', padding:'3px 9px', background:'#fef3c7', borderRadius:999, fontWeight:700 }}>⏱ {b.duration_hrs} hrs</span>
                       )}
-                      {b.amount>0 && <span style={{ fontSize:11, color:'#0f172a', padding:'3px 9px', background:'#fff7ed', borderRadius:999, fontWeight:800 }}>₹{parseInt(b.amount).toLocaleString('en-IN')}</span>}
+                      <span style={{ fontSize:11, color:'#6b7280', padding:'3px 9px', background:'#f3f4f6', borderRadius:999, fontWeight:600 }}>👥 {b.members_count}</span>
+                      {b.amount>0 && <span style={{ fontSize:11, color:'#111', padding:'3px 9px', background:'#fef3c7', borderRadius:999, fontWeight:700 }}>₹{parseInt(b.amount).toLocaleString('en-IN')}</span>}
                     </div>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:11, color:'#94a3b8' }}>
-                      <span style={{ fontFamily:'monospace' }}>{b.booking_id}</span>
-                      <span style={{ color:'#cbd5e1', fontSize:18 }}>›</span>
-                    </div>
+                    <div style={{ fontSize:10, color:'#9ca3af', fontFamily:'monospace', marginBottom: cancelled?0:10 }}>{b.booking_id}</div>
+                    {!cancelled && (
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                        {b.payment_status==='pending' && <button onClick={()=>markPaid(b.booking_id)} style={{ fontSize:11, padding:'6px 12px', background:'#dcfce7', color:'#14532d', borderRadius:7, fontWeight:700 }}>💰 Mark Paid</button>}
+                        <button onClick={()=>setEditingBooking(b)} style={{ fontSize:11, padding:'6px 12px', background:'#fef3c7', color:'#78350f', borderRadius:7, fontWeight:700 }}>✏️ Edit</button>
+                        <CancelBtn onClick={()=>cancelBooking(b.booking_id)} small/>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -2371,14 +2019,6 @@ function App(){
           ok('Booking updated');
           loadSnapshot({ noCache: true });
         }}
-      />}
-      {selectedBooking && <BookingDetailDrawer
-        booking={selectedBooking}
-        allBookings={bookings}
-        onClose={()=>setSelectedBookingId(null)}
-        onMarkPaid={markPaid}
-        onEdit={(b)=>{ setSelectedBookingId(null); setEditingBooking(b); }}
-        onCancel={cancelBooking}
       />}
     </div>
   );
