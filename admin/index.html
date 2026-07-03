@@ -2484,52 +2484,6 @@ class ErrorBoundary extends React.Component {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<ErrorBoundary><App/></ErrorBoundary>);
 
-// ── Generate Slots Floating Button — vanilla DOM, no React tree changes ──
-(function setupGenerateSlotsButton() {
-  function ensure() {
-    const loggedIn = !!sessionStorage.getItem('hnr_admin_key');
-    let btn = document.getElementById('hnr-gen-slots');
-    if (loggedIn && !btn) {
-      btn = document.createElement('button');
-      btn.id = 'hnr-gen-slots';
-      btn.innerHTML = '\u2728 Generate slots';
-      btn.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;padding:12px 18px;background:#111;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.15);transition:all 150ms ease';
-      btn.onmouseover = () => { btn.style.transform = 'translateY(-2px)'; };
-      btn.onmouseout = () => { btn.style.transform = 'translateY(0)'; };
-      btn.onclick = async function() {
-        if (!confirm('Generate slots for the next 15 days?\n\nThis creates bookable slots in Supabase based on your venue hours. Existing slots are skipped \u2014 only missing ones get created.')) return;
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
-        btn.innerHTML = '\u23F3 Generating\u2026';
-        try {
-          const adminKey = sessionStorage.getItem('hnr_admin_key') || '';
-          const res = await fetch('https://hitnrun-api.vercel.app/api', {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'generateSlots', adminKey, days: 15 })
-          });
-          const data = await res.json();
-          if (!data.ok) throw new Error(data.error || 'Failed');
-          btn.innerHTML = '\u2713 Done \u2014 reloading\u2026';
-          btn.style.background = '#059669';
-          setTimeout(() => location.reload(), 1500);
-        } catch(err) {
-          alert('Generation failed: ' + err.message);
-          btn.disabled = false;
-          btn.style.opacity = '1';
-          btn.innerHTML = '\u2728 Generate slots';
-        }
-      };
-      document.body.appendChild(btn);
-    } else if (!loggedIn && btn) {
-      btn.remove();
-    }
-  }
-  if (document.body) ensure();
-  else document.addEventListener('DOMContentLoaded', ensure);
-  setInterval(ensure, 1000);
-})();
-
 </script>
 </body>
 </html>
