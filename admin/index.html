@@ -125,7 +125,7 @@ const PLANS = [
   { key: 'net_month_premium',  label: 'Net Monthly Premium (30 hrs)',  category: 'net', price: 9000, days: 30, hours_quota: 30 }
 ];
 
-const SPORTS_TURF = ['Cricket', 'Football'];
+const SPORTS_TURF = ['Cricket', 'Football', 'Volleyball'];
 
 const API = {
   async get(action, params = {}) {
@@ -179,7 +179,9 @@ function sportColor(sport){
   const map = {
     'Cricket': {bg:'#fef3c7', text:'#854d0e'},
     'Football': {bg:'#d1fae5', text:'#065f46'},
-    'Cricket Net Practice': {bg:'#dbeafe', text:'#1e40af'}
+    'Volleyball': {bg:'#fed7aa', text:'#9a3412'},
+    'Cricket Net Practice': {bg:'#dbeafe', text:'#1e40af'},
+    'Badminton': {bg:'#e0e7ff', text:'#3730a3'}
   };
   return map[sport] || { bg:'#f3f4f6', text:'#6b7280' };
 }
@@ -343,7 +345,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
       setLoadingSlots(true);
       setForm(f => ({ ...f, slot_time: '', duration_hrs: 1 })); // reset on date/kind change
       try {
-        const sport = form.booking_kind === 'turf' ? form.sport : 'Cricket Net Practice';
+        const sport = form.booking_kind === 'turf' ? form.sport : form.booking_kind === 'badminton' ? 'Badminton' : 'Cricket Net Practice';
         const slots = await API.get('getSlots', { date: form.booking_date, sport });
         if (!cancelled) setAvailSlots(slots || []);
       } catch(e) {
@@ -358,7 +360,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
   // Selected slot metadata for the duration picker
   const selectedSlot = availSlots.find(s => s.slot_time === form.slot_time);
   const maxDur = (selectedSlot && selectedSlot.max_duration) || 1;
-  const unitPrice = selectedSlot ? selectedSlot.price : (form.booking_kind === 'turf' ? 1200 : 400);
+  const unitPrice = selectedSlot ? selectedSlot.price : (form.booking_kind === 'net' ? 400 : 1200);
 
   // Auto-update amount when slot/duration changes
   useEffect(()=>{
@@ -371,8 +373,8 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
     setForm(f => ({
       ...f,
       booking_kind: k,
-      sport: k==='turf' ? 'Cricket' : 'Cricket Net Practice',
-      amount: k==='turf' ? 1200 : 400,
+      sport: k==='turf' ? 'Cricket' : k==='badminton' ? 'Badminton' : 'Cricket Net Practice',
+      amount: k==='net' ? 400 : 1200,
       slot_time: '',
       duration_hrs: 1
     }));
@@ -404,7 +406,8 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
     } catch(e){ setErr(e.message); setSubmitting(false); }
   }
 
-  const sportOptions = form.booking_kind === 'turf' ? SPORTS_TURF : ['Cricket Net Practice'];
+  const sportOptions = form.booking_kind === 'badminton' ? ['Badminton'] :
+                       form.booking_kind === 'turf' ? SPORTS_TURF : ['Cricket Net Practice'];
 
   return (
     <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{
@@ -439,6 +442,13 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
             fontWeight:700, fontSize:13,
             boxShadow: form.booking_kind==='net'?'0 1px 3px rgba(0,0,0,.1)':'none'
           }}>🥅 Net · ₹400/hr</button>
+          <button onClick={()=>setKind('badminton')} style={{
+            flex:1, padding:'10px 14px', borderRadius:7,
+            background: form.booking_kind==='badminton'?'#fff':'transparent',
+            color: form.booking_kind==='badminton'?'#111':'#6b7280',
+            fontWeight:700, fontSize:13,
+            boxShadow: form.booking_kind==='badminton'?'0 1px 3px rgba(0,0,0,.1)':'none'
+          }}>🏸 Badminton · ₹1,200/hr</button>
         </div>
 
         {/* Date + Sport on top */}
@@ -466,7 +476,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
             </div>
           ) : availSlots.length === 0 ? (
             <div style={{ padding:'20px 16px', background:'#fef2f2', border:'1px dashed #fecaca', borderRadius:8, textAlign:'center', color:'#991b1b', fontSize:13 }}>
-              No {form.booking_kind === 'turf' ? 'turf' : 'net'} slots available for this date.
+              No {form.booking_kind === 'turf' ? 'turf' : form.booking_kind === 'badminton' ? 'badminton' : 'net'} slots available for this date.
               {form.booking_kind === 'turf' && ' All slots may have net bookings or be booked.'}
             </div>
           ) : (
@@ -485,6 +495,9 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
                     <div style={{ fontFamily:'monospace' }}>{s.slot_time}</div>
                     {s.nets_available !== undefined && (
                       <div style={{ fontSize:9, fontWeight:600, opacity:.8, marginTop:2 }}>{s.nets_available}/3 free</div>
+                    )}
+                    {s.courts_available !== undefined && (
+                      <div style={{ fontSize:9, fontWeight:600, opacity:.8, marginTop:2 }}>{s.courts_available}/{s.total_courts||2} free</div>
                     )}
                     {s.max_duration > 1 && (
                       <div style={{ fontSize:9, fontWeight:600, opacity:.7, marginTop:1 }}>up to {s.max_duration}h</div>
@@ -609,7 +622,7 @@ function EditBookingModal({ booking, onClose, onSave }){
     (async ()=>{
       setLoadingSlots(true);
       try {
-        const sport = booking.booking_kind === 'turf' ? booking.sport : 'Cricket Net Practice';
+        const sport = booking.booking_kind === 'turf' ? booking.sport : booking.booking_kind === 'badminton' ? 'Badminton' : 'Cricket Net Practice';
         const slots = await API.get('getSlots', { date: form.booking_date, sport });
         if (cancelled) return;
         const list = (slots || []).slice();
@@ -732,6 +745,7 @@ function EditBookingModal({ booking, onClose, onSave }){
                     <div style={{ fontFamily:'monospace' }}>{s.slot_time}</div>
                     {s._current && <div style={{ fontSize:9, opacity:.8 }}>current</div>}
                     {s.nets_available !== undefined && !s._current && <div style={{ fontSize:9, opacity:.7 }}>{s.nets_available}/3 free</div>}
+                    {s.courts_available !== undefined && !s._current && <div style={{ fontSize:9, opacity:.7 }}>{s.courts_available}/{s.total_courts||2} free</div>}
                     {s.max_duration > 1 && !s._current && (
                       <div style={{ fontSize:9, opacity:.7 }}>up to {s.max_duration}h</div>
                     )}
@@ -1015,7 +1029,9 @@ function LeadModal({ onClose, onSave, editing }){
               <option value="">--</option>
               <option>Cricket</option>
               <option>Football</option>
+              <option>Volleyball</option>
               <option>Cricket Net Practice</option>
+              <option>Badminton</option>
             </select>
           </div>
           <div><label style={lblStyle}>Interest Type</label>
@@ -1288,7 +1304,7 @@ function App(){
   // ── NEW UI STATE: drawer + filter chips ──
   const [selectedBookingId, setSelectedBookingId] = useState(null);
   const [dateFilter, setDateFilter] = useState('all');     // 'today' | 'tomorrow' | 'week' | 'all'
-  const [sportFilter, setSportFilter] = useState('all');   // 'all' | 'cricket' | 'football' | 'net'
+  const [sportFilter, setSportFilter] = useState('all');   // 'all' | 'cricket' | 'football' | 'volleyball' | 'net' | 'badminton'
   const [paymentFilter, setPaymentFilter] = useState('all'); // 'all' | 'pending' | 'paid'
 
   // ── NOTIFICATIONS: sound + browser notification when new bookings arrive ──
@@ -1608,7 +1624,9 @@ function App(){
     // Sport filter
     if (sportFilter === 'cricket')  list = list.filter(b => String(b.sport||'').toLowerCase() === 'cricket');
     else if (sportFilter === 'football') list = list.filter(b => String(b.sport||'').toLowerCase() === 'football');
+    else if (sportFilter === 'volleyball') list = list.filter(b => String(b.sport||'').toLowerCase() === 'volleyball');
     else if (sportFilter === 'net')      list = list.filter(b => String(b.sport||'').toLowerCase().includes('net'));
+    else if (sportFilter === 'badminton') list = list.filter(b => String(b.sport||'').toLowerCase() === 'badminton');
 
     // Payment filter (skip cancelled bookings here so admin can find "still owed money")
     if (paymentFilter === 'pending') list = list.filter(b => b.payment_status === 'pending' && b.status !== 'cancelled');
@@ -1952,7 +1970,9 @@ function App(){
                   { k:'all', label:'All Sports' },
                   { k:'cricket', label:'🏏 Cricket' },
                   { k:'football', label:'⚽ Football' },
-                  { k:'net', label:'🥅 Net' }
+                  { k:'volleyball', label:'🏐 Volleyball' },
+                  { k:'net', label:'🥅 Net' },
+                  { k:'badminton', label:'🏸 Badminton' }
                 ].map(o => (
                   <button key={o.k} onClick={()=>setSportFilter(o.k)} style={{
                     padding:'7px 14px', borderRadius:7,
@@ -2004,7 +2024,7 @@ function App(){
                     const sc = sportColor(b.sport);
                     const pc = paymentBadge(b);
                     const cancelled = b.status === 'cancelled';
-                    const kindLabel = b.booking_kind==='net' ? `Net Practice` : 'Turf';
+                    const kindLabel = b.booking_kind==='net' ? `Net Practice` : b.booking_kind==='badminton' ? 'Badminton Court' : 'Turf';
                     return (
                       <tr key={b.booking_id} onClick={()=>setSelectedBookingId(b.booking_id)} className="booking-row" style={{
                         borderBottom:'1px solid #f1f5f9',

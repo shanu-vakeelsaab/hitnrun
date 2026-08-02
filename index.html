@@ -356,9 +356,11 @@ const VENUE = {
 };
 
 const SPORTS = [
-  { key: "Cricket",              icon: "🏏", price: 1200, unit: "/hour",       kind: "turf", subtitle: "Full turf · Up to 18 players" },
-  { key: "Football",             icon: "⚽", price: 1200, unit: "/hour",       kind: "turf", subtitle: "Full turf · 7-a-side ready" },
-  { key: "Cricket Net Practice", icon: "🥅", price:  400, unit: "/hour per net", kind: "net",  subtitle: "Up to 3 nets concurrent" }
+  { key: "Cricket",              icon: "🏏", price: 1200, unit: "/hour",           kind: "turf",      subtitle: "Full turf · Up to 18 players" },
+  { key: "Football",             icon: "⚽", price: 1200, unit: "/hour",           kind: "turf",      subtitle: "Full turf · 7-a-side ready" },
+  { key: "Volleyball",           icon: "🏐", price: 1200, unit: "/hour",           kind: "turf",      subtitle: "Full turf · 6-a-side format" },
+  { key: "Cricket Net Practice", icon: "🥅", price:  400, unit: "/hour per net",   kind: "net",       subtitle: "Up to 3 nets concurrent" },
+  { key: "Badminton",            icon: "🏸", price: 1200, unit: "/hour per court", kind: "badminton", subtitle: "2 courts · Book independently" }
 ];
 
 const PASS_PLANS = [
@@ -479,7 +481,7 @@ function Hero({ liveSlotsToday }){
         Book your<br/><span className="accent">ground.</span>
       </h1>
       <p className="hero-sub anim-rise" style={{animationDelay:'.15s'}}>
-        Dehradun's premier multi-sport <strong>turf</strong> in <strong>Panditwari</strong>. <strong>Cricket</strong> & <strong>Football</strong> on full astro turf, plus dedicated cricket net practice. ₹1,200/hour for turf · Pay at venue · No fuss.
+        Dehradun's premier multi-sport <strong>turf</strong> in <strong>Panditwari</strong>. <strong>Cricket</strong>, <strong>Football</strong> & <strong>Volleyball</strong> on full astro turf, plus dedicated Cricket net practice and Badminton courts. ₹1,200/hour for turf & badminton · Pay at venue · No fuss.
       </p>
       <div className="hero-ctas anim-rise" style={{animationDelay:'.25s'}}>
         <button className="btn-primary" onClick={scroll}>
@@ -707,6 +709,9 @@ function BookingWidget({ onComplete }){
                     {s.nets_available !== undefined && (
                       <div className="slot-meta">{s.nets_available}/3 nets free</div>
                     )}
+                    {s.courts_available !== undefined && (
+                      <div className="slot-meta">{s.courts_available}/{s.total_courts||2} courts free</div>
+                    )}
                   </button>
                 );
               })}
@@ -803,7 +808,6 @@ function BookingWidget({ onComplete }){
 
 function ConfirmationTicket({ booking, onReset }){
   const [copied, setCopied] = useState(false);
-  const isNet = booking.booking_kind === 'net' || (booking.sport && booking.sport.toLowerCase().indexOf('net')>-1);
 
   function copyShare(){
     navigator.clipboard?.writeText(buildShareText(booking)).then(()=>{
@@ -821,7 +825,7 @@ function ConfirmationTicket({ booking, onReset }){
       <div className="ticket anim-rise">
         <div className="ticket-head">
           <div className="ticket-check pulse-glow">✓</div>
-          <div className="ticket-title">{isNet ? 'Net Practice Booked' : 'Turf Booked'}</div>
+          <div className="ticket-title">{booking.sport} Booked</div>
           <div className="ticket-sub">{booking.email ? `Confirmation sent to ${booking.email}` : 'Show this screen at the venue'}</div>
         </div>
         <div className="ticket-divider"><span className="dash"></span></div>
@@ -882,12 +886,12 @@ function PricingCallout(){
         </div>
         <div className="price-grid">
           <div className="price-tile">
-            <span className="price-tile-tag">Turf · Cricket & Football</span>
+            <span className="price-tile-tag">Turf · Cricket, Football & Volleyball</span>
             <div className="price-tile-big">₹1,200</div>
             <div className="price-tile-meta">Per hour · Full turf</div>
             <ul className="price-tile-list">
               <li>Up to 18 players</li>
-              <li>Cricket or Football</li>
+              <li>Cricket, Football or Volleyball</li>
               <li>Bright flood lights</li>
               <li>Quality astro turf</li>
             </ul>
@@ -901,6 +905,17 @@ function PricingCallout(){
               <li>Professional astro turf nets</li>
               <li>Per net, NOT per player</li>
               <li>Coaching available</li>
+            </ul>
+          </div>
+          <div className="price-tile">
+            <span className="price-tile-tag">Badminton</span>
+            <div className="price-tile-big">₹1,200</div>
+            <div className="price-tile-meta">Per hour · Per court</div>
+            <ul className="price-tile-list">
+              <li>2 courts · Book one or both</li>
+              <li>Professional badminton courts</li>
+              <li>Per court, NOT per player</li>
+              <li>Bright flood lights</li>
             </ul>
           </div>
         </div>
@@ -954,6 +969,7 @@ function VenueInfo(){
           <div className="venue-stat"><div className="ic">⏰</div><div><div className="venue-stat-label">Hours</div><div className="venue-stat-val">{VENUE.hoursWeek}<br/>{VENUE.hoursWeekend}</div></div></div>
           <div className="venue-stat"><div className="ic">📞</div><div><div className="venue-stat-label">Phone</div><div className="venue-stat-val"><a href={`tel:${VENUE.phone.replace(/\s/g,'')}`}>{VENUE.phone}</a> · <a href={`tel:${VENUE.phone2.replace(/\s/g,'')}`}>{VENUE.phone2}</a></div></div></div>
           <div className="venue-stat"><div className="ic">🥅</div><div><div className="venue-stat-label">Net Practice Bookings</div><div className="venue-stat-val"><a href={`tel:${VENUE.phoneNet.replace(/\s/g,'')}`}>{VENUE.phoneNet}</a></div></div></div>
+          <div className="venue-stat"><div className="ic">🏸</div><div><div className="venue-stat-label">Badminton Bookings</div><div className="venue-stat-val"><a href={`tel:${VENUE.phoneNet.replace(/\s/g,'')}`}>{VENUE.phoneNet}</a></div></div></div>
           <div className="venue-stat"><div className="ic">✉️</div><div><div className="venue-stat-label">Email</div><div className="venue-stat-val">{VENUE.email}</div></div></div>
         </div>
       </div>
