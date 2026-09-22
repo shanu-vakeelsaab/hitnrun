@@ -6,6 +6,10 @@
   <meta name="theme-color" content="#0a0d0a" />
   <title>Hit N Run Sports Arena · Book your turf in Dehradun</title>
   <meta name="description" content="Dehradun's premier multi-sport turf in Panditwari. Book cricket, football, and dedicated net practice slots — open daily. Pay at venue." />
+  <link rel="icon" type="image/jpeg" href="/logo.jpeg" />
+  <meta property="og:title" content="Hit N Run Sports Arena · Book your turf in Dehradun" />
+  <meta property="og:description" content="Dehradun's premier multi-sport turf in Panditwari. Book cricket, football, and dedicated net practice slots — open daily. Pay at venue." />
+  <meta property="og:image" content="https://hitnrunarena.in/logo.jpeg" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -457,7 +461,7 @@ function Nav(){
     <nav className="nav">
       <div className="nav-inner">
         <a href="#" className="logo" onClick={e=>{e.preventDefault();window.scrollTo({top:0,behavior:'smooth'})}}>
-          <span className="logo-mark">🏏</span>
+          <img src="/logo.jpeg" alt="Hit N Run Sports Arena" style={{height:48,width:'auto',borderRadius:8}} />
           <span className="logo-text">{VENUE.name.split(' ').slice(0,3).join(' ')}<small>{VENUE.area}, {VENUE.city}</small></span>
         </a>
         <div className="nav-cta">
