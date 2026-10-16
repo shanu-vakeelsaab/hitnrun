@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0a0d0a" />
   <title>Hit N Run Sports Arena · Book your turf in Dehradun</title>
-  <meta name="description" content="Dehradun's premier multi-sport turf in Panditwari. Book cricket, football, and dedicated net practice slots — open daily. Pay at venue." />
+  <meta name="description" content="Dehradun's premier multi-sport arena in Panditwari. Live availability, book online in 60 seconds, open daily. Pay at venue." />
   <link rel="icon" type="image/jpeg" href="/logo.jpeg" />
   <meta property="og:title" content="Hit N Run Sports Arena · Book your turf in Dehradun" />
-  <meta property="og:description" content="Dehradun's premier multi-sport turf in Panditwari. Book cricket, football, and dedicated net practice slots — open daily. Pay at venue." />
+  <meta property="og:description" content="Dehradun's premier multi-sport arena in Panditwari. Live availability, book online in 60 seconds, open daily. Pay at venue." />
   <meta property="og:image" content="https://hitnrunarena.in/logo.jpeg" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -196,7 +196,7 @@
       .slot-time{font-size:16px}
       .slot-time.end{font-size:12px}
       .slot-price{font-size:11px}
-      .slot-meta{display:none}
+      .slot-meta{font-size:9px}
     }
 
     /* Duration picker */
@@ -282,30 +282,13 @@
     /* Pricing callout */
     .price-callout{background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%);border:1.5px solid var(--border);border-radius:28px;padding:48px;overflow:hidden;position:relative}
     @media (max-width:720px){.price-callout{padding:28px 20px;border-radius:20px}}
-    .price-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+    .price-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px}
     @media (max-width:720px){.price-grid{grid-template-columns:1fr;gap:14px}}
     .price-tile{background:var(--bg-alt);border:1.5px solid var(--border);border-radius:18px;padding:24px 24px}
     .price-tile-tag{display:inline-block;font-size:10px;font-weight:700;color:var(--lime);letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px}
     .price-tile-title{font-family:var(--display);font-size:24px;letter-spacing:.02em;text-transform:uppercase;margin-bottom:10px}
     .price-tile-big{font-family:var(--display);font-size:48px;line-height:1;color:var(--lime);margin-bottom:6px}
     .price-tile-meta{font-size:13px;color:var(--text-2);margin-bottom:14px}
-    .price-tile-list{font-size:13px;color:var(--text-2);line-height:1.8;padding-left:18px}
-    .price-tile-list li{margin-bottom:2px}
-
-    /* Pass callout */
-    .pass-callout{background:var(--surface);border:1.5px solid var(--border);border-radius:28px;padding:48px;overflow:hidden;position:relative}
-    @media (max-width:720px){.pass-callout{padding:28px 20px;border-radius:20px}}
-    .pass-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:36px;align-items:center}
-    @media (max-width:800px){.pass-grid{grid-template-columns:1fr;gap:24px}}
-    .pass-content h3{font-family:var(--display);font-size:clamp(32px,4.5vw,52px);letter-spacing:-.01em;text-transform:uppercase;line-height:1;margin-bottom:16px}
-    .pass-content h3 .lime{color:var(--lime)}
-    .pass-content p{font-size:15px;color:var(--text-2);margin-bottom:24px;line-height:1.6}
-    .pass-plans{display:grid;gap:8px}
-    .pass-plan{background:var(--bg-alt);border:1px solid var(--border);border-radius:12px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;transition:border-color .15s;gap:10px}
-    .pass-plan:hover{border-color:var(--lime)}
-    .pp-label{font-family:var(--display);font-size:15px;letter-spacing:.04em;text-transform:uppercase}
-    .pp-meta{font-size:11px;color:var(--text-2);margin-top:1px;letter-spacing:.04em}
-    .pp-price{font-family:var(--display);font-size:20px;color:var(--lime);letter-spacing:.02em;white-space:nowrap}
 
     /* Venue */
     .venue-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center}
@@ -359,32 +342,11 @@ const VENUE = {
   website: "hitnrunarena.in"
 };
 
-const SPORTS = [
-  { key: "Cricket",              icon: "🏏", price: 1200, unit: "/hour",           kind: "turf",      subtitle: "Full turf · Up to 18 players" },
-  { key: "Football",             icon: "⚽", price: 1200, unit: "/hour",           kind: "turf",      subtitle: "Full turf · 7-a-side ready" },
-  { key: "Volleyball",           icon: "🏐", price: 1200, unit: "/hour",           kind: "turf",      subtitle: "Full turf · 6-a-side format" },
-  { key: "Cricket Net Practice", icon: "🥅", price:  400, unit: "/hour per net",   kind: "net",       subtitle: "Up to 3 nets concurrent" },
-  { key: "Badminton",            icon: "🏸", price: 1200, unit: "/hour per court", kind: "badminton", subtitle: "2 courts · Book independently" }
-];
-
-const PASS_PLANS = [
-  { label: "Net · Weekday Week",   meta: "Mon–Fri",        price: 1800,  category: "net" },
-  { label: "Net · Weekend Week",   meta: "Sat–Sun",        price: 1400,  category: "net" },
-  { label: "Net · Full Week",      meta: "Mon–Sun",        price: 2500,  category: "net" },
-  { label: "Net · Monthly Basic",  meta: "12 hrs/month",   price: 4200,  category: "net" },
-  { label: "Net · Monthly Std",    meta: "20 hrs/month",   price: 6500,  category: "net" },
-  { label: "Net · Monthly Premium",meta: "30 hrs/month",   price: 9000,  category: "net" },
-  { label: "Turf · Weekly Team",   meta: "7 days · 12 members", price: 4999,  category: "turf" },
-  { label: "Turf · Monthly Team",  meta: "30 days · 18 members", price:14999,  category: "turf" }
-];
-
 const API = {
   async get(action, params = {}) {
     const qs = new URLSearchParams({ action, ...params }).toString();
     const res = await fetch(API_URL + '?' + qs);
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Request failed');
-    return data.data;
+    return unwrap(await res.json());
   },
   async post(action, body = {}) {
     const res = await fetch(API_URL, {
@@ -392,11 +354,28 @@ const API = {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action, ...body })
     });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Request failed');
-    return data.data;
+    return unwrap(await res.json());
   }
 };
+
+function unwrap(data){
+  if (data.ok) return data.data;
+  const e = new Error(data.error || 'Request failed');
+  e.code = data.code;  // SLOT_TAKEN, SPORT_FULL, … (see API_CONTRACT.md)
+  throw e;
+}
+
+// getAvailability cache: date -> Promise. One call returns every public sport for that date.
+const availCache = {};
+function loadAvailability(date, fresh){
+  if (fresh || !availCache[date]) {
+    const p = API.get('getAvailability', { date });
+    availCache[date] = p;
+    p.catch(() => { if (availCache[date] === p) delete availCache[date]; });
+  }
+  return availCache[date];
+}
+function clearAvailabilityCache(){ Object.keys(availCache).forEach(k => delete availCache[k]); }
 
 function formatDateISO(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
 function dateLong(iso){ if(!iso) return ''; return new Date(iso+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
@@ -416,7 +395,7 @@ function buildCalendarLink(b){
   const date=b.booking_date.replace(/-/g,'');
   const params = new URLSearchParams({
     action:'TEMPLATE',
-    text:`${b.sport} at ${VENUE.name}`,
+    text:`${b.sport_name} at ${VENUE.name}`,
     dates:`${date}T${s}00/${date}T${e}00`,
     details:`Booking ID: ${b.booking_id}\nPay ₹${b.amount} at venue.\n\n${VENUE.address}`,
     location:VENUE.address,
@@ -425,7 +404,7 @@ function buildCalendarLink(b){
   return 'https://calendar.google.com/calendar/render?'+params.toString();
 }
 function buildShareText(b){
-  return `🏏 Booked at ${VENUE.name}!\n\n📅 ${dateLong(b.booking_date)}\n⏰ ${b.slot_time}\n🎯 ${b.sport}\n\nBooking ID: ${b.booking_id}\nhttps://${VENUE.website}`;
+  return `${b.icon || '✅'} Booked at ${VENUE.name}!\n\n📅 ${dateLong(b.booking_date)}\n⏰ ${b.slot_time}\n🎯 ${b.sport_name}\n\nBooking ID: ${b.booking_id}\nhttps://${VENUE.website}`;
 }
 
 function Spinner({ small }){ return <span className={`loading-spinner ${small?'small':''} spin`}/>; }
@@ -434,25 +413,6 @@ function Toast({ toast, onClose }){
   useEffect(()=>{ if(!toast?.show) return; const t=setTimeout(onClose,4000); return ()=>clearTimeout(t); },[toast?.show]);
   if(!toast?.show) return null;
   return <div className={`toast ${toast.isError?'err':''}`}><span>{toast.icon||(toast.isError?'⚠️':'✓')}</span><span>{toast.message}</span></div>;
-}
-
-function ConfigError(){
-  return (
-    <div className="config-err">
-      <div style={{maxWidth:520}}>
-        <div style={{fontSize:48,marginBottom:16}}>⚙️</div>
-        <div style={{fontFamily:'var(--display)',fontSize:28,letterSpacing:'.02em',textTransform:'uppercase',marginBottom:12}}>Setup required</div>
-        <div style={{fontSize:14,color:'var(--text-2)',lineHeight:1.7}}>
-          This booking page needs your Google Apps Script Web App URL. Open the HTML file, find:
-        </div>
-        <pre>{`const API_URL = "https://hitnrun-api.vercel.app/api";`}</pre>
-        <div style={{fontSize:13,color:'var(--text-2)',lineHeight:1.7}}>
-          Replace it with your live URL (looks like<br/>
-          <code style={{color:'var(--lime)'}}>https://script.google.com/macros/s/AKfycb.../exec</code>) and refresh.
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function Nav(){
@@ -473,8 +433,22 @@ function Nav(){
   );
 }
 
-function Hero({ liveSlotsToday }){
+function priceLabel(s){ return `₹${Number(s.price).toLocaleString('en-IN')} / hr${s.unit_label ? ' · ' + s.unit_label : ''}`; }
+
+function SportsRetry({ onRetry }){
+  return (
+    <div className="empty-block">
+      <div className="ic">📡</div>
+      <div className="empty-title">Couldn't load sports</div>
+      <div style={{fontSize:13,marginBottom:16}}>Check your connection and try again.</div>
+      <button className="btn-secondary" style={{padding:'10px 22px'}} onClick={onRetry}>↻ Retry</button>
+    </div>
+  );
+}
+
+function Hero({ liveSlotsToday, sports, sportsError }){
   const scroll = () => document.getElementById('book')?.scrollIntoView({behavior:'smooth'});
+  const minPrice = sports && sports.length ? Math.min(...sports.map(s => Number(s.price))) : null;
   return (
     <section className="hero">
       <div className="hero-tag anim-rise">
@@ -485,7 +459,7 @@ function Hero({ liveSlotsToday }){
         Book your<br/><span className="accent">ground.</span>
       </h1>
       <p className="hero-sub anim-rise" style={{animationDelay:'.15s'}}>
-        Dehradun's premier multi-sport <strong>turf</strong> in <strong>Panditwari</strong>. <strong>Cricket</strong>, <strong>Football</strong> & <strong>Volleyball</strong> on full astro turf, plus dedicated Cricket net practice and Badminton courts. ₹1,200/hour for turf & badminton · Pay at venue · No fuss.
+        Dehradun's premier multi-sport arena in <strong>{VENUE.area}</strong>. Pick your game, pick your hour and <strong>pay at the venue</strong>. Live availability · No fuss.
       </p>
       <div className="hero-ctas anim-rise" style={{animationDelay:'.25s'}}>
         <button className="btn-primary" onClick={scroll}>
@@ -506,79 +480,51 @@ function Hero({ liveSlotsToday }){
           </div>
           <div className="hero-stat-lbl">{liveSlotsToday===null ? 'Checking availability…' : 'Slots open today'}</div>
         </div>
-        <div><div className="hero-stat-num">₹1,200</div><div className="hero-stat-lbl">Full turf / hr</div></div>
-        <div><div className="hero-stat-num">₹400</div><div className="hero-stat-lbl">Net practice / hr</div></div>
+        <div>
+          <div className="hero-stat-num">{minPrice !== null ? `₹${minPrice.toLocaleString('en-IN')}` : sportsError ? '—' : '…'}</div>
+          <div className="hero-stat-lbl">{minPrice !== null ? 'From / hour' : 'Hourly rates'}</div>
+        </div>
         <div><div className="hero-stat-num">15</div><div className="hero-stat-lbl">Day booking window</div></div>
       </div>
     </section>
   );
 }
 
-function BookingWidget({ onComplete }){
+function BookingWidget({ sports, sportsError, onRetrySports, onComplete }){
   const next15 = useMemo(()=>getNext15Days(),[]);
   const [date, setDate] = useState(next15[0].iso);
-  const [sport, setSport] = useState(null);
-  const [slots, setSlots] = useState([]);
+  const [sportId, setSportId] = useState(null);
+  const [avail, setAvail] = useState(null);          // getAvailability response for `date`
+  const [availError, setAvailError] = useState(null);
+  const [availNonce, setAvailNonce] = useState(0);   // bump to force a fresh fetch
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [duration, setDuration] = useState(1);  // 1 / 2 / 3 hours
-  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [duration, setDuration] = useState(1);
   const [form, setForm] = useState({ name:'', phone:'', email:'', members:1, notes:'' });
   const [returning, setReturning] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // Client-side slot cache keyed by date|sport. Eliminates refetch when user
-  // toggles back to a date+sport they've already viewed.
-  const slotCacheRef = useRef({});
+  const sport = (sports || []).find(s => s.id === sportId) || null;
 
-  const sportObj = SPORTS.find(s => s.key === sport);
-
+  // One getAvailability call covers every sport for the date. Cached per date;
+  // a revisit shows the cached copy and refreshes it in the background.
   useEffect(()=>{
-    if(!sport){ setSlots([]); return; }
-    const key = date + '|' + sport;
-    const cached = slotCacheRef.current[key];
-    if (cached) {
-      setSlots(cached);
-      setSelectedSlot(null);
-      setLoadingSlots(false);
-      // refresh in background for staleness
-      (async()=>{
-        try {
-          const fresh = await API.get('getSlots', { date, sport });
-          slotCacheRef.current[key] = fresh || [];
-          setSlots(fresh || []);
-        } catch(_){}
-      })();
-      return;
-    }
     let cancelled = false;
-    (async()=>{
-      setLoadingSlots(true);
-      setSelectedSlot(null);
-      try {
-        const data = await API.get('getSlots', { date, sport });
-        if(!cancelled) {
-          const safe = data || [];
-          setSlots(safe);
-          slotCacheRef.current[key] = safe;
-        }
-      } catch(e) { if(!cancelled){ setError(e.message); setSlots([]); } }
-      finally { if(!cancelled) setLoadingSlots(false); }
-
-      // Prefetch next 2 days in background (fire-and-forget) — makes date switching instant
-      const idx = next15.findIndex(d => d.iso === date);
-      [1,2].forEach(off => {
-        const nextDate = next15[idx + off];
-        if (!nextDate) return;
-        const nextKey = nextDate.iso + '|' + sport;
-        if (slotCacheRef.current[nextKey]) return;
-        API.get('getSlots', { date: nextDate.iso, sport }).then(d => {
-          slotCacheRef.current[nextKey] = d || [];
-        }).catch(()=>{});
-      });
-    })();
+    const hadCache = !!availCache[date] && availNonce === 0;
+    setSelectedSlot(null); setAvailError(null);
+    if (!hadCache) setAvail(null);
+    loadAvailability(date, availNonce > 0).then(
+      d => { if(!cancelled) setAvail(d); },
+      e => { if(!cancelled) setAvailError(e.message); }
+    );
+    if (hadCache) loadAvailability(date, true).then(d => { if(!cancelled) setAvail(d); }, ()=>{});
+    // Prefetch next 2 days in background — makes date switching instant
+    const idx = next15.findIndex(d => d.iso === date);
+    [1,2].forEach(off => { const n = next15[idx + off]; if (n) loadAvailability(n.iso).catch(()=>{}); });
     return ()=>{ cancelled = true; };
-  }, [date, sport]);
+  }, [date, availNonce]);
+
+  useEffect(()=>{ setSelectedSlot(null); }, [sportId]);
 
   useEffect(()=>{
     const ph = normalizePhone(form.phone);
@@ -597,14 +543,19 @@ function BookingWidget({ onComplete }){
     return ()=>{ cancelled = true; clearTimeout(t); };
   }, [form.phone]);
 
-  // Whenever the user picks a new slot, reset duration to 1 hr (and clamp later by max_duration).
+  // Whenever the user picks a new slot, reset duration to 1 hr.
   useEffect(()=>{ setDuration(1); }, [selectedSlot && selectedSlot.slot_id]);
 
-  const maxDur = (selectedSlot && selectedSlot.max_duration) || 1;
+  const hours = ((avail && avail.sports.find(s => s.sport_id === sportId)) || { hours: [] }).hours.filter(h => h.available > 0);
+  const maxPerBooking = sport ? sport.max_slots_per_booking : 1;
+  const maxDur = selectedSlot ? Math.min(selectedSlot.max_duration || 1, maxPerBooking) : 1;
   const effectiveDuration = Math.min(duration, maxDur);
-  const totalPrice = selectedSlot ? parseInt(selectedSlot.price || 0) * effectiveDuration : 0;
+  // Display only: server hourly price × hours. The ticket shows the server's final amount.
+  const displayTotal = h => '₹' + (Number(selectedSlot ? selectedSlot.price : 0) * h).toLocaleString('en-IN');
+  // lookupCustomer returns a sport_id; only ever show a public sport's name
+  const lastSportName = returning && ((sports || []).find(s => s.id === returning.last_sport) || {}).name;
 
-  const canBook = selectedSlot && form.name.trim() && normalizePhone(form.phone).length === 10 && isValidEmail(form.email);
+  const canBook = sport && selectedSlot && form.name.trim() && normalizePhone(form.phone).length === 10 && isValidEmail(form.email);
 
   async function submit(){
     if(!canBook || submitting) return;
@@ -615,25 +566,28 @@ function BookingWidget({ onComplete }){
         customer_name: form.name.trim(),
         phone: normalizePhone(form.phone),
         email: form.email.trim(),
-        sport: sport,
+        sport_id: sport.id,
         slot_id: selectedSlot.slot_id,
         duration_hrs: effectiveDuration,
         members_count: parseInt(form.members,10) || 1,
         notes: form.notes.trim() || ''
       });
-      slotCacheRef.current = {}; // invalidate local cache after successful booking
+      clearAvailabilityCache();
       onComplete({
         ...result,
-        booking_date: selectedSlot.slot_date,
-        slot_time: result.slot_time || selectedSlot.slot_time,
-        sport: sport,
-        amount: result.amount || totalPrice,
-        duration_hrs: effectiveDuration,
+        booking_date: result.slot_date,
+        sport_name: result.sport_name || sport.name,
+        icon: sport.icon,
         members_count: parseInt(form.members,10) || 1,
         customer_name: form.name.trim(),
         email: form.email.trim()
       });
-    } catch(e) { setError(e.message); setSubmitting(false); }
+    } catch(e) {
+      setError(e.message);
+      setSubmitting(false);
+      // Someone beat us to it — show fresh counts
+      if (e.code === 'SLOT_TAKEN' || e.code === 'SPORT_FULL') setAvailNonce(n => n + 1);
+    }
   }
 
   return (
@@ -668,54 +622,66 @@ function BookingWidget({ onComplete }){
             <span className="step-num">2</span>
             <span className="step-title">What's the game?</span>
           </div>
-          <div className="sport-grid">
-            {SPORTS.map(s => (
-              <button key={s.key} className={`sport-card ${sport===s.key?'active':''}`} onClick={()=>setSport(s.key)}>
-                <span className="ic">{s.icon}</span>
-                <div className="sport-card-text">
-                  <div className="name">{s.key}</div>
-                  <div className="price">₹{s.price} {s.unit} · {s.subtitle}</div>
-                </div>
-              </button>
-            ))}
-          </div>
+          {sportsError && <SportsRetry onRetry={onRetrySports}/>}
+          {!sportsError && !sports && (
+            <div className="sport-grid">{[0,1,2].map(i => <div key={i} className="sport-card shimmer" style={{height:76}}/>)}</div>
+          )}
+          {sports && sports.length === 0 && (
+            <div className="empty-block"><div className="ic">🗓️</div><div className="empty-title">No online bookings right now</div><div style={{fontSize:13}}>Call us on {VENUE.phone} to book.</div></div>
+          )}
+          {sports && sports.length > 0 && (
+            <div className="sport-grid">
+              {sports.map(s => (
+                <button key={s.id} className={`sport-card ${sportId===s.id?'active':''}`} onClick={()=>setSportId(s.id)}>
+                  <span className="ic">{s.icon}</span>
+                  <div className="sport-card-text">
+                    <div className="name">{s.name}</div>
+                    {s.tagline && <div className="price">{s.tagline}</div>}
+                    <div className="price">{priceLabel(s)}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* STEP 3 */}
         <div className="booking-step">
           <div className="step-label">
             <span className={`step-num ${sport?'':'dim'}`}>3</span>
-            <span className="step-title">Pick your slot</span>
-            <span className="step-meta">{!sport ? 'Choose a sport first ↑' : loadingSlots ? 'Checking…' : `${slots.length} available`}</span>
+            <span className="step-title">Pick your time</span>
+            <span className="step-meta">{!sport ? 'Choose a sport first ↑' : !avail ? 'Checking…' : `${hours.length} available`}</span>
           </div>
           {!sport && (
             <div className="empty-block"><div className="ic">🎯</div><div className="empty-title">Pick a sport above</div><div style={{fontSize:13}}>We'll show you what's open on {dateNice(date)}</div></div>
           )}
-          {sport && loadingSlots && (
+          {sport && availError && !avail && (
+            <div className="empty-block">
+              <div className="ic">📡</div><div className="empty-title">Couldn't load availability</div>
+              <div style={{fontSize:13,marginBottom:16}}>{availError}</div>
+              <button className="btn-secondary" style={{padding:'10px 22px'}} onClick={()=>setAvailNonce(n => n + 1)}>↻ Retry</button>
+            </div>
+          )}
+          {sport && !avail && !availError && (
             <div className="loading-block"><Spinner/><div style={{marginTop:16,fontSize:13,color:'var(--text-2)'}}>Fetching live availability…</div></div>
           )}
-          {sport && !loadingSlots && slots.length === 0 && (
-            <div className="empty-block"><div className="ic">📭</div><div className="empty-title">Fully booked</div><div style={{fontSize:13}}>No slots left for {sport} on {dateNice(date)}.<br/>Try a different day or sport.</div></div>
+          {sport && avail && hours.length === 0 && (
+            <div className="empty-block"><div className="ic">📭</div><div className="empty-title">Fully booked</div><div style={{fontSize:13}}>No slots left for {sport.name} on {dateNice(date)}.<br/>Try a different day or sport.</div></div>
           )}
-          {sport && !loadingSlots && slots.length > 0 && (
+          {sport && avail && hours.length > 0 && (
             <div className="slots-grid">
-              {slots.map(s => {
-                const active = selectedSlot && selectedSlot.slot_id === s.slot_id;
-                const [startT, endT] = s.slot_time.split('-');
+              {hours.map(h => {
+                const active = selectedSlot && selectedSlot.slot_time === h.slot_time;
+                const [startT, endT] = h.slot_time.split('-');
                 return (
-                  <button key={s.slot_id} className={`slot-card ${active?'active':''}`} onClick={()=>setSelectedSlot(s)}>
+                  <button key={h.slot_time} className={`slot-card ${active?'active':''}`} onClick={()=>setSelectedSlot(h)}>
                     <div className="time-row">
                       <span className="slot-time">{startT}</span>
                       <span className="slot-arrow">→</span>
                       <span className="slot-time end">{endT}</span>
                     </div>
-                    <div className="slot-price">₹{parseInt(s.price||0).toLocaleString('en-IN')}</div>
-                    {s.nets_available !== undefined && (
-                      <div className="slot-meta">{s.nets_available}/3 nets free</div>
-                    )}
-                    {s.courts_available !== undefined && (
-                      <div className="slot-meta">{s.courts_available}/{s.total_courts||2} courts free</div>
-                    )}
+                    <div className="slot-price">₹{Number(h.price).toLocaleString('en-IN')} / hr</div>
+                    <div className="slot-meta">{h.available} left</div>
                   </button>
                 );
               })}
@@ -729,13 +695,12 @@ function BookingWidget({ onComplete }){
             <div className="step-label">
               <span className="step-num">⏱</span>
               <span className="step-title">Duration</span>
-              <span className="step-meta">{maxDur >= 2 ? `Up to ${maxDur} hour${maxDur>1?'s':''} available` : '1 hour only'}</span>
+              <span className="step-meta">{maxDur >= 2 ? `Up to ${maxDur} hours available` : '1 hour only'}</span>
             </div>
             <div className="duration-grid">
-              {[1,2,3].map(h => {
+              {Array.from({ length: maxPerBooking }, (_, i) => i + 1).map(h => {
                 const disabled = h > maxDur;
                 const active = effectiveDuration === h;
-                const price = parseInt(selectedSlot.price || 0) * h;
                 return (
                   <button
                     key={h}
@@ -745,7 +710,7 @@ function BookingWidget({ onComplete }){
                     title={disabled ? 'Not enough consecutive slots available' : ''}
                   >
                     <div className="dur-h">{h} hr{h>1?'s':''}</div>
-                    <div className="dur-price">₹{price.toLocaleString('en-IN')}</div>
+                    <div className="dur-price">{displayTotal(h)}</div>
                     {disabled && <div className="dur-sub">unavailable</div>}
                   </button>
                 );
@@ -768,7 +733,7 @@ function BookingWidget({ onComplete }){
                   <span className="return-emoji">👋</span>
                   <div className="return-text">
                     <strong>Welcome back, {returning.customer_name}!</strong>
-                    <span className="sub">{returning.bookings_count} previous {returning.bookings_count===1?'booking':'bookings'}{returning.last_sport?` · Last played ${returning.last_sport}`:''}</span>
+                    <span className="sub">{returning.bookings_count} previous {returning.bookings_count===1?'booking':'bookings'}{lastSportName?` · Last played ${lastSportName}`:''}</span>
                   </div>
                 </div>
               )}
@@ -798,13 +763,13 @@ function BookingWidget({ onComplete }){
             </div>
             <div className="submit-row">
               <button className="btn-submit" onClick={submit} disabled={!canBook || submitting}>
-                {submitting ? <><Spinner small/> Booking…</> : <>Lock in {effectiveDuration > 1 ? `${effectiveDuration} hrs` : 'slot'} · ₹{totalPrice.toLocaleString('en-IN')} <span>→</span></>}
+                {submitting ? <><Spinner small/> Booking…</> : <>Lock in {effectiveDuration} hr{effectiveDuration>1?'s':''} · {displayTotal(effectiveDuration)} <span>→</span></>}
               </button>
               <div className="submit-note">💰 Pay at the venue — cash or UPI. Cancel anytime by calling us.</div>
-              {error && <div style={{background:'rgba(239,68,68,.1)',border:'1px solid var(--danger)',borderRadius:12,padding:'12px 16px',fontSize:13,color:'#fca5a5'}}>⚠ {error}</div>}
             </div>
           </div>
         )}
+        {error && <div style={{marginTop:16,background:'rgba(239,68,68,.1)',border:'1px solid var(--danger)',borderRadius:12,padding:'12px 16px',fontSize:13,color:'#fca5a5'}}>⚠ {error}</div>}
       </div>
     </section>
   );
@@ -829,13 +794,13 @@ function ConfirmationTicket({ booking, onReset }){
       <div className="ticket anim-rise">
         <div className="ticket-head">
           <div className="ticket-check pulse-glow">✓</div>
-          <div className="ticket-title">{booking.sport} Booked</div>
+          <div className="ticket-title">{booking.icon} {booking.sport_name} Booked</div>
           <div className="ticket-sub">{booking.email ? `Confirmation sent to ${booking.email}` : 'Show this screen at the venue'}</div>
         </div>
         <div className="ticket-divider"><span className="dash"></span></div>
         <div className="ticket-body">
           <div className="ticket-row"><span className="ticket-label">Booking ID</span><span className="ticket-value mono">{booking.booking_id}</span></div>
-          <div className="ticket-row"><span className="ticket-label">Sport</span><span className="ticket-value big">{booking.sport}</span></div>
+          <div className="ticket-row"><span className="ticket-label">Sport</span><span className="ticket-value big">{booking.sport_name}</span></div>
           <div className="ticket-row"><span className="ticket-label">Date</span><span className="ticket-value">{dateLong(booking.booking_date)}</span></div>
           <div className="ticket-row"><span className="ticket-label">Time</span><span className="ticket-value big" style={{fontSize:20}}>{booking.slot_time}</span></div>
           {booking.duration_hrs > 1 && (
@@ -866,7 +831,7 @@ function Features(){
   const items = [
     { ic:'⚡', title:'Live availability', text:'See exactly which slots are open. No back-and-forth on calls.' },
     { ic:'💰', title:'Pay at venue',      text:'No advance payment. Cash or UPI when you show up.' },
-    { ic:'🥅', title:'3 nets, 1 turf',    text:'Multiple net sessions in the same slot — concurrent practice.' },
+    { ic:'🎯', title:'Pick your game',    text:'Every game we run is bookable right here, with live prices.' },
     { ic:'📅', title:'15-day window',     text:'Book today or two weeks out. Plan ahead without stress.' }
   ];
   return (
@@ -880,7 +845,7 @@ function Features(){
   );
 }
 
-function PricingCallout(){
+function PricingCallout({ sports, error, onRetry }){
   return (
     <section className="section">
       <div className="price-callout">
@@ -888,73 +853,20 @@ function PricingCallout(){
           <span className="section-eyebrow">Hourly rates</span>
           <h3 style={{fontFamily:'var(--display)',fontSize:'clamp(32px,4.5vw,52px)',letterSpacing:'-.01em',textTransform:'uppercase',lineHeight:1}}>Simple<br/><span className="lime">pricing.</span></h3>
         </div>
-        <div className="price-grid">
-          <div className="price-tile">
-            <span className="price-tile-tag">Turf · Cricket, Football & Volleyball</span>
-            <div className="price-tile-big">₹1,200</div>
-            <div className="price-tile-meta">Per hour · Full turf</div>
-            <ul className="price-tile-list">
-              <li>Up to 18 players</li>
-              <li>Cricket, Football or Volleyball</li>
-              <li>Bright flood lights</li>
-              <li>Quality astro turf</li>
-            </ul>
-          </div>
-          <div className="price-tile">
-            <span className="price-tile-tag">Cricket Net Practice</span>
-            <div className="price-tile-big">₹400</div>
-            <div className="price-tile-meta">Per hour · Per net</div>
-            <ul className="price-tile-list">
-              <li>Up to 3 nets concurrent</li>
-              <li>Professional astro turf nets</li>
-              <li>Per net, NOT per player</li>
-              <li>Coaching available</li>
-            </ul>
-          </div>
-          <div className="price-tile">
-            <span className="price-tile-tag">Badminton</span>
-            <div className="price-tile-big">₹1,200</div>
-            <div className="price-tile-meta">Per hour · Per court</div>
-            <ul className="price-tile-list">
-              <li>2 courts · Book one or both</li>
-              <li>Professional badminton courts</li>
-              <li>Per court, NOT per player</li>
-              <li>Bright flood lights</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function PassCallout(){
-  const waMsg = encodeURIComponent("Hey! I want to know more about your weekly/monthly passes.");
-  return (
-    <section className="section">
-      <div className="pass-callout">
-        <div className="pass-grid">
-          <div className="pass-content">
-            <span className="section-eyebrow">For teams & regulars</span>
-            <h3>Play more,<br/><span className="lime">pay less.</span></h3>
-            <p>Got a regular crew? Lock in a weekly or monthly pass for turf or net practice. Perfect for office teams, college crews, and serious players.</p>
-            <a className="btn-primary" href={`https://wa.me/${VENUE.whatsapp}?text=${waMsg}`} target="_blank" rel="noopener">
-              Chat on WhatsApp
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </a>
-          </div>
-          <div className="pass-plans">
-            {PASS_PLANS.map(p => (
-              <div key={p.label} className="pass-plan">
-                <div style={{flex:1,minWidth:0}}>
-                  <div className="pp-label">{p.label}</div>
-                  <div className="pp-meta">{p.meta}</div>
-                </div>
-                <div className="pp-price">₹{p.price.toLocaleString('en-IN')}</div>
+        {error && <SportsRetry onRetry={onRetry}/>}
+        {!error && !sports && <div className="loading-block"><Spinner/></div>}
+        {sports && (
+          <div className="price-grid">
+            {sports.map(s => (
+              <div key={s.id} className="price-tile">
+                <span className="price-tile-tag">{s.icon} {s.name}</span>
+                <div className="price-tile-big">₹{Number(s.price).toLocaleString('en-IN')}</div>
+                <div className="price-tile-meta">Per hour{s.unit_label ? ` · ${s.unit_label}` : ''}</div>
+                {s.tagline && <div className="price-tile-meta" style={{marginBottom:0}}>{s.tagline}</div>}
               </div>
             ))}
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
@@ -972,8 +884,7 @@ function VenueInfo(){
           <div className="venue-stat"><div className="ic">📍</div><div><div className="venue-stat-label">Address</div><div className="venue-stat-val">{VENUE.address}</div><a href={VENUE.maps} target="_blank" rel="noopener" className="lime" style={{fontSize:13,fontWeight:600,marginTop:6,display:'inline-block'}}>Open in Maps →</a></div></div>
           <div className="venue-stat"><div className="ic">⏰</div><div><div className="venue-stat-label">Hours</div><div className="venue-stat-val">{VENUE.hoursWeek}<br/>{VENUE.hoursWeekend}</div></div></div>
           <div className="venue-stat"><div className="ic">📞</div><div><div className="venue-stat-label">Phone</div><div className="venue-stat-val"><a href={`tel:${VENUE.phone.replace(/\s/g,'')}`}>{VENUE.phone}</a> · <a href={`tel:${VENUE.phone2.replace(/\s/g,'')}`}>{VENUE.phone2}</a></div></div></div>
-          <div className="venue-stat"><div className="ic">🥅</div><div><div className="venue-stat-label">Net Practice Bookings</div><div className="venue-stat-val"><a href={`tel:${VENUE.phoneNet.replace(/\s/g,'')}`}>{VENUE.phoneNet}</a></div></div></div>
-          <div className="venue-stat"><div className="ic">🏸</div><div><div className="venue-stat-label">Badminton Bookings</div><div className="venue-stat-val"><a href={`tel:${VENUE.phoneNet.replace(/\s/g,'')}`}>{VENUE.phoneNet}</a></div></div></div>
+          <div className="venue-stat"><div className="ic">🗓️</div><div><div className="venue-stat-label">Bookings</div><div className="venue-stat-val"><a href={`tel:${VENUE.phoneNet.replace(/\s/g,'')}`}>{VENUE.phoneNet}</a></div></div></div>
           <div className="venue-stat"><div className="ic">✉️</div><div><div className="venue-stat-label">Email</div><div className="venue-stat-val">{VENUE.email}</div></div></div>
         </div>
       </div>
@@ -1018,23 +929,26 @@ function App(){
   const [booking, setBooking] = useState(null);
   const [liveSlotsToday, setLiveSlotsToday] = useState(null);
   const [toast, setToast] = useState({ show:false });
+  const [sports, setSports] = useState(null);         // null = loading
+  const [sportsError, setSportsError] = useState(null);
 
-  // Single API call — Net Practice query returns all slots where ANY booking is possible
-  // (since net-bookable ⊃ turf-bookable). Cuts hero load time in half.
-  const refreshSlotCount = async () => {
+  async function loadSports(){
+    setSportsError(null); setSports(null);
+    try { setSports(await API.get('getSports') || []); }
+    catch(e){ setSportsError(e.message || 'Request failed'); }
+  }
+
+  // Hours today where at least one sport can still be booked
+  const refreshSlotCount = async (fresh) => {
     try {
-      const today = formatDateISO(new Date());
-      const slots = await API.get('getSlots', { date: today, sport: 'Cricket Net Practice' });
-      setLiveSlotsToday(slots?.length || 0);
+      const d = await loadAvailability(formatDateISO(new Date()), fresh);
+      const open = new Set();
+      d.sports.forEach(s => s.hours.forEach(h => { if (h.available > 0) open.add(h.slot_time); }));
+      setLiveSlotsToday(open.size);
     } catch(_) { setLiveSlotsToday(0); }
   };
 
-  useEffect(()=>{
-    if (API_URL === "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") return;
-    refreshSlotCount();
-  }, []);
-
-  if (API_URL === "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") return <ConfigError/>;
+  useEffect(()=>{ loadSports(); refreshSlotCount(); }, []);
 
   function complete(r){
     setBooking(r);
@@ -1044,7 +958,7 @@ function App(){
 
   function reset(){
     setBooking(null);
-    refreshSlotCount();
+    refreshSlotCount(true);
     setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}), 100);
   }
 
@@ -1053,11 +967,11 @@ function App(){
       <div className="stage-bg"><div className="orb orb-1"/><div className="orb orb-2"/><div className="orb orb-3"/></div>
       <div className="grain"/>
       <Nav/>
-      {!booking && <Hero liveSlotsToday={liveSlotsToday}/>}
+      {!booking && <Hero liveSlotsToday={liveSlotsToday} sports={sports} sportsError={sportsError}/>}
       {booking
         ? <ConfirmationTicket booking={booking} onReset={reset}/>
-        : <BookingWidget onComplete={complete}/>}
-      {!booking && <><Features/><PricingCallout/><VenueInfo/></>}
+        : <BookingWidget sports={sports} sportsError={sportsError} onRetrySports={loadSports} onComplete={complete}/>}
+      {!booking && <><Features/><PricingCallout sports={sports} error={sportsError} onRetry={loadSports}/><VenueInfo/></>}
       <Footer/>
       <Toast toast={toast} onClose={()=>setToast({show:false})}/>
     </>

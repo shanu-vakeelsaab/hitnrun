@@ -60,7 +60,7 @@
     @media print {
       @page { margin: 12mm; }
       body { background: #fff !important; }
-      .top-bar, .stat-grid, .tab-bar, .filter-row, .bookings-mobile,
+      .top-bar, .stat-grid, .sports-today, .tab-bar, .filter-row, .bookings-mobile,
       button, input, .content-card > div:first-child > div:last-child { display: none !important; }
       .content-card { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important; }
       .bookings-table-wrap { display: block !important; overflow: visible !important; }
@@ -126,8 +126,6 @@ const PLANS = [
   { key: 'net_month_premium',  label: 'Net Monthly Premium (30 hrs)',  category: 'net', price: 9000, days: 30, hours_quota: 30 }
 ];
 
-const SPORTS_TURF = ['Cricket', 'Football', 'Volleyball'];
-
 const API = {
   async get(action, params = {}) {
     const adminKey = sessionStorage.getItem('hnr_admin_key') || '';
@@ -155,6 +153,31 @@ const API = {
   }
 };
 
+// ── Sports / resources config (listSportsAdmin + listResourcesAdmin) ──
+// Bookings store sport_id; look everything up here so archived sports keep their name + icon.
+const ConfigCtx = React.createContext(null);
+function useConfig(){ return React.useContext(ConfigCtx); }
+const SPORT_COLORS = [
+  {bg:'#fef3c7', text:'#854d0e'}, {bg:'#d1fae5', text:'#065f46'}, {bg:'#fed7aa', text:'#9a3412'},
+  {bg:'#dbeafe', text:'#1e40af'}, {bg:'#e0e7ff', text:'#3730a3'}, {bg:'#fce7f3', text:'#9d174d'},
+  {bg:'#ccfbf1', text:'#115e59'}, {bg:'#fae8ff', text:'#86198f'}
+];
+function makeConfig(sports, resources){
+  const byId = {};
+  sports.forEach((s, i) => { byId[s.sport_id] = { ...s, color: SPORT_COLORS[i % SPORT_COLORS.length] }; });
+  const resById = {};
+  resources.forEach(r => { resById[r.resource_id] = r; });
+  return {
+    sports, resources,
+    bookable: sports.filter(s => s.active && !s.archived),
+    sport: id => byId[id] || { sport_id: id, name: id || '—', icon: '🏷️', color: { bg:'#f3f4f6', text:'#6b7280' }, unknown: true },
+    resourceLabel: id => (resById[id] && resById[id].label) || String(id || '').toUpperCase()
+  };
+}
+// getSlots has three legacy shapes (turf / nets / courts) — normalise the count.
+function slotLeft(s){ return { left: s.nets_available ?? s.courts_available ?? 1, total: s.total_nets ?? s.total_courts ?? 1 }; }
+function rupees(n){ return '₹' + (Number(n) || 0).toLocaleString('en-IN'); }
+
 // ── Utils ──────────────────────────────────────────────────
 function formatDateISO(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
 function formatDateLong(){ return new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'short' }); }
@@ -175,16 +198,6 @@ function relativeTime(then, now){
   if(secs<60) return secs+'s ago';
   if(secs<3600) return Math.round(secs/60)+'m ago';
   return Math.round(secs/3600)+'h ago';
-}
-function sportColor(sport){
-  const map = {
-    'Cricket': {bg:'#fef3c7', text:'#854d0e'},
-    'Football': {bg:'#d1fae5', text:'#065f46'},
-    'Volleyball': {bg:'#fed7aa', text:'#9a3412'},
-    'Cricket Net Practice': {bg:'#dbeafe', text:'#1e40af'},
-    'Badminton': {bg:'#e0e7ff', text:'#3730a3'}
-  };
-  return map[sport] || { bg:'#f3f4f6', text:'#6b7280' };
 }
 function paymentBadge(b){
   if(b.status === 'cancelled') return { bg:'#fee2e2', text:'#991b1b', label:'Cancelled' };
@@ -322,15 +335,40 @@ function LoginPage({ onLogin }){
 // ──────────────────────────────────────────────────────────
 // SPOT BOOKING MODAL
 // ──────────────────────────────────────────────────────────
+function SportPicker({ sports, value, onChange }){
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(150px, 1fr))', gap:6 }}>
+      {sports.map(s => {
+        const active = value === s.sport_id;
+        return (
+          <button key={s.sport_id} type="button" onClick={()=>onChange(s.sport_id)} style={{
+            padding:'9px 10px', borderRadius:8, textAlign:'left',
+            background: active ? '#fff7ed' : '#fff',
+            border: '1.5px solid ' + (active ? '#f59e0b' : '#e5e7eb'),
+            fontSize:12, fontWeight:700, color:'#111', lineHeight:1.3
+          }}>
+            <div>{s.icon} {s.name}</div>
+            <div style={{ fontSize:10, fontWeight:600, color:'#6b7280', marginTop:2 }}>
+              {rupees(s.price_per_slot)}/hr{s.unit_label ? ` · ${s.unit_label}` : ''}{s.online_booking === false ? ' · walk-in only' : ''}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function SpotBookingModal({ onClose, onCreate, defaultDate }){
+  const cfg = useConfig();
+  const sports = cfg.bookable;
   const [form, setForm] = useState({
     customer_name:'', phone:'', email:'',
-    booking_kind:'turf', sport:'Cricket',
+    sport_id: sports[0] ? sports[0].sport_id : '',
     booking_date: defaultDate || formatDateISO(new Date()),
     slot_time:'',
     duration_hrs: 1,
     members_count: 1,
-    amount: 1200,
+    amount: '',            // blank → server computes price_per_slot × hours
     payment_status:'pending',
     payment_mode:''
   });
@@ -338,16 +376,18 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
   const [err, setErr] = useState(null);
   const [availSlots, setAvailSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const sport = cfg.sport(form.sport_id);
+  useEffect(()=>{ if (!form.sport_id && sports[0]) setForm(f => ({ ...f, sport_id: sports[0].sport_id })); }, [sports.length]);
 
-  // Fetch available slots whenever date or kind changes
+  // getSlots (with adminKey) is the only availability read that includes walk-in-only sports.
   useEffect(()=>{
+    if (!form.sport_id) return;
     let cancelled = false;
     (async ()=>{
       setLoadingSlots(true);
-      setForm(f => ({ ...f, slot_time: '', duration_hrs: 1 })); // reset on date/kind change
+      setForm(f => ({ ...f, slot_time: '', duration_hrs: 1 }));
       try {
-        const sport = form.booking_kind === 'turf' ? form.sport : form.booking_kind === 'badminton' ? 'Badminton' : 'Cricket Net Practice';
-        const slots = await API.get('getSlots', { date: form.booking_date, sport });
+        const slots = await API.get('getSlots', { date: form.booking_date, sport: form.sport_id });
         if (!cancelled) setAvailSlots(slots || []);
       } catch(e) {
         if (!cancelled) { setAvailSlots([]); setErr('Could not load available slots: ' + e.message); }
@@ -356,30 +396,11 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
       }
     })();
     return ()=>{ cancelled = true; };
-  }, [form.booking_date, form.booking_kind, form.sport]);
+  }, [form.booking_date, form.sport_id]);
 
-  // Selected slot metadata for the duration picker
   const selectedSlot = availSlots.find(s => s.slot_time === form.slot_time);
   const maxDur = (selectedSlot && selectedSlot.max_duration) || 1;
-  const unitPrice = selectedSlot ? selectedSlot.price : (form.booking_kind === 'net' ? 400 : 1200);
-
-  // Auto-update amount when slot/duration changes
-  useEffect(()=>{
-    if (selectedSlot) {
-      setForm(f => ({ ...f, amount: unitPrice * (f.duration_hrs || 1) }));
-    }
-  }, [form.slot_time, form.duration_hrs]);
-
-  function setKind(k){
-    setForm(f => ({
-      ...f,
-      booking_kind: k,
-      sport: k==='turf' ? 'Cricket' : k==='badminton' ? 'Badminton' : 'Cricket Net Practice',
-      amount: k==='net' ? 400 : 1200,
-      slot_time: '',
-      duration_hrs: 1
-    }));
-  }
+  const hourOptions = Array.from({ length: sport.max_slots_per_booking || 3 }, (_, i) => i + 1);
 
   async function submit(){
     setErr(null);
@@ -392,13 +413,12 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
         customer_name: form.customer_name.trim(),
         phone: normalizePhone(form.phone),
         email: form.email.trim(),
-        sport: form.sport,
-        booking_kind: form.booking_kind,
+        sport_id: form.sport_id,
         booking_date: form.booking_date,
         slot_time: form.slot_time,
         duration_hrs: parseInt(form.duration_hrs,10) || 1,
         members_count: parseInt(form.members_count,10)||1,
-        amount: parseInt(form.amount,10)||0,
+        amount: String(form.amount).trim() === '' ? undefined : parseInt(form.amount,10) || 0,
         payment_status: form.payment_status,
         payment_mode: form.payment_mode
       });
@@ -406,9 +426,6 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
       onClose();
     } catch(e){ setErr(e.message); setSubmitting(false); }
   }
-
-  const sportOptions = form.booking_kind === 'badminton' ? ['Badminton'] :
-                       form.booking_kind === 'turf' ? SPORTS_TURF : ['Cricket Net Practice'];
 
   return (
     <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{
@@ -427,43 +444,16 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
           <button onClick={onClose} style={{ fontSize:22, color:'#9ca3af', padding:0, lineHeight:1 }}>×</button>
         </div>
 
-        {/* Kind toggle */}
-        <div style={{ display:'flex', gap:8, marginBottom:14, background:'#f3f4f6', padding:4, borderRadius:10 }}>
-          <button onClick={()=>setKind('turf')} style={{
-            flex:1, padding:'10px 14px', borderRadius:7,
-            background: form.booking_kind==='turf'?'#fff':'transparent',
-            color: form.booking_kind==='turf'?'#111':'#6b7280',
-            fontWeight:700, fontSize:13,
-            boxShadow: form.booking_kind==='turf'?'0 1px 3px rgba(0,0,0,.1)':'none'
-          }}>🏏 Turf · ₹1,200/hr</button>
-          <button onClick={()=>setKind('net')} style={{
-            flex:1, padding:'10px 14px', borderRadius:7,
-            background: form.booking_kind==='net'?'#fff':'transparent',
-            color: form.booking_kind==='net'?'#111':'#6b7280',
-            fontWeight:700, fontSize:13,
-            boxShadow: form.booking_kind==='net'?'0 1px 3px rgba(0,0,0,.1)':'none'
-          }}>🥅 Net · ₹400/hr</button>
-          <button onClick={()=>setKind('badminton')} style={{
-            flex:1, padding:'10px 14px', borderRadius:7,
-            background: form.booking_kind==='badminton'?'#fff':'transparent',
-            color: form.booking_kind==='badminton'?'#111':'#6b7280',
-            fontWeight:700, fontSize:13,
-            boxShadow: form.booking_kind==='badminton'?'0 1px 3px rgba(0,0,0,.1)':'none'
-          }}>🏸 Badminton · ₹1,200/hr</button>
+        <div style={{ marginBottom:14 }}>
+          <label style={lblStyle}>Sport</label>
+          {sports.length === 0
+            ? <div style={{ padding:14, background:'#fef2f2', color:'#991b1b', borderRadius:8, fontSize:13 }}>No active sports. Turn one on in the Sports tab.</div>
+            : <SportPicker sports={sports} value={form.sport_id} onChange={id=>setForm(f => ({ ...f, sport_id:id }))}/>}
         </div>
 
-        {/* Date + Sport on top */}
-        <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
-          <div>
-            <label style={lblStyle}>Date *</label>
-            <input type="date" value={form.booking_date} onChange={e=>setForm({...form, booking_date:e.target.value})} style={inputStyle}/>
-          </div>
-          <div>
-            <label style={lblStyle}>Sport</label>
-            <select value={form.sport} onChange={e=>setForm({...form, sport:e.target.value})} style={inputStyle}>
-              {sportOptions.map(s => <option key={s}>{s}</option>)}
-            </select>
-          </div>
+        <div style={{ marginBottom:14 }}>
+          <label style={lblStyle}>Date *</label>
+          <input type="date" value={form.booking_date} onChange={e=>setForm({...form, booking_date:e.target.value})} style={inputStyle}/>
         </div>
 
         {/* Time slot grid */}
@@ -477,15 +467,15 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
             </div>
           ) : availSlots.length === 0 ? (
             <div style={{ padding:'20px 16px', background:'#fef2f2', border:'1px dashed #fecaca', borderRadius:8, textAlign:'center', color:'#991b1b', fontSize:13 }}>
-              No {form.booking_kind === 'turf' ? 'turf' : form.booking_kind === 'badminton' ? 'badminton' : 'net'} slots available for this date.
-              {form.booking_kind === 'turf' && ' All slots may have net bookings or be booked.'}
+              No {sport.name} slots available for this date.
             </div>
           ) : (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap:6, maxHeight:200, overflowY:'auto', padding:4, background:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb' }}>
               {availSlots.map(s => {
                 const active = form.slot_time === s.slot_time;
+                const { left, total } = slotLeft(s);
                 return (
-                  <button key={s.slot_id} type="button" onClick={()=>setForm({...form, slot_time: s.slot_time, duration_hrs: 1, amount: s.price})}
+                  <button key={s.slot_id} type="button" onClick={()=>setForm({...form, slot_time: s.slot_time, duration_hrs: 1})}
                     style={{
                       padding:'9px 8px', borderRadius:7,
                       background: active ? '#f59e0b' : '#fff',
@@ -494,12 +484,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
                       fontSize:12, fontWeight:700, lineHeight:1.3, cursor:'pointer'
                     }}>
                     <div style={{ fontFamily:'monospace' }}>{s.slot_time}</div>
-                    {s.nets_available !== undefined && (
-                      <div style={{ fontSize:9, fontWeight:600, opacity:.8, marginTop:2 }}>{s.nets_available}/3 free</div>
-                    )}
-                    {s.courts_available !== undefined && (
-                      <div style={{ fontSize:9, fontWeight:600, opacity:.8, marginTop:2 }}>{s.courts_available}/{s.total_courts||2} free</div>
-                    )}
+                    {total > 1 && <div style={{ fontSize:9, fontWeight:600, opacity:.8, marginTop:2 }}>{left} left</div>}
                     {s.max_duration > 1 && (
                       <div style={{ fontSize:9, fontWeight:600, opacity:.7, marginTop:1 }}>up to {s.max_duration}h</div>
                     )}
@@ -514,8 +499,8 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
         {form.slot_time && (
           <div style={{ marginBottom:18 }}>
             <label style={lblStyle}>Duration {maxDur >= 2 && <span style={{ color:'#6b7280', fontWeight:600, textTransform:'none', letterSpacing:0 }}>· up to {maxDur} hours available</span>}</label>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
-              {[1,2,3].map(h => {
+            <div style={{ display:'grid', gridTemplateColumns:`repeat(${Math.min(hourOptions.length, 6)},1fr)`, gap:8 }}>
+              {hourOptions.map(h => {
                 const disabled = h > maxDur;
                 const active = parseInt(form.duration_hrs,10) === h;
                 return (
@@ -529,8 +514,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
                       fontSize:13, fontWeight:700, cursor: disabled ? 'not-allowed' : 'pointer',
                       opacity: disabled ? 0.4 : 1
                     }}>
-                    <div>{h} hr{h>1?'s':''}</div>
-                    <div style={{ fontSize:11, fontWeight:600, opacity:.85, marginTop:2 }}>₹{(unitPrice * h).toLocaleString('en-IN')}</div>
+                    {h} hr{h>1?'s':''}
                   </button>
                 );
               })}
@@ -557,7 +541,8 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
           </div>
           <div>
             <label style={lblStyle}>Amount (₹)</label>
-            <input type="number" value={form.amount} onChange={e=>setForm({...form, amount:e.target.value})} style={inputStyle}/>
+            <input type="number" value={form.amount} onChange={e=>setForm({...form, amount:e.target.value})}
+              placeholder={`Auto · ${rupees(sport.price_per_slot)}/hr`} style={inputStyle}/>
           </div>
           <div>
             <label style={lblStyle}>Payment Status</label>
@@ -578,6 +563,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
             </div>
           )}
         </div>
+        <div style={{ fontSize:11, color:'#6b7280', marginTop:6 }}>Leave Amount blank and the server charges the sport's hourly price × hours.</div>
 
         {err && <div style={{ background:'#fef2f2', color:'#991b1b', padding:'10px 14px', borderRadius:8, fontSize:13, marginTop:14 }}>⚠ {err}</div>}
 
@@ -596,15 +582,17 @@ const lblStyle = { display:'block', fontSize:11, fontWeight:700, color:'#6b7280'
 const inputStyle = { width:'100%', padding:'10px 12px', border:'1.5px solid #e5e7eb', borderRadius:8, fontSize:14, outline:'none', background:'#fff' };
 
 // ──────────────────────────────────────────────────────────
-// EDIT BOOKING MODAL — change slot date/time and amount
+// EDIT BOOKING MODAL — change sport, slot date/time, duration and amount
 // ──────────────────────────────────────────────────────────
 function EditBookingModal({ booking, onClose, onSave }){
+  const cfg = useConfig();
   const [form, setForm] = useState({
+    sport_id: booking.sport,
     booking_date: booking.booking_date,
     slot_id: booking.slot_id,
     slot_time: booking.slot_time,
     duration_hrs: booking.duration_hrs || 1,
-    amount: booking.amount,
+    amount: '',            // blank → server rule (hourly rate × hours, or new sport's price)
     notes: booking.notes || '',
     members_count: booking.members_count || 1
   });
@@ -613,21 +601,24 @@ function EditBookingModal({ booking, onClose, onSave }){
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
 
-  // Compute unit price (per-hour rate) from current booking
+  const current = cfg.sport(booking.sport);
+  const sport = cfg.sport(form.sport_id);
+  const sportChanged = form.sport_id !== booking.sport;
+  // The booking's own sport stays selectable even if it has since been turned off or archived
+  const sportOptions = cfg.bookable.some(s => s.sport_id === booking.sport) ? cfg.bookable : [current, ...cfg.bookable];
   const currentDur = booking.duration_hrs || 1;
-  const unitPrice = Math.round((booking.amount || 0) / currentDur);
+  const maxHours = Math.max(sport.max_slots_per_booking || 3, currentDur);
 
-  // Fetch available slots whenever date changes (include the current slot too so admin can keep it)
+  // Fetch available slots whenever date or sport changes (include the current slot so admin can keep it)
   useEffect(()=>{
     let cancelled = false;
     (async ()=>{
       setLoadingSlots(true);
       try {
-        const sport = booking.booking_kind === 'turf' ? booking.sport : booking.booking_kind === 'badminton' ? 'Badminton' : 'Cricket Net Practice';
-        const slots = await API.get('getSlots', { date: form.booking_date, sport });
+        const slots = await API.get('getSlots', { date: form.booking_date, sport: form.sport_id });
         if (cancelled) return;
         const list = (slots || []).slice();
-        if (form.booking_date === booking.booking_date) {
+        if (form.booking_date === booking.booking_date && !sportChanged) {
           const hasCurrent = list.some(s => s.slot_id === booking.slot_id);
           if (!hasCurrent) {
             // The booking's slot_time may span multiple hours (e.g. "14:00-17:00").
@@ -642,8 +633,7 @@ function EditBookingModal({ booking, onClose, onSave }){
               slot_date: booking.booking_date,
               slot_time: fmt(startMin) + '-' + fmt(endMin),
               resource:  booking.resource,
-              price:     unitPrice,
-              max_duration: 3,
+              max_duration: maxHours,
               _current:  true
             });
           }
@@ -656,19 +646,7 @@ function EditBookingModal({ booking, onClose, onSave }){
       }
     })();
     return ()=>{ cancelled = true; };
-  }, [form.booking_date]);
-
-  const selectedSlot = availSlots.find(s => s.slot_id === form.slot_id);
-  // In edit mode, the admin can attempt up to 3 hrs — backend validates that the
-  // booking's own slots count as "free to itself" + checks neighbours for conflicts.
-  const maxDur = 3;
-
-  // Auto-update amount when duration changes (admin can override after)
-  useEffect(()=>{
-    if (form.duration_hrs && unitPrice) {
-      setForm(f => ({ ...f, amount: unitPrice * f.duration_hrs }));
-    }
-  }, [form.duration_hrs]);
+  }, [form.booking_date, form.sport_id]);
 
   async function submit(){
     setErr(null);
@@ -678,8 +656,9 @@ function EditBookingModal({ booking, onClose, onSave }){
       await API.post('updateBooking', {
         id: booking.booking_id,
         slot_id: form.slot_id,
+        sport_id: sportChanged ? form.sport_id : undefined,
         duration_hrs: parseInt(form.duration_hrs, 10) || 1,
-        amount: parseInt(form.amount, 10) || 0,
+        amount: String(form.amount).trim() === '' ? undefined : parseInt(form.amount, 10) || 0,
         notes: form.notes,
         members_count: parseInt(form.members_count, 10) || 1
       });
@@ -707,7 +686,12 @@ function EditBookingModal({ booking, onClose, onSave }){
 
         <div style={{ background:'#f9fafb', padding:12, borderRadius:8, marginBottom:16, fontSize:13 }}>
           <div style={{ color:'#6b7280', fontSize:11, textTransform:'uppercase', letterSpacing:'.06em', fontWeight:700, marginBottom:4 }}>Current</div>
-          <div><strong>{booking.sport}</strong> · {formatDateShort(booking.booking_date)} · {booking.slot_time} · ₹{booking.amount}</div>
+          <div><strong>{current.icon} {current.name}</strong> · {formatDateShort(booking.booking_date)} · {booking.slot_time} · {rupees(booking.amount)}</div>
+        </div>
+
+        <div style={{ marginBottom:14 }}>
+          <label style={lblStyle}>Sport {sportChanged && <span style={{ textTransform:'none', color:'#f59e0b', fontWeight:700, letterSpacing:0 }}>· changing from {current.name}</span>}</label>
+          <SportPicker sports={sportOptions} value={form.sport_id} onChange={id=>setForm(f => ({ ...f, sport_id:id, slot_id:'' }))}/>
         </div>
 
         <div style={{ marginBottom:14 }}>
@@ -733,6 +717,7 @@ function EditBookingModal({ booking, onClose, onSave }){
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap:6, maxHeight:240, overflowY:'auto', padding:6, background:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb' }}>
               {availSlots.map(s => {
                 const active = form.slot_id === s.slot_id;
+                const { left, total } = slotLeft(s);
                 return (
                   <button key={s.slot_id} type="button"
                     onClick={()=>setForm({...form, slot_id:s.slot_id, slot_time:s.slot_time})}
@@ -745,8 +730,7 @@ function EditBookingModal({ booking, onClose, onSave }){
                     }}>
                     <div style={{ fontFamily:'monospace' }}>{s.slot_time}</div>
                     {s._current && <div style={{ fontSize:9, opacity:.8 }}>current</div>}
-                    {s.nets_available !== undefined && !s._current && <div style={{ fontSize:9, opacity:.7 }}>{s.nets_available}/3 free</div>}
-                    {s.courts_available !== undefined && !s._current && <div style={{ fontSize:9, opacity:.7 }}>{s.courts_available}/{s.total_courts||2} free</div>}
+                    {total > 1 && !s._current && <div style={{ fontSize:9, opacity:.7 }}>{left} left</div>}
                     {s.max_duration > 1 && !s._current && (
                       <div style={{ fontSize:9, opacity:.7 }}>up to {s.max_duration}h</div>
                     )}
@@ -755,14 +739,17 @@ function EditBookingModal({ booking, onClose, onSave }){
               })}
             </div>
           )}
+          {!sport.unknown && !sport.active && !sportChanged && (
+            <div style={{ fontSize:11, color:'#92400e', marginTop:6 }}>{sport.name} is turned off, so other times can't be listed. You can still change duration or switch sport.</div>
+          )}
         </div>
 
         {/* Duration picker — extend / shrink the booking */}
         {form.slot_id && (
           <div style={{ marginBottom:16 }}>
             <label style={lblStyle}>Duration <span style={{ color:'#6b7280', fontWeight:600, textTransform:'none', letterSpacing:0 }}>· extend or shrink the booking</span></label>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
-              {[1,2,3].map(h => {
+            <div style={{ display:'grid', gridTemplateColumns:`repeat(${Math.min(maxHours, 6)},1fr)`, gap:8 }}>
+              {Array.from({ length: maxHours }, (_, i) => i + 1).map(h => {
                 const active = parseInt(form.duration_hrs,10) === h;
                 return (
                   <button key={h} type="button" onClick={()=>setForm({...form, duration_hrs:h})}
@@ -773,8 +760,7 @@ function EditBookingModal({ booking, onClose, onSave }){
                       border: '1.5px solid ' + (active ? '#f59e0b' : '#e5e7eb'),
                       fontSize:13, fontWeight:700, cursor:'pointer'
                     }}>
-                    <div>{h} hr{h>1?'s':''}</div>
-                    <div style={{ fontSize:11, fontWeight:600, opacity:.85, marginTop:2 }}>₹{(unitPrice * h).toLocaleString('en-IN')}</div>
+                    {h} hr{h>1?'s':''}
                   </button>
                 );
               })}
@@ -783,11 +769,12 @@ function EditBookingModal({ booking, onClose, onSave }){
           </div>
         )}
 
-        <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+        <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:6 }}>
           <div>
             <label style={lblStyle}>Amount (₹)</label>
             <input type="number" value={form.amount}
               onChange={e=>setForm({...form, amount:e.target.value})}
+              placeholder={`Auto · now ${rupees(booking.amount)}`}
               style={inputStyle}/>
           </div>
           <div>
@@ -796,6 +783,9 @@ function EditBookingModal({ booking, onClose, onSave }){
               onChange={e=>setForm({...form, members_count:e.target.value})}
               min={1} style={inputStyle}/>
           </div>
+        </div>
+        <div style={{ fontSize:11, color:'#6b7280', marginBottom:14 }}>
+          Leave Amount blank: the server keeps the hourly rate × new hours{sportChanged ? `, using ${sport.name}'s price` : ''}.
         </div>
 
         <div style={{ marginBottom:16 }}>
@@ -980,6 +970,7 @@ function PassModal({ onClose, onCreate, editing }){
 // LEAD MODAL
 // ──────────────────────────────────────────────────────────
 function LeadModal({ onClose, onSave, editing }){
+  const cfg = useConfig();
   const [form, setForm] = useState(editing ? {
     name: editing.name, phone: editing.phone, email: editing.email || '',
     sport: editing.sport || '', interest: editing.interest || '',
@@ -1028,11 +1019,7 @@ function LeadModal({ onClose, onSave, editing }){
           <div><label style={lblStyle}>Sport Interest</label>
             <select value={form.sport} onChange={e=>setForm({...form, sport:e.target.value})} style={inputStyle}>
               <option value="">--</option>
-              <option>Cricket</option>
-              <option>Football</option>
-              <option>Volleyball</option>
-              <option>Cricket Net Practice</option>
-              <option>Badminton</option>
+              {cfg.sports.filter(s => !s.archived || s.sport_id === form.sport).map(s => <option key={s.sport_id} value={s.sport_id}>{s.icon} {s.name}</option>)}
             </select>
           </div>
           <div><label style={lblStyle}>Interest Type</label>
@@ -1123,7 +1110,10 @@ function formatDateFull(iso){
 }
 
 function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit, onCancel }){
+  const cfg = useConfig();
   if (!booking) return null;
+  const sp = cfg.sport(booking.sport);
+  const sc = sp.color;
 
   const customerBookings = (allBookings || [])
     .filter(b => b.phone === booking.phone && b.booking_id !== booking.booking_id)
@@ -1139,7 +1129,7 @@ function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit
   const phoneDigits = String(booking.phone || '').replace(/\D/g,'').slice(-10);
   const waMessage = encodeURIComponent(
     `Hi ${booking.customer_name}, this is Hit N Run Arena.\n\n` +
-    `Your booking for ${booking.sport} on ${formatDateShort(booking.booking_date)} at ${booking.slot_time} is confirmed.\n` +
+    `Your booking for ${sp.name} on ${formatDateShort(booking.booking_date)} at ${booking.slot_time} is confirmed.\n` +
     `Booking ID: ${booking.booking_id}\n` +
     (isPaid
       ? 'Payment received, thank you!'
@@ -1147,7 +1137,6 @@ function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit
   );
   const waUrl   = phoneDigits.length === 10 ? `https://wa.me/91${phoneDigits}?text=${waMessage}` : '#';
   const telUrl  = phoneDigits.length === 10 ? `tel:+91${phoneDigits}` : '#';
-  const sc = sportColor(booking.sport);
 
   return (
     <div onClick={e=>e.target===e.currentTarget && onClose()} style={{
@@ -1172,8 +1161,8 @@ function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit
             <button onClick={onClose} title="Close" style={{ fontSize:26, color:'#94a3b8', padding:'0 4px', lineHeight:1, background:'transparent', border:'none', cursor:'pointer' }}>×</button>
           </div>
           <div style={{ display:'flex', gap:6, marginTop:12, flexWrap:'wrap' }}>
-            <StatusPill bg={sc.bg} text={sc.text} label={booking.sport}/>
-            <StatusPill bg='#f1f5f9' text='#475569' label={booking.booking_kind === 'net' ? '🥅 Net' : '🏏 Turf'}/>
+            <StatusPill bg={sc.bg} text={sc.text} label={`${sp.icon} ${sp.name}`}/>
+            {booking.resource && <StatusPill bg='#f1f5f9' text='#475569' label={cfg.resourceLabel(booking.resource)}/>}
             {isPaid
               ? <StatusPill bg='#dcfce7' text='#14532d' label='✓ Paid'/>
               : <StatusPill bg='#fef3c7' text='#92400e' label='💰 Pending'/>
@@ -1197,12 +1186,12 @@ function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit
         {/* Booking Details */}
         <DrawerSection title='Booking Details'>
           <InfoRow label='Booking ID' value={booking.booking_id} mono/>
-          <InfoRow label='Sport' value={booking.sport}/>
+          <InfoRow label='Sport' value={`${sp.icon} ${sp.name}`}/>
           <InfoRow label='Date' value={formatDateFull(booking.booking_date)}/>
           <InfoRow label='Time' value={booking.slot_time} highlight/>
           {booking.duration_hrs > 1 && <InfoRow label='Duration' value={`${booking.duration_hrs} hours`} highlight/>}
           <InfoRow label='Players' value={booking.members_count || 1}/>
-          {booking.resource && <InfoRow label='Resource' value={String(booking.resource).toUpperCase()}/>}
+          {booking.resource && <InfoRow label='Resource' value={cfg.resourceLabel(booking.resource)}/>}
         </DrawerSection>
 
         {/* Payment */}
@@ -1231,7 +1220,7 @@ function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit
                   display:'flex', justifyContent:'space-between', alignItems:'center', gap:8
                 }}>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:'#0f172a' }}>{b.sport} · {formatDateShort(b.booking_date)}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:'#0f172a' }}>{cfg.sport(b.sport).name} · {formatDateShort(b.booking_date)}</div>
                     <div style={{ fontSize:11, color:'#64748b', marginTop:2 }}>
                       {b.slot_time}{b.duration_hrs > 1 ? ` (${b.duration_hrs}h)` : ''}
                       {' · ₹'}{parseInt(b.amount||0).toLocaleString('en-IN')}
@@ -1263,6 +1252,546 @@ function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit
 }
 
 // ──────────────────────────────────────────────────────────
+// SPORTS & RESOURCES MANAGER
+// ──────────────────────────────────────────────────────────
+const ICON_SUGGESTIONS = ['🏏','⚽','🏐','🥅','🎯','🏸','🎾','🏀','🏓','🏑'];
+const ID_RE = /^[a-z0-9-]{2,30}$/;   // sport_id / resource_id rule from API_CONTRACT.md
+const isInt = v => /^-?\d+$/.test(String(v).trim());
+function slugify(s){ return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30); }
+
+function sportStatus(s){
+  if (s.archived)        return { label:'Archived',     bg:'#f3f4f6', text:'#6b7280' };
+  if (!s.active)         return { label:'Hidden',       bg:'#fee2e2', text:'#991b1b' };
+  if (!s.online_booking) return { label:'Walk-in only', bg:'#fef3c7', text:'#92400e' };
+  return                        { label:'Active',       bg:'#d1fae5', text:'#065f46' };
+}
+function impactLine(n){
+  return n ? `${n} upcoming booking${n > 1 ? 's' : ''} will still be honoured.` : 'No upcoming bookings are affected.';
+}
+
+// Mirrors the backend's sport validation table (API_CONTRACT.md → "Sport validation").
+function validateSport(f, isCreate, sports){
+  const e = {};
+  if (isCreate) {
+    if (!ID_RE.test(f.sport_id)) e.sport_id = 'Use 2–30 lowercase letters, digits or dashes.';
+    else if (sports.some(s => s.sport_id === f.sport_id)) e.sport_id = `Sport id "${f.sport_id}" already exists.`;
+  }
+  const name = f.name.trim();
+  if (name.length < 1 || name.length > 40) e.name = 'Name must be 1–40 characters.';
+  if (!isInt(f.price_per_slot) || +f.price_per_slot < 50 || +f.price_per_slot > 50000) e.price_per_slot = 'Whole rupees, 50–50000.';
+  if (!f.resource_pool.length) e.resource_pool = 'Pick at least one resource.';
+  const mc = String(f.max_concurrent).trim();
+  if (mc !== '' && (!isInt(mc) || +mc < 1 || +mc > f.resource_pool.length)) e.max_concurrent = `Blank (= all), or 1–${f.resource_pool.length || 1}.`;
+  if (!isInt(f.max_slots_per_booking) || +f.max_slots_per_booking < 1 || +f.max_slots_per_booking > 6) e.max_slots_per_booking = 'Whole hours, 1–6.';
+  if (!isInt(f.sort_order)) e.sort_order = 'Whole number.';
+  return e;
+}
+
+function Toggle({ on, onChange, disabled, label }){
+  return (
+    <button type="button" role="switch" aria-checked={on} aria-label={label} title={label} disabled={disabled}
+      onClick={()=>onChange(!on)} style={{
+        width:40, height:22, borderRadius:99, background: on ? '#10b981' : '#d1d5db', position:'relative',
+        flexShrink:0, opacity: disabled ? .5 : 1, cursor: disabled ? 'not-allowed' : 'pointer', transition:'background .15s'
+      }}>
+      <span style={{ position:'absolute', top:2, left: on ? 20 : 2, width:18, height:18, borderRadius:'50%', background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,.2)', transition:'left .15s' }}/>
+    </button>
+  );
+}
+
+function FieldErr({ msg }){ return msg ? <div style={{ fontSize:11, color:'#dc2626', marginTop:4, fontWeight:600 }}>{msg}</div> : null; }
+
+function SportDrawer({ sport, onClose, onSaved }){
+  const cfg = useConfig();
+  const isCreate = !sport;
+  const nextSort = Math.max(0, ...cfg.sports.map(s => s.sort_order || 0)) + 10;
+  const [f, setF] = useState(() => sport ? {
+    sport_id: sport.sport_id, name: sport.name || '', icon: sport.icon || '', tagline: sport.tagline || '',
+    unit_label: sport.unit_label || '', price_per_slot: String(sport.price_per_slot ?? ''),
+    resource_pool: sport.resource_pool || [], max_concurrent: sport.max_concurrent == null ? '' : String(sport.max_concurrent),
+    max_slots_per_booking: String(sport.max_slots_per_booking ?? 3), online_booking: sport.online_booking !== false,
+    sort_order: String(sport.sort_order ?? 0)
+  } : {
+    sport_id:'', name:'', icon:'', tagline:'', unit_label:'', price_per_slot:'', resource_pool:[],
+    max_concurrent:'', max_slots_per_booking:'3', online_booking:true, sort_order:String(nextSort)
+  });
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [touched, setTouched] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [serverErr, setServerErr] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [archiveText, setArchiveText] = useState(null);   // null = archive confirm closed
+
+  const errors = validateSport(f, isCreate, cfg.sports);
+  const show = k => (submitted || touched[k]) ? errors[k] : null;
+  const blur = k => () => setTouched(t => ({ ...t, [k]: true }));
+  const set = (k, v) => setF(prev => {
+    const next = { ...prev, [k]: v };
+    if (k === 'name' && isCreate && !slugTouched) next.sport_id = slugify(v);
+    return next;
+  });
+  function togglePool(id){
+    // keep the existing pool order (it is the auto-assign order); new picks go last
+    setF(prev => ({ ...prev, resource_pool: prev.resource_pool.includes(id) ? prev.resource_pool.filter(x => x !== id) : [...prev.resource_pool, id] }));
+    setTouched(t => ({ ...t, resource_pool: true }));
+  }
+
+  async function save(){
+    setSubmitted(true); setServerErr(null);
+    if (Object.keys(errors).length) return;
+    setSaving(true);
+    try {
+      const saved = await API.post(isCreate ? 'createSport' : 'updateSport', {
+        sport_id: f.sport_id.trim(), name: f.name.trim(), icon: f.icon.trim(), tagline: f.tagline.trim(),
+        unit_label: f.unit_label.trim(), price_per_slot: +f.price_per_slot, resource_pool: f.resource_pool,
+        max_concurrent: String(f.max_concurrent).trim() === '' ? null : +f.max_concurrent,
+        max_slots_per_booking: +f.max_slots_per_booking, online_booking: f.online_booking, sort_order: +f.sort_order
+      });
+      onSaved(isCreate ? `${saved.name} created. It stays hidden until you turn it on.` : `${saved.name} saved`);
+    } catch(e){ setServerErr(e.message); setSaving(false); }
+  }
+
+  async function archive(){
+    setServerErr(null); setSaving(true);
+    try {
+      const r = await API.post('archiveSport', { sport_id: sport.sport_id });
+      onSaved(`${sport.name} archived. ${impactLine(r.impact ? r.impact.count : 0)}`);
+    } catch(e){ setServerErr(e.message); setSaving(false); }
+  }
+
+  const sectionLbl = { ...lblStyle, marginTop:14 };
+  return (
+    <div onClick={e=>e.target===e.currentTarget && onClose()} style={{
+      position:'fixed', inset:0, background:'rgba(15,23,42,.55)', zIndex:150, display:'flex', justifyContent:'flex-end'
+    }}>
+      <div style={{ width:'min(480px, 100vw)', height:'100vh', background:'#fff', boxShadow:'-20px 0 60px rgba(0,0,0,.2)', overflowY:'auto', animation:'drawerSlide .25s ease-out' }}>
+        <div style={{ padding:'20px 22px 14px', borderBottom:'1px solid #e5e7eb', position:'sticky', top:0, background:'#fff', zIndex:1, display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+          <div>
+            <div style={{ fontSize:20, fontWeight:800 }}>{isCreate ? 'Add sport' : `${sport.icon || ''} ${sport.name}`}</div>
+            {!isCreate && <div style={{ fontSize:12, color:'#64748b', marginTop:3, fontFamily:'monospace' }}>{sport.sport_id}</div>}
+          </div>
+          <button onClick={onClose} style={{ fontSize:26, color:'#94a3b8', lineHeight:1 }}>×</button>
+        </div>
+
+        <div style={{ padding:'6px 22px 24px' }}>
+          <label style={sectionLbl}>Name *</label>
+          <input value={f.name} onChange={e=>set('name', e.target.value)} onBlur={blur('name')} maxLength={40} style={inputStyle} placeholder="e.g. Bowling Machine Practice"/>
+          <FieldErr msg={show('name')}/>
+
+          <label style={sectionLbl}>Sport id {isCreate ? '*' : '(read-only)'}</label>
+          <input value={f.sport_id} readOnly={!isCreate}
+            onChange={e=>{ setSlugTouched(true); set('sport_id', e.target.value.toLowerCase()); }} onBlur={blur('sport_id')}
+            style={{ ...inputStyle, fontFamily:'monospace', background: isCreate ? '#fff' : '#f3f4f6', color: isCreate ? '#111' : '#6b7280' }}/>
+          {isCreate && <div style={{ fontSize:11, color:'#6b7280', marginTop:4 }}>Suggested from the name. Permanent once created.</div>}
+          <FieldErr msg={show('sport_id')}/>
+
+          <label style={sectionLbl}>Icon</label>
+          <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+            <input value={f.icon} onChange={e=>set('icon', e.target.value)} style={{ ...inputStyle, width:64, fontSize:20, textAlign:'center', padding:'6px' }} aria-label="Icon emoji"/>
+            {ICON_SUGGESTIONS.map(ic => (
+              <button key={ic} type="button" onClick={()=>set('icon', ic)} style={{
+                fontSize:18, width:34, height:34, borderRadius:8, border:'1.5px solid ' + (f.icon===ic ? '#f59e0b' : '#e5e7eb'), background:'#fff'
+              }}>{ic}</button>
+            ))}
+          </div>
+
+          <label style={sectionLbl}>Tagline</label>
+          <input value={f.tagline} onChange={e=>set('tagline', e.target.value)} style={inputStyle} placeholder="Shown under the name on the website"/>
+
+          <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+            <div>
+              <label style={sectionLbl}>Price per hour (₹) *</label>
+              <input type="number" value={f.price_per_slot} onChange={e=>set('price_per_slot', e.target.value)} onBlur={blur('price_per_slot')} style={inputStyle}/>
+              <FieldErr msg={show('price_per_slot')}/>
+            </div>
+            <div>
+              <label style={sectionLbl}>Unit label</label>
+              <input value={f.unit_label} onChange={e=>set('unit_label', e.target.value)} style={inputStyle} placeholder="e.g. 20 overs"/>
+            </div>
+          </div>
+          {!isCreate && String(sport.price_per_slot) !== String(f.price_per_slot).trim() && !errors.price_per_slot && (
+            <div style={{ fontSize:11, color:'#92400e', marginTop:4 }}>New price applies to new bookings only.</div>
+          )}
+
+          <label style={sectionLbl}>Slot length</label>
+          <div style={{ fontSize:13, color:'#374151', padding:'9px 12px', background:'#f9fafb', borderRadius:8 }}>1 hour (fixed)</div>
+
+          <label style={sectionLbl}>Resources it can use *</label>
+          <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+            {cfg.resources.map(r => (
+              <label key={r.resource_id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, padding:'6px 8px', borderRadius:6, background: f.resource_pool.includes(r.resource_id) ? '#fff7ed' : 'transparent', cursor:'pointer' }}>
+                <input type="checkbox" checked={f.resource_pool.includes(r.resource_id)} onChange={()=>togglePool(r.resource_id)}/>
+                <span style={{ fontWeight:600 }}>{r.label}</span>
+                {!r.active && <span style={{ fontSize:10, color:'#991b1b', fontWeight:700 }}>under maintenance</span>}
+              </label>
+            ))}
+          </div>
+          <FieldErr msg={show('resource_pool')}/>
+
+          <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+            <div>
+              <label style={sectionLbl}>Max at the same time</label>
+              <input type="number" value={f.max_concurrent} onChange={e=>set('max_concurrent', e.target.value)} onBlur={blur('max_concurrent')} style={inputStyle} placeholder="All"/>
+              <div style={{ fontSize:11, color:'#6b7280', marginTop:4 }}>Blank means all {f.resource_pool.length || ''} resources.</div>
+              <FieldErr msg={show('max_concurrent')}/>
+            </div>
+            <div>
+              <label style={sectionLbl}>Max hours per booking *</label>
+              <input type="number" value={f.max_slots_per_booking} onChange={e=>set('max_slots_per_booking', e.target.value)} onBlur={blur('max_slots_per_booking')} min={1} max={6} style={inputStyle}/>
+              <FieldErr msg={show('max_slots_per_booking')}/>
+            </div>
+          </div>
+
+          <div className="form-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, alignItems:'end' }}>
+            <div>
+              <label style={sectionLbl}>Show on website</label>
+              <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, padding:'8px 0' }}>
+                <Toggle on={f.online_booking} onChange={v=>set('online_booking', v)} label="Show on website"/>
+                <span>{f.online_booking ? 'Customers can book online' : 'Walk-in only'}</span>
+              </div>
+            </div>
+            <div>
+              <label style={sectionLbl}>Sort order</label>
+              <input type="number" value={f.sort_order} onChange={e=>set('sort_order', e.target.value)} onBlur={blur('sort_order')} style={inputStyle}/>
+              <FieldErr msg={show('sort_order')}/>
+            </div>
+          </div>
+
+          {serverErr && <div style={{ background:'#fef2f2', color:'#991b1b', padding:'10px 14px', borderRadius:8, fontSize:13, marginTop:16 }}>⚠ {serverErr}</div>}
+
+          <div style={{ display:'flex', gap:8, marginTop:20, justifyContent:'flex-end' }}>
+            <button onClick={onClose} style={{ padding:'11px 18px', background:'#f3f4f6', color:'#374151', borderRadius:8, fontWeight:700, fontSize:13 }}>Cancel</button>
+            <button onClick={save} disabled={saving} style={{ padding:'11px 22px', background: saving ? '#d1d5db' : '#f59e0b', color:'#fff', borderRadius:8, fontWeight:800, fontSize:13, display:'inline-flex', alignItems:'center', gap:8 }}>
+              {saving && <Spinner small/>}{isCreate ? 'Create sport' : 'Save changes'}
+            </button>
+          </div>
+
+          {!isCreate && !sport.archived && (
+            <div style={{ marginTop:28, paddingTop:18, borderTop:'1px solid #f1f5f9' }}>
+              {archiveText === null ? (
+                <button onClick={()=>setArchiveText('')} style={{ width:'100%', padding:'11px', background:'#fef2f2', color:'#991b1b', border:'1px solid #fecaca', borderRadius:10, fontWeight:700, fontSize:13 }}>Archive sport…</button>
+              ) : (
+                <div style={{ background:'#fef2f2', border:'1px solid #fecaca', borderRadius:10, padding:14 }}>
+                  <div style={{ fontSize:13, color:'#7f1d1d', marginBottom:8, lineHeight:1.5 }}>
+                    Archiving hides <strong>{sport.name}</strong> everywhere and stops new bookings. Existing bookings are honoured. Type <strong>{sport.name}</strong> to confirm.
+                  </div>
+                  <input value={archiveText} onChange={e=>setArchiveText(e.target.value)} style={inputStyle} aria-label="Type the sport name to confirm" autoFocus/>
+                  <div style={{ display:'flex', gap:8, marginTop:10, justifyContent:'flex-end' }}>
+                    <button onClick={()=>setArchiveText(null)} style={{ padding:'9px 14px', background:'#fff', borderRadius:8, fontWeight:700, fontSize:12 }}>Cancel</button>
+                    <button onClick={archive} disabled={archiveText !== sport.name || saving} style={{ padding:'9px 14px', background: archiveText === sport.name ? '#dc2626' : '#fca5a5', color:'#fff', borderRadius:8, fontWeight:800, fontSize:12 }}>Archive</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResourceRow({ r, onToggle, onSaveConflicts, busy }){
+  const cfg = useConfig();
+  const saved = r.conflicts || [];
+  const [draft, setDraft] = useState(saved);
+  useEffect(()=>{ setDraft(saved); }, [saved.join(',')]);
+  const dirty = [...draft].sort().join() !== [...saved].sort().join();
+  const others = cfg.resources.filter(x => x.resource_id !== r.resource_id);
+  return (
+    <div style={{ border:'1px solid #e5e7eb', borderRadius:10, padding:'12px 14px', opacity: r.active ? 1 : .85, background: r.active ? '#fff' : '#fafafa' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+        <div>
+          <div style={{ fontWeight:800, fontSize:14 }}>{r.label} <span style={{ fontFamily:'monospace', fontSize:11, color:'#94a3b8', fontWeight:600 }}>{r.resource_id}</span></div>
+          <div style={{ fontSize:11, color:'#64748b', marginTop:2 }}>
+            {(r.used_by || []).length ? 'Used by ' + r.used_by.map(id => cfg.sport(id).name).join(', ') : 'Not used by any sport yet'}
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, fontWeight:700, color: r.active ? '#065f46' : '#991b1b' }}>
+          <Toggle on={r.active} disabled={busy} onChange={v=>onToggle(r, v)} label={`${r.label}: available or under maintenance`}/>
+          {r.active ? 'Available' : 'Under maintenance'}
+        </div>
+      </div>
+      <div style={{ marginTop:10 }}>
+        <div style={{ fontSize:10.5, fontWeight:800, color:'#64748b', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:6 }}>Shares space with</div>
+        <div style={{ display:'flex', gap:5, flexWrap:'wrap', alignItems:'center' }}>
+          {others.map(o => {
+            const on = draft.includes(o.resource_id);
+            return (
+              <button key={o.resource_id} type="button" aria-pressed={on}
+                onClick={()=>setDraft(d => on ? d.filter(x => x !== o.resource_id) : [...d, o.resource_id])}
+                style={{ padding:'5px 10px', borderRadius:99, fontSize:11, fontWeight:700,
+                  background: on ? '#111' : '#f3f4f6', color: on ? '#fff' : '#6b7280' }}>
+                {on ? '✓ ' : ''}{o.label}
+              </button>
+            );
+          })}
+          {dirty && (
+            <>
+              <button onClick={()=>onSaveConflicts(r, draft)} disabled={busy} style={{ padding:'5px 12px', borderRadius:7, fontSize:11, fontWeight:800, background:'#f59e0b', color:'#fff' }}>Save</button>
+              <button onClick={()=>setDraft(saved)} style={{ padding:'5px 10px', borderRadius:7, fontSize:11, fontWeight:700, color:'#6b7280' }}>Undo</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const AUDIT_FIELDS = {
+  name:'name', icon:'icon', tagline:'tagline', unit_label:'unit', price_per_slot:'price',
+  resource_pool:'resources', max_concurrent:'max at the same time', max_slots_per_booking:'max hours per booking',
+  online_booking:'show on website', sort_order:'sort order', label:'label'
+};
+function auditVal(k, v, cfg){
+  if (v == null || v === '') return k === 'max_concurrent' ? 'all' : '—';
+  if (Array.isArray(v)) return v.map(cfg.resourceLabel).join(', ') || 'none';
+  if (typeof v === 'boolean') return v ? 'on' : 'off';
+  return String(v);
+}
+function describeAudit(e, cfg){
+  const before = e.before || {}, after = e.after || {};
+  const name = e.entity === 'sport'
+    ? (after.name || before.name || cfg.sport(e.entity_id).name)
+    : (after.label || before.label || cfg.resourceLabel(e.entity_id));
+  switch (e.action) {
+    case 'createSport':      return `${name} created`;
+    case 'setSportActive':   return `${name} turned ${after.active ? 'on' : 'off'}`;
+    case 'archiveSport':     return `${name} archived`;
+    case 'restoreSport':     return `${name} restored`;
+    case 'createResource':   return `Resource ${name} added`;
+    case 'setResourceActive': return `${name} marked ${after.active ? 'available' : 'under maintenance'}`;
+    case 'setResourceConflicts':
+      return (after.conflicts || []).length
+        ? `${name} now shares space with ${auditVal('', after.conflicts, cfg)}`
+        : `${name} no longer shares space with anything`;
+    case 'generateSlotsForResource':
+      return `Slots generated for ${name}${after.added != null ? ` (${after.added} added)` : ''}`;
+    case 'updateSport':
+    case 'updateResource': {
+      const changes = Object.keys(AUDIT_FIELDS)
+        .filter(k => k in after && JSON.stringify(before[k]) !== JSON.stringify(after[k]))
+        .map(k => `${AUDIT_FIELDS[k]} ${auditVal(k, before[k], cfg)} → ${auditVal(k, after[k], cfg)}`);
+      return changes.length ? `${name} ${changes.join(', ')}` : `${name} saved (no changes)`;
+    }
+    default: return `${e.action} · ${e.entity_id}`;
+  }
+}
+function auditTime(at){
+  return new Date(at).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'numeric', minute:'2-digit', hour12:true, timeZone:'Asia/Kolkata' })
+    .replace(/\b(am|pm)\b/i, m => m.toUpperCase());
+}
+
+function SportsManager({ reloadConfig, ok, err, setConfirm }){
+  const cfg = useConfig();
+  const [drawer, setDrawer] = useState(null);        // { sport } — sport null = create
+  const [busy, setBusy] = useState(null);            // id of the sport/resource being written
+  const [audit, setAudit] = useState(null);
+  const [auditErr, setAuditErr] = useState(null);
+  const [newRes, setNewRes] = useState({ resource_id:'', label:'' });
+  const [newResErr, setNewResErr] = useState(null);
+  const [justAdded, setJustAdded] = useState(null);  // resource_id awaiting "Generate slots now"
+
+  const loadAudit = useCallback(async () => {
+    try { setAudit(await API.get('listAudit') || []); setAuditErr(null); }
+    catch(e){ setAuditErr(e.message); }
+  }, []);
+  useEffect(()=>{ loadAudit(); }, []);
+
+  async function afterWrite(msg){ if (msg) ok(msg); await reloadConfig(); loadAudit(); }
+  async function run(id, fn){
+    setBusy(id);
+    try { await fn(); } catch(e){ err(e.message); } finally { setBusy(null); }
+  }
+
+  function toggleSport(s, on){
+    if (on) return run(s.sport_id, async () => {
+      await API.post('setSportActive', { sport_id: s.sport_id, active: true });
+      await afterWrite(`${s.name} is on`);
+    });
+    return run(s.sport_id, async () => {
+      const impact = await API.get('getSportImpact', { sport_id: s.sport_id });
+      setConfirm({ show:true, title:`Turn off ${s.name}?`, danger:true, confirmLabel:'Turn off',
+        message: `${impactLine(impact.count)} New online bookings will stop.`,
+        onConfirm: () => run(s.sport_id, async () => {
+          await API.post('setSportActive', { sport_id: s.sport_id, active: false });
+          await afterWrite(`${s.name} turned off`);
+        })
+      });
+    });
+  }
+
+  function restoreSport(s){
+    return run(s.sport_id, async () => {
+      await API.post('restoreSport', { sport_id: s.sport_id });
+      await afterWrite(`${s.name} restored. It stays hidden until you turn it on.`);
+    });
+  }
+
+  function toggleResource(r, on){
+    if (on) return run(r.resource_id, async () => {
+      await API.post('setResourceActive', { resource_id: r.resource_id, active: true });
+      await afterWrite(`${r.label} is available`);
+    });
+    return run(r.resource_id, async () => {
+      const impact = await API.get('getResourceImpact', { resource_id: r.resource_id });
+      setConfirm({ show:true, title:`Put ${r.label} under maintenance?`, danger:true, confirmLabel:'Under maintenance',
+        message: `${impactLine(impact.count)} ${r.label} won't be given to new bookings.`,
+        onConfirm: () => run(r.resource_id, async () => {
+          await API.post('setResourceActive', { resource_id: r.resource_id, active: false });
+          await afterWrite(`${r.label} is under maintenance`);
+        })
+      });
+    });
+  }
+
+  function saveConflicts(r, conflicts){
+    return run(r.resource_id, async () => {
+      await API.post('setResourceConflicts', { resource_id: r.resource_id, conflicts });
+      await afterWrite(`${r.label} conflicts saved`);
+    });
+  }
+
+  async function addResource(){
+    setNewResErr(null);
+    const id = newRes.resource_id.trim(), label = newRes.label.trim();
+    if (!ID_RE.test(id)) return setNewResErr('Id: 2–30 lowercase letters, digits or dashes (e.g. net4).');
+    if (cfg.resources.some(r => r.resource_id === id)) return setNewResErr(`Resource "${id}" already exists.`);
+    if (label.length < 1 || label.length > 40) return setNewResErr('Label must be 1–40 characters.');
+    setBusy('new-resource');
+    try {
+      await API.post('createResource', { resource_id: id, label });
+      setNewRes({ resource_id:'', label:'' });
+      setJustAdded(id);
+      await afterWrite(`${label} added`);
+    } catch(e){ setNewResErr(e.message); }
+    finally { setBusy(null); }
+  }
+
+  function generateSlots(id){
+    return run(id, async () => {
+      const r = await API.post('generateSlotsForResource', { resource_id: id });
+      setJustAdded(null);
+      await afterWrite(r.message || `Slots generated for ${cfg.resourceLabel(id)}`);
+    });
+  }
+
+  const live = cfg.sports.filter(s => !s.archived);
+  const archived = cfg.sports.filter(s => s.archived);
+  const h2 = { fontSize:16, fontWeight:800, color:'#0f172a' };
+  const sub = { fontSize:12, color:'#64748b', marginTop:2 };
+
+  return (
+    <div className="anim-up">
+      {/* ── Section 1: Sports ── */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, flexWrap:'wrap', gap:10 }}>
+        <div>
+          <div style={h2}>Sports</div>
+          <div style={sub}>What customers can book, at what price, on which resources</div>
+        </div>
+        <button onClick={()=>setDrawer({ sport:null })} style={{ padding:'10px 16px', background:'#f59e0b', color:'#fff', borderRadius:10, fontSize:13, fontWeight:700 }}>+ Add sport</button>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:12 }}>
+        {live.map(s => {
+          const st = sportStatus(s);
+          return (
+            <div key={s.sport_id} style={{ border:'1px solid #e5e7eb', borderRadius:12, padding:14, display:'flex', flexDirection:'column', gap:8 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
+                <div style={{ display:'flex', gap:10, alignItems:'center', minWidth:0 }}>
+                  <div style={{ fontSize:28, lineHeight:1 }}>{s.icon || '🏷️'}</div>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontWeight:800, fontSize:14 }}>{s.name}</div>
+                    <div style={{ fontSize:12, color:'#0f172a', fontWeight:700 }}>{rupees(s.price_per_slot)} / hr{s.unit_label ? ` · ${s.unit_label}` : ''}</div>
+                  </div>
+                </div>
+                <Toggle on={s.active} disabled={busy === s.sport_id} onChange={v=>toggleSport(s, v)} label={`${s.name} on or off`}/>
+              </div>
+              <div style={{ fontSize:11, color:'#64748b' }}>
+                {(s.resource_pool || []).map(cfg.resourceLabel).join(', ')}
+                {' · '}{s.max_concurrent == null ? 'all at once' : `max ${s.max_concurrent} at once`}
+                {' · '}up to {s.max_slots_per_booking}h
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <StatusPill bg={st.bg} text={st.text} label={st.label}/>
+                <button onClick={()=>setDrawer({ sport:s })} style={{ fontSize:12, padding:'6px 12px', background:'#f3f4f6', borderRadius:7, fontWeight:700 }}>Edit</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {archived.length > 0 && (
+        <details style={{ marginTop:14, border:'1px dashed #e5e7eb', borderRadius:10, padding:'10px 14px' }}>
+          <summary style={{ cursor:'pointer', fontSize:13, fontWeight:700, color:'#6b7280' }}>Archived ({archived.length})</summary>
+          <div style={{ display:'flex', flexDirection:'column', gap:6, marginTop:10 }}>
+            {archived.map(s => (
+              <div key={s.sport_id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:13, padding:'6px 0' }}>
+                <span>{s.icon} <strong>{s.name}</strong> <span style={{ color:'#94a3b8', fontFamily:'monospace', fontSize:11 }}>{s.sport_id}</span></span>
+                <button onClick={()=>restoreSport(s)} disabled={busy === s.sport_id} style={{ fontSize:11, padding:'5px 11px', background:'#dcfce7', color:'#14532d', borderRadius:6, fontWeight:700 }}>Restore</button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
+      {/* ── Section 2: Resources ── */}
+      <div style={{ marginTop:32, marginBottom:14 }}>
+        <div style={h2}>Resources</div>
+        <div style={sub}>Physical spaces. Resources that share space can't be booked at the same hour.</div>
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {cfg.resources.map(r => (
+          <ResourceRow key={r.resource_id} r={r} busy={busy === r.resource_id} onToggle={toggleResource} onSaveConflicts={saveConflicts}/>
+        ))}
+      </div>
+      <div style={{ marginTop:12, padding:14, background:'#f9fafb', borderRadius:10 }}>
+        <div style={{ fontSize:12, fontWeight:800, marginBottom:8 }}>Add resource</div>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          <input value={newRes.resource_id} onChange={e=>setNewRes({ ...newRes, resource_id:e.target.value.toLowerCase() })} placeholder="id, e.g. net4" aria-label="Resource id" style={{ ...inputStyle, width:160, fontFamily:'monospace' }}/>
+          <input value={newRes.label} onChange={e=>setNewRes({ ...newRes, label:e.target.value })} placeholder="Label, e.g. Net 4" aria-label="Resource label" maxLength={40} style={{ ...inputStyle, flex:1, minWidth:160 }}/>
+          <button onClick={addResource} disabled={busy === 'new-resource'} style={{ padding:'10px 16px', background:'#111', color:'#fff', borderRadius:8, fontSize:13, fontWeight:700 }}>Add</button>
+        </div>
+        <div style={{ fontSize:11, color:'#6b7280', marginTop:6 }}>The id is permanent. Trailing digits set its kind (net4 → net). Set "Shares space with" after adding.</div>
+        {newResErr && <div style={{ background:'#fef2f2', color:'#991b1b', padding:'8px 12px', borderRadius:8, fontSize:12, marginTop:8 }}>⚠ {newResErr}</div>}
+        {justAdded && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:10, padding:'10px 12px', background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:8, fontSize:12, flexWrap:'wrap' }}>
+            <span><strong>{cfg.resourceLabel(justAdded)}</strong> has no slots until tonight's run.</span>
+            <button onClick={()=>generateSlots(justAdded)} disabled={busy === justAdded} style={{ padding:'6px 12px', background:'#f59e0b', color:'#fff', borderRadius:7, fontWeight:800 }}>
+              {busy === justAdded ? 'Generating…' : 'Generate slots now'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── Section 3: Change log ── */}
+      <div style={{ marginTop:32, marginBottom:10, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <div>
+          <div style={h2}>Change log</div>
+          <div style={sub}>Last 100 changes to sports and resources</div>
+        </div>
+        <button onClick={loadAudit} style={{ fontSize:12, padding:'6px 12px', background:'#f3f4f6', borderRadius:7, fontWeight:700 }}>↻</button>
+      </div>
+      {auditErr && <div style={{ background:'#fef2f2', color:'#991b1b', padding:'10px 14px', borderRadius:8, fontSize:13 }}>⚠ {auditErr}</div>}
+      {!audit && !auditErr && <LoadingBlock message="Loading change log…"/>}
+      {audit && audit.length === 0 && <div style={{ fontSize:13, color:'#9ca3af', padding:'12px 0' }}>No changes yet.</div>}
+      {audit && audit.length > 0 && (
+        <div style={{ border:'1px solid #f1f5f9', borderRadius:10 }}>
+          {audit.map(e => (
+            <div key={e.id} style={{ display:'flex', justifyContent:'space-between', gap:12, padding:'9px 12px', borderBottom:'1px solid #f1f5f9', fontSize:13 }}>
+              <span>{describeAudit(e, cfg)}</span>
+              <span style={{ color:'#94a3b8', fontSize:12, whiteSpace:'nowrap' }}>{auditTime(e.at)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {drawer && <SportDrawer sport={drawer.sport} onClose={()=>setDrawer(null)}
+        onSaved={msg => { setDrawer(null); afterWrite(msg); }}/>}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
 // MAIN APP
 // ──────────────────────────────────────────────────────────
 function App(){
@@ -1278,6 +1807,8 @@ function App(){
   const [members, setMembers] = useState([]);
   const [stats, setStats] = useState({ todays_bookings:0, pending_payment:0, todays_revenue:0, new_leads:0, active_members:0 });
   const [revenue, setRevenue] = useState(null);
+  const [cfgData, setCfgData] = useState({ sports: [], resources: [], loaded: false, error: null });
+  const cfg = useMemo(() => makeConfig(cfgData.sports, cfgData.resources), [cfgData]);
 
   // UI state
   const [slotDate, setSlotDate] = useState(formatDateISO(new Date()));
@@ -1305,7 +1836,7 @@ function App(){
   // ── NEW UI STATE: drawer + filter chips ──
   const [selectedBookingId, setSelectedBookingId] = useState(null);
   const [dateFilter, setDateFilter] = useState('all');     // 'today' | 'tomorrow' | 'week' | 'all'
-  const [sportFilter, setSportFilter] = useState('all');   // 'all' | 'cricket' | 'football' | 'volleyball' | 'net' | 'badminton'
+  const [sportFilter, setSportFilter] = useState('all');   // 'all' | sport_id
   const [paymentFilter, setPaymentFilter] = useState('all'); // 'all' | 'pending' | 'paid'
 
   // ── NOTIFICATIONS: sound + browser notification when new bookings arrive ──
@@ -1435,9 +1966,9 @@ function App(){
     if (!('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
     try {
-      const kindEmoji = b.booking_kind === 'net' ? '🥅' : '🏏';
-      const n = new Notification(`${kindEmoji} New Booking - ${b.customer_name}`, {
-        body: `${b.sport} · ${b.slot_time} · ${formatDateShort(b.booking_date)}\nRs ${b.amount} · ${b.members_count} player${b.members_count>1?'s':''}`,
+      const sp = cfg.sport(b.sport);
+      const n = new Notification(`${sp.icon} New Booking - ${b.customer_name}`, {
+        body: `${sp.name} · ${b.slot_time} · ${formatDateShort(b.booking_date)}\nRs ${b.amount} · ${b.members_count} player${b.members_count>1?'s':''}`,
         tag: b.booking_id,
         requireInteraction: false,
         silent: true  // we play our own sound
@@ -1531,9 +2062,21 @@ function App(){
     }
   }, [slotDate]);
 
+  // Sports + resources config — drives every sport list, icon, price and resource label
+  const loadConfig = useCallback(async () => {
+    try {
+      const [sports, resources] = await Promise.all([API.get('listSportsAdmin'), API.get('listResourcesAdmin')]);
+      setCfgData({ sports: sports || [], resources: resources || [], loaded: true, error: null });
+    } catch(e){
+      setCfgData(c => ({ ...c, error: e.message }));
+      err('Failed to load sports config: ' + e.message);
+    }
+  }, []);
+
   // Initial load — fetch everything at once
   useEffect(()=>{
     if(!loggedIn) return;
+    loadConfig();
     setLoading(true);
     loadSnapshot({ includeLeads: true, includeMembers: true }).finally(()=>setLoading(false));
   }, [loggedIn]);
@@ -1623,11 +2166,7 @@ function App(){
     else if (dateFilter === 'week')     list = list.filter(b => b.booking_date >= today && b.booking_date <= weekEnd);
 
     // Sport filter
-    if (sportFilter === 'cricket')  list = list.filter(b => String(b.sport||'').toLowerCase() === 'cricket');
-    else if (sportFilter === 'football') list = list.filter(b => String(b.sport||'').toLowerCase() === 'football');
-    else if (sportFilter === 'volleyball') list = list.filter(b => String(b.sport||'').toLowerCase() === 'volleyball');
-    else if (sportFilter === 'net')      list = list.filter(b => String(b.sport||'').toLowerCase().includes('net'));
-    else if (sportFilter === 'badminton') list = list.filter(b => String(b.sport||'').toLowerCase() === 'badminton');
+    if (sportFilter !== 'all') list = list.filter(b => b.sport === sportFilter);
 
     // Payment filter (skip cancelled bookings here so admin can find "still owed money")
     if (paymentFilter === 'pending') list = list.filter(b => b.payment_status === 'pending' && b.status !== 'cancelled');
@@ -1652,34 +2191,46 @@ function App(){
     [bookings, selectedBookingId]
   );
 
-  // Group slots by time window — each window has 4 resources
+  // Resources shown on the Availability tab: every active one, plus any under
+  // maintenance that still holds a booking/block on this date.
+  const availResources = useMemo(()=>{
+    const held = new Set(slots.filter(s => s.status !== 'available').map(s => s.resource));
+    const list = cfg.resources.filter(r => r.active || held.has(r.resource_id));
+    new Set(slots.map(s => s.resource)).forEach(id => {
+      if (!cfg.resources.some(r => r.resource_id === id)) list.push({ resource_id: id, label: cfg.resourceLabel(id), active: true });
+    });
+    return list;
+  }, [slots, cfg]);
+
+  // Group slots by time window → { resource_id: slot }
   const groupedSlots = useMemo(()=>{
     const map = {};
-    slots.forEach(s => {
-      if(!map[s.slot_time]) map[s.slot_time] = {};
-      map[s.slot_time][s.resource] = s;
-    });
-    return Object.keys(map).sort().map(time => ({
-      slot_time: time,
-      turf: map[time].turf,
-      net1: map[time].net1,
-      net2: map[time].net2,
-      net3: map[time].net3
-    }));
+    slots.forEach(s => { (map[s.slot_time] = map[s.slot_time] || {})[s.resource] = s; });
+    return Object.keys(map).sort().map(time => ({ slot_time: time, byRes: map[time] }));
   }, [slots]);
 
   // Slot filter
   const filteredGrouped = useMemo(()=>{
     if(slotFilter === 'all') return groupedSlots;
-    return groupedSlots.filter(g => {
-      const all = [g.turf, g.net1, g.net2, g.net3].filter(Boolean);
-      if(slotFilter === 'available') return all.some(r => r.status === 'available');
-      if(slotFilter === 'booked')    return all.some(r => r.status === 'booked');
-      if(slotFilter === 'advance')   return all.some(r => r.status === 'advance');
-      if(slotFilter === 'blocked')   return all.some(r => r.status === 'blocked');
-      return true;
-    });
-  }, [groupedSlots, slotFilter]);
+    const shown = new Set(availResources.map(r => r.resource_id));
+    return groupedSlots.filter(g => Object.values(g.byRes).some(r => shown.has(r.resource) && r.status === slotFilter));
+  }, [groupedSlots, slotFilter, availResources]);
+
+  // Sport filter chips: live sports, plus archived ones that still have bookings
+  const filterSports = useMemo(()=>{
+    const booked = new Set(bookings.map(b => b.sport));
+    return cfg.sports.filter(s => !s.archived || booked.has(s.sport_id));
+  }, [cfg, bookings]);
+
+  function printBookings(){
+    const d = new Date();
+    if (dateFilter === 'tomorrow') d.setDate(d.getDate() + 1);
+    const when = (dateFilter === 'today' || dateFilter === 'tomorrow') ? formatDateFull(formatDateISO(d))
+               : dateFilter === 'week' ? 'Next 7 days' : 'All dates';
+    const sportPart = sportFilter === 'all' ? '' : ` · ${cfg.sport(sportFilter).name}`;
+    document.body.setAttribute('data-print-date', `${when}${sportPart} · printed ${new Date().toLocaleString('en-IN', { day:'numeric', month:'short', hour:'numeric', minute:'2-digit' })}`);
+    window.print();
+  }
 
   // ── Actions ──
   async function markPaid(id){
@@ -1801,10 +2352,12 @@ function App(){
     { key:'availability', label:'Availability', icon:'⏱️' },
     { key:'leads',        label:'Leads',        icon:'👤', badge: newLeadCount },
     { key:'passes',       label:'Passes',       icon:'🎟️' },
-    { key:'revenue',      label:'Revenue',      icon:'💰' }
+    { key:'revenue',      label:'Revenue',      icon:'💰' },
+    { key:'sports',       label:'Sports',       icon:'⚙️' }
   ];
 
   return (
+    <ConfigCtx.Provider value={cfg}>
     <div style={{ minHeight:'100vh', background:'#f9fafb' }}>
       {/* ── Top Bar ── */}
       <div className="top-bar" style={{
@@ -1895,6 +2448,21 @@ function App(){
         ))}
       </div>
 
+      {/* ── Today by sport (stats.sports_today) ── */}
+      {Object.keys(stats.sports_today || {}).length > 0 && (
+        <div className="sports-today" style={{ padding:'10px 24px 0', display:'flex', gap:6, flexWrap:'wrap' }}>
+          {Object.entries(stats.sports_today).map(([id, n]) => {
+            const sp = cfg.sport(id);
+            return (
+              <button key={id} onClick={()=>{ setTab('bookings'); setDateFilter('today'); setSportFilter(id); setPaymentFilter('all'); }}
+                style={{ fontSize:12, fontWeight:700, padding:'5px 11px', borderRadius:99, background:sp.color.bg, color:sp.color.text }}>
+                {sp.icon} {sp.name} · {n}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* ── Tab Bar ── */}
       <div className="tab-bar" style={{ display:'flex', gap:2, padding:'16px 24px 0', flexWrap:'wrap' }}>
         {navItems.map(n => (
@@ -1934,7 +2502,7 @@ function App(){
                 <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="🔍 Search name, phone, ID…" style={{
                   padding:'10px 14px', border:'1.5px solid #e5e7eb', borderRadius:10, fontSize:13, minWidth:220, outline:'none'
                 }}/>
-                <button onClick={()=>window.print()} title="Print today's bookings" style={{
+                <button onClick={printBookings} title="Print the bookings shown" style={{
                   padding:'10px 14px', background:'#fff', color:'#475569', border:'1.5px solid #e5e7eb',
                   borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer'
                 }}>🖨 Print</button>
@@ -1967,14 +2535,7 @@ function App(){
 
               {/* Sport filter */}
               <div style={{ display:'flex', gap:4, padding:3, background:'#f1f5f9', borderRadius:10 }}>
-                {[
-                  { k:'all', label:'All Sports' },
-                  { k:'cricket', label:'🏏 Cricket' },
-                  { k:'football', label:'⚽ Football' },
-                  { k:'volleyball', label:'🏐 Volleyball' },
-                  { k:'net', label:'🥅 Net' },
-                  { k:'badminton', label:'🏸 Badminton' }
-                ].map(o => (
+                {[{ k:'all', label:'All Sports' }, ...filterSports.map(sp => ({ k: sp.sport_id, label: `${sp.icon} ${sp.name}` }))].map(o => (
                   <button key={o.k} onClick={()=>setSportFilter(o.k)} style={{
                     padding:'7px 14px', borderRadius:7,
                     background: sportFilter===o.k ? '#fff' : 'transparent',
@@ -2022,10 +2583,11 @@ function App(){
                 </thead>
                 <tbody>
                   {filteredBookings.map(b => {
-                    const sc = sportColor(b.sport);
+                    const sp = cfg.sport(b.sport);
+                    const sc = sp.color;
                     const pc = paymentBadge(b);
                     const cancelled = b.status === 'cancelled';
-                    const kindLabel = b.booking_kind==='net' ? `Net Practice` : b.booking_kind==='badminton' ? 'Badminton Court' : 'Turf';
+                    const kindLabel = b.resource ? cfg.resourceLabel(b.resource) : (b.booking_kind || '');
                     return (
                       <tr key={b.booking_id} onClick={()=>setSelectedBookingId(b.booking_id)} className="booking-row" style={{
                         borderBottom:'1px solid #f1f5f9',
@@ -2041,7 +2603,7 @@ function App(){
                           </div>
                         </td>
                         <td style={{ padding:'12px' }}>
-                          <Badge bg={sc.bg} text={sc.text}>{b.sport}</Badge>
+                          <Badge bg={sc.bg} text={sc.text}>{sp.icon} {sp.name}</Badge>
                           <div style={{ fontSize:10, color:'#94a3b8', marginTop:3 }}>{kindLabel}</div>
                         </td>
                         <td style={{ padding:'12px', whiteSpace:'nowrap' }}>
@@ -2081,7 +2643,8 @@ function App(){
                 </div>
               )}
               {filteredBookings.map(b => {
-                const sc = sportColor(b.sport);
+                const sp = cfg.sport(b.sport);
+                const sc = sp.color;
                 const pc = paymentBadge(b);
                 const cancelled = b.status === 'cancelled';
                 return (
@@ -2101,7 +2664,7 @@ function App(){
                         : <Badge bg={pc.bg} text={pc.text}>{pc.label}</Badge>}
                     </div>
                     <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
-                      <Badge bg={sc.bg} text={sc.text}>{b.sport}</Badge>
+                      <Badge bg={sc.bg} text={sc.text}>{sp.icon} {sp.name}</Badge>
                       <span style={{ fontSize:11, color:'#475569', padding:'3px 9px', background:'#f1f5f9', borderRadius:999, fontWeight:600 }}>📅 {formatDateShort(b.booking_date)}</span>
                       <span style={{ fontSize:11, color:'#475569', padding:'3px 9px', background:'#f1f5f9', borderRadius:999, fontWeight:600 }}>⏰ {b.slot_time}</span>
                       {b.duration_hrs > 1 && (
@@ -2126,7 +2689,7 @@ function App(){
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:10 }}>
               <div>
                 <div style={{ fontSize:16, fontWeight:800 }}>Slot Availability</div>
-                <div style={{ fontSize:12, color:'#9ca3af' }}>Each slot has 1 turf + 3 nets</div>
+                <div style={{ fontSize:12, color:'#9ca3af' }}>{availResources.length} resources · {availResources.map(r => r.label).join(', ')}</div>
               </div>
             </div>
 
@@ -2163,7 +2726,7 @@ function App(){
 
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:12 }}>
               {filteredGrouped.map(g => (
-                <SlotCard key={g.slot_time} group={g} onBlock={blockSlot} onUnblock={unblockSlot} onCancel={cancelBooking}/>
+                <SlotCard key={g.slot_time} group={g} resources={availResources} onBlock={blockSlot} onUnblock={unblockSlot} onCancel={cancelBooking}/>
               ))}
             </div>
           </div>
@@ -2193,7 +2756,7 @@ function App(){
                       <div key={l.lead_id} style={{ background:'#fff', borderRadius:8, padding:'10px 12px', marginBottom:8, border:'1px solid #e5e7eb', fontSize:12 }}>
                         <div style={{ fontWeight:700 }}>{l.name}</div>
                         <div style={{ color:'#9ca3af', fontSize:11 }}>{formatPhone(l.phone)}</div>
-                        {l.sport && <Badge bg="#dbeafe" text="#1e40af">{l.sport}</Badge>}
+                        {l.sport && <Badge bg="#dbeafe" text="#1e40af">{cfg.sport(l.sport).icon} {cfg.sport(l.sport).name}</Badge>}
                         <div style={{ display:'flex', gap:4, marginTop:8, flexWrap:'wrap' }}>
                           <button onClick={()=>{ setEditingLead(l); setShowLead(true); }} style={{ fontSize:10, padding:'4px 8px', background:'#f3f4f6', borderRadius:5, fontWeight:600 }}>Edit</button>
                           {status !== 'converted' && <button onClick={()=>moveLeadStatus(l.lead_id, nextStatus(status))} style={{ fontSize:10, padding:'4px 8px', background:'#dbeafe', color:'#1e40af', borderRadius:5, fontWeight:700 }}>→ {nextStatus(status)}</button>}
@@ -2340,7 +2903,7 @@ function App(){
                     )}
                     {Object.entries(revenue.by_sport || {}).map(([sport, val]) => (
                       <div key={sport} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid #f3f4f6' }}>
-                        <span style={{ fontSize:13 }}>{sport}</span>
+                        <span style={{ fontSize:13 }}>{cfg.sport(sport).icon} {cfg.sport(sport).name}</span>
                         <span style={{ fontWeight:700, fontSize:13 }}>₹{(parseFloat(val)||0).toLocaleString('en-IN')}</span>
                       </div>
                     ))}
@@ -2350,6 +2913,15 @@ function App(){
               );
             })()}
           </div>
+        )}
+
+        {/* ━━━━━ SPORTS TAB ━━━━━ */}
+        {!loading && tab === 'sports' && (
+          cfgData.loaded
+            ? <SportsManager reloadConfig={loadConfig} ok={ok} err={err} setConfirm={setConfirm}/>
+            : cfgData.error
+              ? <div style={{ padding:40, textAlign:'center', fontSize:13, color:'#991b1b' }}>⚠ {cfgData.error} <button onClick={loadConfig} style={{ marginLeft:8, padding:'6px 12px', background:'#f3f4f6', borderRadius:7, fontWeight:700 }}>Retry</button></div>
+              : <LoadingBlock message="Loading sports…"/>
         )}
       </div>
 
@@ -2402,6 +2974,7 @@ function App(){
         onCancel={cancelBooking}
       />}
     </div>
+    </ConfigCtx.Provider>
   );
 }
 
@@ -2413,11 +2986,11 @@ function nextStatus(s){
 }
 
 // ──────────────────────────────────────────────────────────
-// SLOT CARD — shows 1 turf + 3 nets for a time window
+// SLOT CARD — one row per resource for a time window
 // ──────────────────────────────────────────────────────────
-function SlotCard({ group, onBlock, onUnblock, onCancel }){
-  const { slot_time, turf, net1, net2, net3 } = group;
-  const nets = [net1, net2, net3].filter(Boolean);
+function SlotCard({ group, resources, onBlock, onUnblock, onCancel }){
+  const cfg = useConfig();
+  const { slot_time, byRes } = group;
 
   function statusColor(s){
     if(!s) return { bg:'#fafafa', text:'#9ca3af' };
@@ -2434,45 +3007,32 @@ function SlotCard({ group, onBlock, onUnblock, onCancel }){
         <div style={{ fontFamily:'monospace', fontSize:14, fontWeight:800 }}>{slot_time}</div>
       </div>
 
-      {/* Turf row */}
-      {turf && (
-        <div className="resource-row" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 12px', background: statusColor(turf).bg, borderRadius:8, marginBottom:6 }}>
-          <div>
-            <div style={{ fontSize:11, fontWeight:800, color: statusColor(turf).text, letterSpacing:'.04em' }}>🏏 TURF · ₹{turf.price}</div>
-            {turf.status !== 'available' && turf.booked_name && (
-              <div style={{ fontSize:11, color:'#374151', marginTop:2, fontWeight:600 }}>{turf.booked_name} · {formatPhone(turf.booked_phone)}</div>
-            )}
-            {turf.status === 'blocked' && turf.block_reason && (
-              <div style={{ fontSize:11, color:'#6b7280', marginTop:2, fontStyle:'italic' }}>{turf.block_reason}</div>
-            )}
+      {resources.filter(r => byRes[r.resource_id]).map(r => {
+        const slot = byRes[r.resource_id];
+        const c = statusColor(slot);
+        const held = slot.status === 'booked' || slot.status === 'advance';
+        const sp = held && slot.sport ? cfg.sport(slot.sport) : null;
+        return (
+          <div key={slot.slot_id} className="resource-row" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 12px', background: c.bg, borderRadius:8, marginBottom:6 }}>
+            <div>
+              <div style={{ fontSize:11, fontWeight:800, color: c.text, letterSpacing:'.04em', textTransform:'uppercase' }}>
+                {r.label}{!r.active ? ' · maintenance' : ''}{sp ? ` · ${sp.icon} ${sp.name}` : ''}
+              </div>
+              {held && slot.booked_name && (
+                <div style={{ fontSize:11, color:'#374151', marginTop:2, fontWeight:600 }}>{slot.booked_name} · {formatPhone(slot.booked_phone)}</div>
+              )}
+              {slot.status === 'blocked' && slot.block_reason && (
+                <div style={{ fontSize:11, color:'#6b7280', marginTop:2, fontStyle:'italic' }}>{slot.block_reason}</div>
+              )}
+            </div>
+            <div style={{ display:'flex', gap:4 }}>
+              {slot.status === 'available' && <button onClick={()=>onBlock(slot.slot_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', borderRadius:5, fontWeight:700 }}>Block</button>}
+              {slot.status === 'blocked'   && <button onClick={()=>onUnblock(slot.slot_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', borderRadius:5, fontWeight:700 }}>Unblock</button>}
+              {held && slot.booking_id && <button onClick={()=>onCancel(slot.booking_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', color:'#991b1b', borderRadius:5, fontWeight:700 }}>✕</button>}
+            </div>
           </div>
-          <div style={{ display:'flex', gap:4 }}>
-            {turf.status === 'available' && <button onClick={()=>onBlock(turf.slot_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', borderRadius:5, fontWeight:700 }}>Block</button>}
-            {turf.status === 'blocked'   && <button onClick={()=>onUnblock(turf.slot_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', borderRadius:5, fontWeight:700 }}>Unblock</button>}
-            {(turf.status==='booked'||turf.status==='advance') && turf.booking_id && <button onClick={()=>onCancel(turf.booking_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', color:'#991b1b', borderRadius:5, fontWeight:700 }}>✕</button>}
-          </div>
-        </div>
-      )}
-
-      {/* Nets */}
-      {nets.map((net, idx) => (
-        <div key={net.slot_id} className="resource-row" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 12px', background: statusColor(net).bg, borderRadius:8, marginBottom:6 }}>
-          <div>
-            <div style={{ fontSize:11, fontWeight:800, color: statusColor(net).text, letterSpacing:'.04em' }}>🥅 NET {idx+1} · ₹{net.price}</div>
-            {net.status !== 'available' && net.booked_name && (
-              <div style={{ fontSize:11, color:'#374151', marginTop:2, fontWeight:600 }}>{net.booked_name} · {formatPhone(net.booked_phone)}</div>
-            )}
-            {net.status === 'blocked' && net.block_reason && (
-              <div style={{ fontSize:11, color:'#6b7280', marginTop:2, fontStyle:'italic' }}>{net.block_reason}</div>
-            )}
-          </div>
-          <div style={{ display:'flex', gap:4 }}>
-            {net.status === 'available' && <button onClick={()=>onBlock(net.slot_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', borderRadius:5, fontWeight:700 }}>Block</button>}
-            {net.status === 'blocked'   && <button onClick={()=>onUnblock(net.slot_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', borderRadius:5, fontWeight:700 }}>Unblock</button>}
-            {(net.status==='booked'||net.status==='advance') && net.booking_id && <button onClick={()=>onCancel(net.booking_id)} style={{ fontSize:10, padding:'4px 8px', background:'#fff', color:'#991b1b', borderRadius:5, fontWeight:700 }}>✕</button>}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
