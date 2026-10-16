@@ -174,8 +174,14 @@ function makeConfig(sports, resources){
     resourceLabel: id => (resById[id] && resById[id].label) || String(id || '').toUpperCase()
   };
 }
-// getSlots has three legacy shapes (turf / nets / courts) — normalise the count.
-function slotLeft(s){ return { left: s.nets_available ?? s.courts_available ?? 1, total: s.total_nets ?? s.total_courts ?? 1 }; }
+// Open hours for one sport via getAvailability in admin mode (API.get sends adminKey): includes
+// walk-in-only sports; with excludeId that booking's own slots count as free (Edit Booking).
+async function loadSportHours(date, sportId, excludeId){
+  const d = await API.get('getAvailability', excludeId ? { date, exclude_booking_id: excludeId } : { date });
+  const sp = (d.sports || []).find(x => x.sport_id === sportId);
+  return sp ? sp.hours.filter(h => h.available > 0) : [];
+}
+const isPooled = sp => (sp.resource_pool || []).length > 1;   // show "N left" only when there's a pool
 function rupees(n){ return '₹' + (Number(n) || 0).toLocaleString('en-IN'); }
 // pricing_mode "session" (API_CONTRACT.md): one slot = session_qty session_unit; never show it as hourly.
 // Bookings don't store the mode, so it comes from the sport's current config.
@@ -392,7 +398,6 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
   const sport = cfg.sport(form.sport_id);
   useEffect(()=>{ if (!form.sport_id && sports[0]) setForm(f => ({ ...f, sport_id: sports[0].sport_id })); }, [sports.length]);
 
-  // getSlots (with adminKey) is the only availability read that includes walk-in-only sports.
   useEffect(()=>{
     if (!form.sport_id) return;
     let cancelled = false;
@@ -400,8 +405,8 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
       setLoadingSlots(true);
       setForm(f => ({ ...f, slot_time: '', duration_hrs: 1 }));
       try {
-        const slots = await API.get('getSlots', { date: form.booking_date, sport: form.sport_id });
-        if (!cancelled) setAvailSlots(slots || []);
+        const hours = await loadSportHours(form.booking_date, form.sport_id);
+        if (!cancelled) setAvailSlots(hours);
       } catch(e) {
         if (!cancelled) { setAvailSlots([]); setErr('Could not load available slots: ' + e.message); }
       } finally {
@@ -486,9 +491,8 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap:6, maxHeight:200, overflowY:'auto', padding:4, background:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb' }}>
               {availSlots.map(s => {
                 const active = form.slot_time === s.slot_time;
-                const { left, total } = slotLeft(s);
                 return (
-                  <button key={s.slot_id} type="button" onClick={()=>setForm({...form, slot_time: s.slot_time, duration_hrs: 1})}
+                  <button key={s.slot_time} type="button" onClick={()=>setForm({...form, slot_time: s.slot_time, duration_hrs: 1})}
                     style={{
                       padding:'9px 8px', borderRadius:7,
                       background: active ? '#f59e0b' : '#fff',
@@ -497,7 +501,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
                       fontSize:12, fontWeight:700, lineHeight:1.3, cursor:'pointer'
                     }}>
                     <div style={{ fontFamily:'monospace' }}>{slotTimeText(sport, s.slot_time)}</div>
-                    {total > 1 && <div style={{ fontSize:9, fontWeight:600, opacity:.8, marginTop:2 }}>{left} left</div>}
+                    {isPooled(sport) && <div style={{ fontSize:9, fontWeight:600, opacity:.8, marginTop:2 }}>{s.available} left</div>}
                     {s.max_duration > 1 && (
                       <div style={{ fontSize:9, fontWeight:600, opacity:.7, marginTop:1 }}>up to {isSession(sport) ? sessionQty(sport, s.max_duration) : `${s.max_duration}h`}</div>
                     )}
@@ -622,21 +626,25 @@ function EditBookingModal({ booking, onClose, onSave }){
   const currentDur = booking.duration_hrs || 1;
   const maxHours = Math.max(sport.max_slots_per_booking || 3, currentDur);
 
-  // Fetch available slots whenever date or sport changes (include the current slot so admin can keep it)
+  // Fetch open hours whenever date or sport changes. exclude_booking_id frees this booking's own slots,
+  // so every hour listed is one updateBooking will accept (API_CONTRACT.md).
   useEffect(()=>{
     let cancelled = false;
     (async ()=>{
       setLoadingSlots(true);
       try {
-        const slots = await API.get('getSlots', { date: form.booking_date, sport: form.sport_id });
+        const hours = await loadSportHours(form.booking_date, form.sport_id, booking.booking_id);
         if (cancelled) return;
-        const list = (slots || []).slice();
-        if (form.booking_date === booking.booking_date && !sportChanged) {
-          const hasCurrent = list.some(s => s.slot_id === booking.slot_id);
+        const [startStr] = String(booking.slot_time).split('-');
+        const keepCurrent = form.booking_date === booking.booking_date && !sportChanged;
+        // The booking's own start hour keeps its slot_id, so the server keeps its current resource.
+        const list = hours.map(h => keepCurrent && h.slot_time.startsWith(startStr + '-')
+          ? { ...h, slot_id: booking.slot_id, _current: true } : h);
+        if (keepCurrent) {
+          const hasCurrent = list.some(s => s._current);
           if (!hasCurrent) {
-            // The booking's slot_time may span multiple hours (e.g. "14:00-17:00").
-            // For the slot picker we need the START hour as a 1-hr range like "14:00-15:00".
-            const [startStr] = String(booking.slot_time).split('-');
+            // Not listed because the hour has already started today; keep it selectable.
+            // The booking's slot_time may span multiple hours (e.g. "14:00-17:00") — use the START hour.
             const [sh, sm] = startStr.split(':').map(Number);
             const startMin = sh * 60 + (sm || 0);
             const endMin = startMin + 60;
@@ -730,9 +738,8 @@ function EditBookingModal({ booking, onClose, onSave }){
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap:6, maxHeight:240, overflowY:'auto', padding:6, background:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb' }}>
               {availSlots.map(s => {
                 const active = form.slot_id === s.slot_id;
-                const { left, total } = slotLeft(s);
                 return (
-                  <button key={s.slot_id} type="button"
+                  <button key={s.slot_time} type="button"
                     onClick={()=>setForm({...form, slot_id:s.slot_id, slot_time:s.slot_time})}
                     style={{
                       padding:'9px 8px', borderRadius:7,
@@ -743,7 +750,7 @@ function EditBookingModal({ booking, onClose, onSave }){
                     }}>
                     <div style={{ fontFamily:'monospace' }}>{slotTimeText(sport, s.slot_time)}</div>
                     {s._current && <div style={{ fontSize:9, opacity:.8 }}>current</div>}
-                    {total > 1 && !s._current && <div style={{ fontSize:9, opacity:.7 }}>{left} left</div>}
+                    {isPooled(sport) && !s._current && <div style={{ fontSize:9, opacity:.7 }}>{s.available} left</div>}
                     {s.max_duration > 1 && !s._current && (
                       <div style={{ fontSize:9, opacity:.7 }}>up to {isSession(sport) ? sessionQty(sport, s.max_duration) : `${s.max_duration}h`}</div>
                     )}
@@ -751,9 +758,6 @@ function EditBookingModal({ booking, onClose, onSave }){
                 );
               })}
             </div>
-          )}
-          {!sport.unknown && !sport.active && !sportChanged && (
-            <div style={{ fontSize:11, color:'#92400e', marginTop:6 }}>{sport.name} is turned off, so other times can't be listed. You can still change duration or switch sport.</div>
           )}
         </div>
 

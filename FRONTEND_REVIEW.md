@@ -182,3 +182,19 @@ Re-tested the website against the live API with the real session-mode bowling, r
 `getSports` and `getAvailability` were called; nothing submitted): "₹650 · 20 overs" card/tile,
 "6:00 AM … 10:00 PM · ₹650 · 2 left", chips "20 / 40 / 60 overs · ₹650 / ₹1,300 / ₹1,950",
 button "Lock in 40 overs · ₹1,300"; hourly sports unchanged. Babel 7.23.10 check OK on both files.
+
+---
+
+# Addendum — admin getAvailability (backend 3cc3607)
+
+- Walk-in (New Booking) and Edit Booking now use `getAvailability` in admin mode (adminKey) instead of
+  the deprecated `getSlots`; `admin/index.html` has no `getSlots` calls left (the Availability tab's
+  `getSlotsAdmin` is a different action). Walk-in-only sports are listed; full hours are hidden.
+- Edit Booking passes `exclude_booking_id`, so the booking's own hours count as free and its sport is
+  listed even if inactive/archived. The booking's start hour is marked "current" and keeps its own
+  `slot_id` (so the server keeps its resource); if that hour has already started today it is still
+  offered as "current". The old "sport is turned off, times can't be listed" note was removed.
+- "N left" uses `available` for pooled sports; session sports show start time and overs as elsewhere.
+- Tested against a mocked fetch only (no real bookings): walk-in-only sport, session chips/labels,
+  `createSpotBooking` and `updateBooking` payloads, `exclude_booking_id` sent, archived-sport booking,
+  0 `getSlots` calls. Babel 7.23.10 check OK.
