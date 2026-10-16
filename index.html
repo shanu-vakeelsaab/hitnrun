@@ -332,12 +332,10 @@ const VENUE = {
   area:    "Panditwari",
   address: "Hit N Run Sports Arena, Panditwari, Dehradun, Uttarakhand 248007",
   phone:   "+91 82733 95003",
-  phone2:  "+91 82733 95003",
-  phoneNet:"+91 82733 95003",
   whatsapp:"918273395003",
   maps:    "https://maps.google.com/?q=Hit+N+Run+Sports+Arena+Panditwari+Dehradun+248007",
-  hoursWeek: "Mon–Fri 8 AM – 4:30 PM",
-  hoursWeekend: "Sat–Sun 6 AM – 11:30 PM",
+  hoursWeek: "Mon–Fri 8 AM – 4 PM and 6 PM – 11 PM",
+  hoursWeekend: "Sat–Sun 6 AM – 11 PM",
   email:   "contact@hitnrunarena.in",
   website: "hitnrunarena.in"
 };
@@ -404,7 +402,8 @@ function buildCalendarLink(b){
   return 'https://calendar.google.com/calendar/render?'+params.toString();
 }
 function buildShareText(b){
-  return `${b.icon || '✅'} Booked at ${VENUE.name}!\n\n📅 ${dateLong(b.booking_date)}\n⏰ ${b.slot_time}\n🎯 ${b.sport_name}\n\nBooking ID: ${b.booking_id}\nhttps://${VENUE.website}`;
+  const when = isSession(b) ? `${startTime12(b.slot_time)} · ${sessionQty(b, b.duration_hrs)}` : b.slot_time;
+  return `${b.icon || '✅'} Booked at ${VENUE.name}!\n\n📅 ${dateLong(b.booking_date)}\n⏰ ${when}\n🎯 ${b.sport_name}\n\nBooking ID: ${b.booking_id}\nhttps://${VENUE.website}`;
 }
 
 function Spinner({ small }){ return <span className={`loading-spinner ${small?'small':''} spin`}/>; }
@@ -433,7 +432,18 @@ function Nav(){
   );
 }
 
-function priceLabel(s){ return `₹${Number(s.price).toLocaleString('en-IN')} / hr${s.unit_label ? ' · ' + s.unit_label : ''}`; }
+// pricing_mode "session" (API_CONTRACT.md): one slot = session_qty session_unit; never show it as hourly.
+function isSession(s){ return !!s && s.pricing_mode === 'session'; }
+function sessionQty(s, n){ return `${s.session_qty * n} ${s.session_unit}`; }
+function durationText(s, n){ return isSession(s) ? sessionQty(s, n) : `${n} hr${n>1?'s':''}`; }
+function startTime12(slotTime){
+  const [h, m] = String(slotTime).split('-')[0].split(':').map(Number);
+  return `${(h % 12) || 12}:${String(m || 0).padStart(2,'0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+function priceLabel(s){
+  const p = `₹${Number(s.price).toLocaleString('en-IN')}`;
+  return isSession(s) ? `${p} · ${sessionQty(s, 1)}` : `${p} / hr${s.unit_label ? ' · ' + s.unit_label : ''}`;
+}
 
 function SportsRetry({ onRetry }){
   return (
@@ -448,7 +458,10 @@ function SportsRetry({ onRetry }){
 
 function Hero({ liveSlotsToday, sports, sportsError }){
   const scroll = () => document.getElementById('book')?.scrollIntoView({behavior:'smooth'});
-  const minPrice = sports && sports.length ? Math.min(...sports.map(s => Number(s.price))) : null;
+  // "From ₹X / hour" only makes sense for hourly sports; fall back to all sports without "/ hour"
+  const hourly = (sports || []).filter(s => !isSession(s));
+  const priced = hourly.length ? hourly : (sports || []);
+  const minPrice = priced.length ? Math.min(...priced.map(s => Number(s.price))) : null;
   return (
     <section className="hero">
       <div className="hero-tag anim-rise">
@@ -482,7 +495,7 @@ function Hero({ liveSlotsToday, sports, sportsError }){
         </div>
         <div>
           <div className="hero-stat-num">{minPrice !== null ? `₹${minPrice.toLocaleString('en-IN')}` : sportsError ? '—' : '…'}</div>
-          <div className="hero-stat-lbl">{minPrice !== null ? 'From / hour' : 'Hourly rates'}</div>
+          <div className="hero-stat-lbl">{minPrice === null ? 'Hourly rates' : hourly.length ? 'From / hour' : 'From'}</div>
         </div>
         <div><div className="hero-stat-num">15</div><div className="hero-stat-lbl">Day booking window</div></div>
       </div>
@@ -578,6 +591,7 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete }){
         booking_date: result.slot_date,
         sport_name: result.sport_name || sport.name,
         icon: sport.icon,
+        pricing_mode: sport.pricing_mode, session_qty: sport.session_qty, session_unit: sport.session_unit,
         members_count: parseInt(form.members,10) || 1,
         customer_name: form.name.trim(),
         email: form.email.trim()
@@ -675,12 +689,16 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete }){
                 const [startT, endT] = h.slot_time.split('-');
                 return (
                   <button key={h.slot_time} className={`slot-card ${active?'active':''}`} onClick={()=>setSelectedSlot(h)}>
-                    <div className="time-row">
-                      <span className="slot-time">{startT}</span>
-                      <span className="slot-arrow">→</span>
-                      <span className="slot-time end">{endT}</span>
-                    </div>
-                    <div className="slot-price">₹{Number(h.price).toLocaleString('en-IN')} / hr</div>
+                    {isSession(sport) ? (
+                      <div className="time-row"><span className="slot-time">{startTime12(h.slot_time)}</span></div>
+                    ) : (
+                      <div className="time-row">
+                        <span className="slot-time">{startT}</span>
+                        <span className="slot-arrow">→</span>
+                        <span className="slot-time end">{endT}</span>
+                      </div>
+                    )}
+                    <div className="slot-price">₹{Number(h.price).toLocaleString('en-IN')}{isSession(sport) ? '' : ' / hr'}</div>
                     <div className="slot-meta">{h.available} left</div>
                   </button>
                 );
@@ -694,8 +712,10 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete }){
           <div className="booking-step anim-rise-fast">
             <div className="step-label">
               <span className="step-num">⏱</span>
-              <span className="step-title">Duration</span>
-              <span className="step-meta">{maxDur >= 2 ? `Up to ${maxDur} hours available` : '1 hour only'}</span>
+              <span className="step-title">{isSession(sport) ? `How many ${sport.session_unit}?` : 'Duration'}</span>
+              <span className="step-meta">{isSession(sport)
+                ? (maxDur >= 2 ? `Up to ${sessionQty(sport, maxDur)} available` : `${sessionQty(sport, 1)} only`)
+                : (maxDur >= 2 ? `Up to ${maxDur} hours available` : '1 hour only')}</span>
             </div>
             <div className="duration-grid">
               {Array.from({ length: maxPerBooking }, (_, i) => i + 1).map(h => {
@@ -709,7 +729,7 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete }){
                     disabled={disabled}
                     title={disabled ? 'Not enough consecutive slots available' : ''}
                   >
-                    <div className="dur-h">{h} hr{h>1?'s':''}</div>
+                    <div className="dur-h">{durationText(sport, h)}</div>
                     <div className="dur-price">{displayTotal(h)}</div>
                     {disabled && <div className="dur-sub">unavailable</div>}
                   </button>
@@ -763,7 +783,7 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete }){
             </div>
             <div className="submit-row">
               <button className="btn-submit" onClick={submit} disabled={!canBook || submitting}>
-                {submitting ? <><Spinner small/> Booking…</> : <>Lock in {effectiveDuration} hr{effectiveDuration>1?'s':''} · {displayTotal(effectiveDuration)} <span>→</span></>}
+                {submitting ? <><Spinner small/> Booking…</> : <>Lock in {durationText(sport, effectiveDuration)} · {displayTotal(effectiveDuration)} <span>→</span></>}
               </button>
               <div className="submit-note">💰 Pay at the venue — cash or UPI. Cancel anytime by calling us.</div>
             </div>
@@ -802,8 +822,10 @@ function ConfirmationTicket({ booking, onReset }){
           <div className="ticket-row"><span className="ticket-label">Booking ID</span><span className="ticket-value mono">{booking.booking_id}</span></div>
           <div className="ticket-row"><span className="ticket-label">Sport</span><span className="ticket-value big">{booking.sport_name}</span></div>
           <div className="ticket-row"><span className="ticket-label">Date</span><span className="ticket-value">{dateLong(booking.booking_date)}</span></div>
-          <div className="ticket-row"><span className="ticket-label">Time</span><span className="ticket-value big" style={{fontSize:20}}>{booking.slot_time}</span></div>
-          {booking.duration_hrs > 1 && (
+          <div className="ticket-row"><span className="ticket-label">Time</span><span className="ticket-value big" style={{fontSize:20}}>{isSession(booking) ? startTime12(booking.slot_time) : booking.slot_time}</span></div>
+          {isSession(booking) ? (
+            <div className="ticket-row"><span className="ticket-label">Session</span><span className="ticket-value big">{sessionQty(booking, booking.duration_hrs)}</span></div>
+          ) : booking.duration_hrs > 1 && (
             <div className="ticket-row"><span className="ticket-label">Duration</span><span className="ticket-value big">{booking.duration_hrs} hours</span></div>
           )}
           <div className="ticket-row"><span className="ticket-label">Players</span><span className="ticket-value">{booking.members_count}</span></div>
@@ -861,7 +883,7 @@ function PricingCallout({ sports, error, onRetry }){
               <div key={s.id} className="price-tile">
                 <span className="price-tile-tag">{s.icon} {s.name}</span>
                 <div className="price-tile-big">₹{Number(s.price).toLocaleString('en-IN')}</div>
-                <div className="price-tile-meta">Per hour{s.unit_label ? ` · ${s.unit_label}` : ''}</div>
+                <div className="price-tile-meta">{isSession(s) ? sessionQty(s, 1) : `Per hour${s.unit_label ? ` · ${s.unit_label}` : ''}`}</div>
                 {s.tagline && <div className="price-tile-meta" style={{marginBottom:0}}>{s.tagline}</div>}
               </div>
             ))}
@@ -883,8 +905,7 @@ function VenueInfo(){
         <div>
           <div className="venue-stat"><div className="ic">📍</div><div><div className="venue-stat-label">Address</div><div className="venue-stat-val">{VENUE.address}</div><a href={VENUE.maps} target="_blank" rel="noopener" className="lime" style={{fontSize:13,fontWeight:600,marginTop:6,display:'inline-block'}}>Open in Maps →</a></div></div>
           <div className="venue-stat"><div className="ic">⏰</div><div><div className="venue-stat-label">Hours</div><div className="venue-stat-val">{VENUE.hoursWeek}<br/>{VENUE.hoursWeekend}</div></div></div>
-          <div className="venue-stat"><div className="ic">📞</div><div><div className="venue-stat-label">Phone</div><div className="venue-stat-val"><a href={`tel:${VENUE.phone.replace(/\s/g,'')}`}>{VENUE.phone}</a> · <a href={`tel:${VENUE.phone2.replace(/\s/g,'')}`}>{VENUE.phone2}</a></div></div></div>
-          <div className="venue-stat"><div className="ic">🗓️</div><div><div className="venue-stat-label">Bookings</div><div className="venue-stat-val"><a href={`tel:${VENUE.phoneNet.replace(/\s/g,'')}`}>{VENUE.phoneNet}</a></div></div></div>
+          <div className="venue-stat"><div className="ic">📞</div><div><div className="venue-stat-label">Phone</div><div className="venue-stat-val"><a href={`tel:${VENUE.phone.replace(/\s/g,'')}`}>{VENUE.phone}</a></div></div></div>
           <div className="venue-stat"><div className="ic">✉️</div><div><div className="venue-stat-label">Email</div><div className="venue-stat-val">{VENUE.email}</div></div></div>
         </div>
       </div>

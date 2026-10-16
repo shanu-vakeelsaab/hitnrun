@@ -112,3 +112,73 @@ until the exact name is typed, conflicts payload, create resource → generate s
 5. `updateSport` sends all editable fields (including unchanged ones); the backend audit diff handles
    that, and the change log ignores unchanged fields.
 6. Not touched: React is still loaded as unpinned `react@18` (only the Babel pin was in scope).
+
+---
+
+# Addendum — session pricing (`pricing_mode`, backend 1c52119)
+
+Built against the updated `API_CONTRACT.md` (`pricing_mode` `"hourly"|"session"`, `session_qty`,
+`session_unit`). **Not committed. Not pushed.** Babel pin `7.23.10` unchanged; both files transpile OK.
+
+```
+ FRONTEND_REVIEW.md |  69 ++++++++++++++++
+ admin/index.html   | 232 +++++++++++++++++++++++++++++++++++++----------------
+ index.html         |  67 ++++++++++------
+ 3 files changed, 274 insertions(+), 94 deletions(-)
+```
+(this commit vs 2c89a93: session pricing + the live-testing fixes below)
+
+Hourly sports are unchanged everywhere (still "₹1,200 / hr", "06:00→07:00", "1 hr / 2 hrs").
+Note: the contract's example says "₹1200 / hour"; kept the existing "/ hr" as instructed.
+
+## Session sports — customer site
+- Sport card / pricing tile: "₹650 · 20 overs" (no "/ hr"). Hero "From ₹X / hour" uses hourly sports only.
+- Time cards: start time only, 12-hour ("7:00 PM"), "₹650", "N left".
+- Step "How many overs?"; chips "20 overs / 40 overs / 60 overs" (`session_qty × n`) with display totals.
+- Button "Lock in 40 overs · ₹1,300"; ticket "Time 7:00 PM · Session 40 overs · Amount (server)";
+  share text uses start time + overs. Calendar invite keeps the real hour range.
+
+## Session sports — admin
+- Bookings table (and therefore the print view), mobile cards, booking drawer, customer history,
+  WhatsApp message, browser notification: "7:00 PM" + "40 overs".
+- Spot booking / Edit modal: sport picker "₹650 · 20 overs", slot chips start time, duration chips
+  "20/40/60 overs", "Current" summary in overs.
+- Sports tab card: "₹650 · 20 overs … up to 60 overs".
+- Sports drawer: **Charge per** toggle (Hour / Session). Session shows Price / Qty / Unit (+ preview
+  "Customers see …") and "Max sessions per booking"; Hour shows Price per hour / Unit label and
+  "Max hours per booking". Validation mirrors the contract (qty 1–1000, unit 1–20 chars).
+  Sends `pricing_mode`, and `session_qty`/`session_unit` (`null` for hourly).
+- Change log describes `pricing_mode` / `session_qty` / `session_unit` changes.
+
+## Verified
+- Customer copy in Chrome: live read-only API plus an injected session-mode Bowling sport; createBooking
+  intercepted in the test copy (no real booking). Cards, slots, chips, button, ticket as above.
+- Admin copy in Chrome against mocked fetch: list/mobile/drawer/WhatsApp/Edit show overs; drawer toggle
+  swaps fields; inline errors; payloads `{session, 25, "balls"}` and `{hourly, null, null}`.
+
+## Notes
+1. Bowling's brief absence from the live API at ~01:40 IST was the owner's on/off test; it's back
+   (6 sports, bowling = session / 20 / overs). Nothing to fix.
+2. Bookings don't store `pricing_mode`; admin labels use the sport's **current** mode. If a sport is
+   switched between Hour and Session, its past bookings re-render in the new style.
+3. Availability tab keeps per-resource hour windows (a resource row isn't tied to one sport).
+
+## Fixes from live testing
+
+1. **Sports tab switch/pill stuck on "Hidden" after turning a sport on.** Cause: after every write the
+   tab re-listed `listSportsAdmin`, which can hit a server instance whose config cache is up to 30 s
+   stale. Now every manager write applies its own response (`setSportActive`, `restoreSport`,
+   `archiveSport`, `createSport`/`updateSport`, `setResourceActive`, `setResourceConflicts` — mirrored
+   onto the other resource since conflicts are symmetric, `createResource`) and no longer re-lists.
+   "Used by" on resources is derived from the current sports config. Each sport/resource switch is
+   disabled while its request is in flight, and a per-id guard drops repeat clicks (3 rapid clicks →
+   1 call, verified).
+2. **Hours** now read exactly "Mon–Fri 8 AM – 4 PM and 6 PM – 11 PM" / "Sat–Sun 6 AM – 11 PM".
+3. **Phone shown once.** The Phone row had the same number twice and the "Bookings" row repeated it a
+   third time; the venue section now shows "+91 82733 95003" once (unused `phone2` / `phoneNet` removed).
+   Nav and hero "Call us" links are unchanged.
+
+Re-tested the website against the live API with the real session-mode bowling, read-only (only
+`getSports` and `getAvailability` were called; nothing submitted): "₹650 · 20 overs" card/tile,
+"6:00 AM … 10:00 PM · ₹650 · 2 left", chips "20 / 40 / 60 overs · ₹650 / ₹1,300 / ₹1,950",
+button "Lock in 40 overs · ₹1,300"; hourly sports unchanged. Babel 7.23.10 check OK on both files.
