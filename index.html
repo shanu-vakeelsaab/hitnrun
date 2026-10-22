@@ -316,6 +316,41 @@
 
     .lime{color:var(--lime)}
     .mono{font-family:var(--mono)}
+    /* ── Online payment, coupons, manage booking, policies ── */
+    .pay-box{grid-column:1/-1;background:var(--bg-alt);border:1.5px solid var(--border);border-radius:16px;padding:18px 20px;margin-top:4px}
+    .pay-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:5px 0;color:var(--text-2)}
+    .pay-row strong{color:var(--text);font-weight:700}
+    .pay-row.total{border-top:1px dashed var(--border);margin-top:6px;padding-top:12px;font-size:15px}
+    .pay-row.now{color:var(--text)}
+    .pay-row.now strong{color:var(--lime);font-size:20px;font-family:var(--display);letter-spacing:.02em}
+    .pay-row .disc{color:var(--success)}
+    .pay-gst{font-size:11px;color:var(--text-3);margin-top:6px}
+    .coupon-row{display:flex;gap:8px;margin-bottom:14px}
+    .coupon-row .form-input{text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+    .coupon-btn{padding:0 18px;border-radius:12px;border:1.5px solid var(--border);background:transparent;color:var(--text);font-weight:800;font-size:13px;white-space:nowrap}
+    .coupon-btn:hover{border-color:var(--lime);color:var(--lime)}
+    .coupon-applied{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.35);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#6ee7b7}
+    .coupon-applied button{color:var(--text-2);font-size:12px;font-weight:700;text-decoration:underline}
+    .coupon-err{font-size:12px;color:#fca5a5;margin:-6px 0 12px}
+    .policy-check{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-2);line-height:1.5;margin:4px 0 16px;cursor:pointer;text-align:left}
+    .policy-check input{margin-top:3px;width:16px;height:16px;accent-color:var(--lime);flex-shrink:0}
+    .policy-check a{color:var(--lime);text-decoration:underline}
+    .pay-status{margin-top:16px;border-radius:12px;padding:12px 16px;font-size:13px;line-height:1.5}
+    .pay-status.err{background:rgba(239,68,68,.1);border:1px solid var(--danger);color:#fca5a5}
+    .pay-status.info{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.4);color:#bae6fd}
+    .secure-note{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;color:var(--text-3);margin-top:8px;letter-spacing:.04em}
+    .manage-card{max-width:640px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:28px}
+    .manage-actions{display:grid;gap:10px;margin-top:20px}
+    .btn-danger{background:transparent;color:#fca5a5;border:1.5px solid rgba(239,68,68,.5);padding:14px 22px;border-radius:99px;font-weight:800;font-size:14px}
+    .btn-danger:hover{background:rgba(239,68,68,.1)}
+    .btn-danger:disabled{opacity:.5;cursor:not-allowed}
+    .policy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+    .policy-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px}
+    .policy-card h3{font-family:var(--display);font-size:20px;letter-spacing:.02em;text-transform:uppercase;margin-bottom:10px}
+    .policy-card ul{padding-left:18px;color:var(--text-2);font-size:13.5px;line-height:1.7}
+    .footer-links{display:flex;gap:16px;flex-wrap:wrap}
+    .footer-links a{font-size:12px;color:var(--text-2)}
+    .footer-links a:hover{color:var(--lime)}
   </style>
 </head>
 <body>
@@ -333,7 +368,7 @@ const VENUE = {
   address: "Hit N Run Sports Arena, Panditwari, Dehradun, Uttarakhand 248007",
   phone:   "+91 82733 95003",
   whatsapp:"918273395003",
-  maps:    "https://maps.google.com/?q=Hit+N+Run+Sports+Arena+Panditwari+Dehradun+248007",
+  maps:    "https://maps.app.goo.gl/N9pPgv9PESbgRMFY7",
   hoursWeek: "Mon–Fri 8 AM – 4 PM and 6 PM – 11 PM",
   hoursWeekend: "Sat–Sun 6 AM – 11 PM",
   email:   "contact@hitnrunarena.in",
@@ -395,7 +430,7 @@ function buildCalendarLink(b){
     action:'TEMPLATE',
     text:`${b.sport_name} at ${VENUE.name}`,
     dates:`${date}T${s}00/${date}T${e}00`,
-    details:`Booking ID: ${b.booking_id}\nPay ₹${b.amount} at venue.\n\n${VENUE.address}`,
+    details:`Booking ID: ${b.booking_id}\n${Number(b.balance_due ?? b.amount) > 0 ? `Pay ₹${b.balance_due ?? b.amount} at venue.` : 'Paid in full.'}\n\n${VENUE.address}\n${VENUE.maps}`,
     location:VENUE.address,
     ctz:'Asia/Kolkata'
   });
@@ -403,8 +438,27 @@ function buildCalendarLink(b){
 }
 function buildShareText(b){
   const when = isSession(b) ? `${startTime12(b.slot_time)} · ${sessionQty(b, b.duration_hrs)}` : b.slot_time;
-  return `${b.icon || '✅'} Booked at ${VENUE.name}!\n\n📅 ${dateLong(b.booking_date)}\n⏰ ${when}\n🎯 ${b.sport_name}\n\nBooking ID: ${b.booking_id}\nhttps://${VENUE.website}`;
+  return `${b.icon || '✅'} Booked at ${VENUE.name}!\n\n📅 ${dateLong(b.booking_date)}\n⏰ ${when}\n🎯 ${b.sport_name}\n\nBooking ID: ${b.booking_id}\n📍 Venue location: ${VENUE.maps}\nhttps://${VENUE.website}`;
 }
+
+function inr(n){ return '₹' + (Number(n) || 0).toLocaleString('en-IN'); }
+
+// Razorpay Checkout script, loaded once on first payment.
+let rzpScript = null;
+function loadRazorpay(){
+  if (window.Razorpay) return Promise.resolve();
+  if (!rzpScript) {
+    rzpScript = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      s.onload = () => resolve();
+      s.onerror = () => { rzpScript = null; reject(new Error('Could not load the payment window. Check your connection and try again.')); };
+      document.head.appendChild(s);
+    });
+  }
+  return rzpScript;
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function Spinner({ small }){ return <span className={`loading-spinner ${small?'small':''} spin`}/>; }
 
@@ -456,7 +510,7 @@ function SportsRetry({ onRetry }){
   );
 }
 
-function Hero({ liveSlotsToday, sports, sportsError }){
+function Hero({ liveSlotsToday, sports, sportsError, payCfg }){
   const scroll = () => document.getElementById('book')?.scrollIntoView({behavior:'smooth'});
   // "From ₹X / hour" only makes sense for hourly sports; fall back to all sports without "/ hour"
   const hourly = (sports || []).filter(s => !isSession(s));
@@ -472,7 +526,7 @@ function Hero({ liveSlotsToday, sports, sportsError }){
         Book your<br/><span className="accent">ground.</span>
       </h1>
       <p className="hero-sub anim-rise" style={{animationDelay:'.15s'}}>
-        Dehradun's premier multi-sport arena in <strong>{VENUE.area}</strong>. Pick your game, pick your hour and <strong>pay at the venue</strong>. Live availability · No fuss.
+        Dehradun's premier multi-sport arena in <strong>{VENUE.area}</strong>. Pick your game, pick your hour and {payCfg && payCfg.online ? <>lock it with a <strong>₹{payCfg.advance} advance</strong>, rest at the venue</> : <><strong>pay at the venue</strong></>}. Live availability · No fuss.
       </p>
       <div className="hero-ctas anim-rise" style={{animationDelay:'.25s'}}>
         <button className="btn-primary" onClick={scroll}>
@@ -503,7 +557,7 @@ function Hero({ liveSlotsToday, sports, sportsError }){
   );
 }
 
-function BookingWidget({ sports, sportsError, onRetrySports, onComplete }){
+function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg }){
   const next15 = useMemo(()=>getNext15Days(),[]);
   const [date, setDate] = useState(next15[0].iso);
   const [sportId, setSportId] = useState(null);
@@ -516,6 +570,15 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete }){
   const [returning, setReturning] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  // Online payment state
+  const online = !!(payCfg && payCfg.online);
+  const [quote, setQuote] = useState(null);          // previewCoupon response (server maths)
+  const [couponInput, setCouponInput] = useState('');
+  const [coupon, setCoupon] = useState('');           // applied code
+  const [couponErr, setCouponErr] = useState(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [agree, setAgree] = useState(false);
+  const [payInfo, setPayInfo] = useState(null);       // { kind:'err'|'info', text }
 
   const sport = (sports || []).find(s => s.id === sportId) || null;
 
@@ -568,9 +631,140 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete }){
   // lookupCustomer returns a sport_id; only ever show a public sport's name
   const lastSportName = returning && ((sports || []).find(s => s.id === returning.last_sport) || {}).name;
 
-  const canBook = sport && selectedSlot && form.name.trim() && normalizePhone(form.phone).length === 10 && isValidEmail(form.email);
+  const canBook = sport && selectedSlot && form.name.trim() && normalizePhone(form.phone).length === 10 && isValidEmail(form.email)
+    && (!online || (agree && quote));
+
+  // Server price quote (with coupon) whenever the selection changes. The browser never computes money.
+  async function fetchQuote(code){
+    const r = await API.get('previewCoupon', {
+      sport_id: sport.id, slot_id: selectedSlot.slot_id, duration_hrs: effectiveDuration,
+      phone: normalizePhone(form.phone), ...(code ? { coupon_code: code } : {})
+    });
+    setQuote(r);
+    return r;
+  }
+  useEffect(()=>{
+    if (!online || !sport || !selectedSlot) { setQuote(null); return; }
+    let cancelled = false;
+    setQuote(null);
+    fetchQuote(coupon).catch(e => {
+      if (cancelled) return;
+      if (e.code === 'COUPON_INVALID' && coupon) { setCoupon(''); setCouponErr(e.message); fetchQuote('').catch(()=>{}); }
+    });
+    return ()=>{ cancelled = true; };
+  }, [online, sportId, selectedSlot && selectedSlot.slot_id, effectiveDuration]);
+
+  async function applyCoupon(){
+    const code = couponInput.trim().toUpperCase();
+    if (!code || couponBusy) return;
+    if (normalizePhone(form.phone).length !== 10) { setCouponErr('Enter your phone number first'); return; }
+    setCouponBusy(true); setCouponErr(null);
+    try { await fetchQuote(code); setCoupon(code); }
+    catch(e){ setCouponErr(e.message); }
+    finally { setCouponBusy(false); }
+  }
+  function removeCoupon(){
+    setCoupon(''); setCouponInput(''); setCouponErr(null);
+    fetchQuote('').catch(()=>{});
+  }
+
+  function bookingFromServer(b, extra = {}){
+    return {
+      ...b, ...extra,
+      sport_name: sport.name, icon: sport.icon,
+      pricing_mode: sport.pricing_mode, session_qty: sport.session_qty, session_unit: sport.session_unit
+    };
+  }
+
+  async function payAndBook(){
+    if(!canBook || submitting) return;
+    setSubmitting(true); setError(null); setPayInfo(null);
+    let order;
+    try {
+      await loadRazorpay();
+      order = await API.post('createOrder', {
+        customer_name: form.name.trim(), phone: normalizePhone(form.phone), email: form.email.trim(),
+        sport_id: sport.id, slot_id: selectedSlot.slot_id, duration_hrs: effectiveDuration,
+        members_count: parseInt(form.members,10) || 1, notes: form.notes.trim() || '',
+        coupon_code: coupon || ''
+      });
+    } catch(e) {
+      setSubmitting(false);
+      if (e.code === 'COUPON_INVALID') { setCoupon(''); setCouponErr(e.message); fetchQuote('').catch(()=>{}); return; }
+      setError(e.message);
+      if (e.code === 'SLOT_TAKEN' || e.code === 'SPORT_FULL') setAvailNonce(n => n + 1);
+      return;
+    }
+
+    let settled = false;
+    const finish = (res) => {
+      settled = true;
+      clearAvailabilityCache();
+      onComplete(bookingFromServer(res.booking, { manage_url: res.manage_url, invoice_url: res.invoice_url, paid_online: true }));
+    };
+    // UPI apps can confirm after the modal closes: poll the server for up to 2 minutes.
+    const poll = async () => {
+      setPayInfo({ kind:'info', text:'Confirming your payment with the bank… please keep this page open.' });
+      for (let i = 0; i < 40 && !settled; i++) {
+        await sleep(3000);
+        try {
+          const st = await API.get('getPaymentStatus', { booking_id: order.booking_id, order_id: order.order_id });
+          if (st.status === 'confirmed') return finish(st);
+        } catch(_) {}
+      }
+      if (!settled) { setSubmitting(false); setPayInfo({ kind:'info', text:`We haven't received confirmation yet. If money was deducted, you'll get a confirmation email within a few minutes, or an automatic refund. Booking ref: ${order.booking_id}` }); }
+    };
+
+    const rzp = new window.Razorpay({
+      key: order.key_id,
+      order_id: order.order_id,
+      amount: order.amount,
+      currency: order.currency,
+      name: order.name,
+      description: order.description,
+      image: 'https://hitnrunarena.in/logo.jpeg',
+      prefill: order.prefill,
+      notes: { booking_id: order.booking_id },
+      theme: { color: '#c4f000' },
+      timeout: order.timeout,
+      retry: { enabled: true, max_count: 3 },
+      handler: async (resp) => {
+        setPayInfo({ kind:'info', text:'Payment received. Confirming your booking…' });
+        try {
+          const res = await API.post('verifyPayment', { ...resp, booking_id: order.booking_id });
+          if (res.status === 'confirmed') return finish(res);
+          if (res.status === 'refunded') {
+            settled = true; setSubmitting(false); clearAvailabilityCache(); setAvailNonce(n => n + 1);
+            setPayInfo({ kind:'err', text:'Sorry, that slot was taken while you were paying. Your payment has been refunded in full (5-7 working days). Please pick another slot.' });
+            return;
+          }
+          poll();
+        } catch(e) {
+          if (e.code === 'NOT_CAPTURED') return poll();
+          setSubmitting(false);
+          setPayInfo({ kind:'err', text: e.message + ` (ref ${order.booking_id})` });
+        }
+      },
+      modal: {
+        confirm_close: true,
+        ondismiss: async () => {
+          if (settled) return;
+          setSubmitting(false);
+          setPayInfo({ kind:'err', text:'Payment cancelled. Your slot was not booked.' });
+          try { await API.post('abandonOrder', { booking_id: order.booking_id, order_id: order.order_id }); } catch(_) {}
+          clearAvailabilityCache(); setAvailNonce(n => n + 1);
+        }
+      }
+    });
+    rzp.on('payment.failed', (r) => {
+      const reason = (r && r.error && (r.error.description || r.error.reason)) || 'Payment failed';
+      setPayInfo({ kind:'err', text: `${reason}. You can try again with another method in the payment window.` });
+    });
+    rzp.open();
+  }
 
   async function submit(){
+    if (online) return payAndBook();
     if(!canBook || submitting) return;
     setSubmitting(true);
     setError(null);
@@ -609,7 +803,9 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete }){
       <div className="section-head">
         <span className="section-eyebrow">Book in 60 seconds</span>
         <h2 className="section-h2">Lock in<br/>your slot.</h2>
-        <p className="section-sub">No advance payment. Pay at the venue when you arrive. Email confirmation hits your inbox immediately.</p>
+        <p className="section-sub">{online
+          ? `Pay a ₹${payCfg.advance} advance online to lock your slot; the rest at the venue. Free cancellation up to ${payCfg.refund_cutoff_hours} hours before.`
+          : 'No advance payment. Pay at the venue when you arrive. Email confirmation hits your inbox immediately.'}</p>
       </div>
       <div className="booking-card">
         {/* STEP 1 */}
@@ -781,11 +977,51 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete }){
                 <input type="text" className="form-input" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Team name, special equipment, anything we should know…"/>
               </div>
             </div>
+            {online && (
+              <div style={{marginTop:22}}>
+                {coupon ? (
+                  <div className="coupon-applied">
+                    <span>Coupon <strong>{coupon}</strong> applied{quote && quote.discount ? ` · you save ${inr(quote.discount)}` : ''}</span>
+                    <button onClick={removeCoupon}>Remove</button>
+                  </div>
+                ) : (
+                  <div className="coupon-row">
+                    <input className="form-input" value={couponInput} onChange={e=>{ setCouponInput(e.target.value); setCouponErr(null); }}
+                      onKeyDown={e=>e.key==='Enter' && applyCoupon()} placeholder="Coupon code" maxLength={20} aria-label="Coupon code"/>
+                    <button className="coupon-btn" onClick={applyCoupon} disabled={couponBusy || !couponInput.trim()}>{couponBusy ? 'Checking…' : 'Apply'}</button>
+                  </div>
+                )}
+                {couponErr && <div className="coupon-err">{couponErr}</div>}
+                <div className="pay-box">
+                  {!quote ? <div style={{textAlign:'center',padding:8}}><Spinner small/></div> : <>
+                    {quote.discount > 0 && <div className="pay-row"><span>Booking total</span><strong>{inr(quote.total)}</strong></div>}
+                    {quote.discount > 0 && <div className="pay-row"><span>Coupon {quote.coupon_code}</span><strong className="disc">− {inr(quote.discount)}</strong></div>}
+                    <div className="pay-row total"><span>Total (incl. GST)</span><strong>{inr(quote.net)}</strong></div>
+                    <div className="pay-row now"><span>Pay now to confirm</span><strong>{inr(quote.advance)}</strong></div>
+                    <div className="pay-row"><span>Pay at venue</span><strong>{inr(quote.balance)}</strong></div>
+                    <div className="pay-gst">Includes GST @ {quote.gst_rate}% ({inr(quote.gst)}). GST invoice emailed after payment.</div>
+                  </>}
+                </div>
+              </div>
+            )}
             <div className="submit-row">
+              {online && (
+                <label className="policy-check">
+                  <input type="checkbox" checked={agree} onChange={e=>setAgree(e.target.checked)}/>
+                  <span>I agree to the <a href="#policies" onClick={e=>{e.preventDefault();document.getElementById('policies')?.scrollIntoView({behavior:'smooth'});}}>cancellation policy</a>: free cancellation up to {payCfg.refund_cutoff_hours} hours before the slot; the advance is non-refundable after that.</span>
+                </label>
+              )}
               <button className="btn-submit" onClick={submit} disabled={!canBook || submitting}>
-                {submitting ? <><Spinner small/> Booking…</> : <>Lock in {durationText(sport, effectiveDuration)} · {displayTotal(effectiveDuration)} <span>→</span></>}
+                {submitting
+                  ? <><Spinner small/> {online ? 'Processing payment…' : 'Booking…'}</>
+                  : online
+                    ? <>Pay {quote ? inr(quote.advance) : ''} & confirm <span>→</span></>
+                    : <>Lock in {durationText(sport, effectiveDuration)} · {displayTotal(effectiveDuration)} <span>→</span></>}
               </button>
-              <div className="submit-note">💰 Pay at the venue — cash or UPI. Cancel anytime by calling us.</div>
+              {online
+                ? <div className="secure-note">Secured by Razorpay · UPI, cards, netbanking, wallets</div>
+                : <div className="submit-note">💰 Pay at the venue — cash or UPI. Cancel anytime by calling us.</div>}
+              {payInfo && <div className={`pay-status ${payInfo.kind}`}>{payInfo.text}</div>}
             </div>
           </div>
         )}
@@ -829,17 +1065,23 @@ function ConfirmationTicket({ booking, onReset }){
             <div className="ticket-row"><span className="ticket-label">Duration</span><span className="ticket-value big">{booking.duration_hrs} hours</span></div>
           )}
           <div className="ticket-row"><span className="ticket-label">Players</span><span className="ticket-value">{booking.members_count}</span></div>
-          <div className="ticket-row"><span className="ticket-label">Amount</span><span className="ticket-value big lime">₹{parseInt(booking.amount||0).toLocaleString('en-IN')}</span></div>
+          <div className="ticket-row"><span className="ticket-label">{booking.paid_online ? 'Total (incl. GST)' : 'Amount'}</span><span className="ticket-value big lime">₹{parseInt(booking.amount||0).toLocaleString('en-IN')}</span></div>
+          {booking.paid_online && <div className="ticket-row"><span className="ticket-label">Paid online</span><span className="ticket-value">{inr(booking.amount_paid)}</span></div>}
+          {booking.paid_online && booking.invoice_no && <div className="ticket-row"><span className="ticket-label">Invoice</span><span className="ticket-value mono">{booking.invoice_no}</span></div>}
         </div>
         <div className="ticket-pay-note">
           <span style={{fontSize:18}}>💰</span>
-          <div><strong>Pay at the venue</strong>Cash or UPI accepted on arrival.</div>
+          {booking.paid_online
+            ? <div><strong>{Number(booking.balance_due) > 0 ? `Pay ${inr(booking.balance_due)} at the venue` : 'Fully paid'}</strong>{Number(booking.balance_due) > 0 ? 'Cash or UPI on arrival. Your advance is received.' : 'Nothing more to pay.'}</div>
+            : <div><strong>Pay at the venue</strong>Cash or UPI accepted on arrival.</div>}
         </div>
         <div className="ticket-actions">
           <a className="ticket-btn" href={VENUE.maps} target="_blank" rel="noopener">📍 Get directions</a>
           <a className="ticket-btn" href={buildCalendarLink(booking)} target="_blank" rel="noopener">📅 Add to calendar</a>
           <a className="ticket-btn" href={`tel:${VENUE.phone.replace(/\s/g,'')}`}>📞 Call venue</a>
           <button className="ticket-btn" onClick={copyShare}>{copied?'✓ Copied!':'📤 Share details'}</button>
+          {booking.invoice_url && <a className="ticket-btn" href={booking.invoice_url} target="_blank" rel="noopener">🧾 GST invoice</a>}
+          {booking.manage_url && <a className="ticket-btn" href={booking.manage_url}>⚙️ Manage / cancel</a>}
         </div>
       </div>
       <div style={{textAlign:'center',marginTop:32}}>
@@ -849,10 +1091,13 @@ function ConfirmationTicket({ booking, onReset }){
   );
 }
 
-function Features(){
+function Features({ payCfg }){
+  const online = payCfg && payCfg.online;
   const items = [
     { ic:'⚡', title:'Live availability', text:'See exactly which slots are open. No back-and-forth on calls.' },
-    { ic:'💰', title:'Pay at venue',      text:'No advance payment. Cash or UPI when you show up.' },
+    online
+      ? { ic:'🔒', title:'Instant confirmation', text:`₹${payCfg.advance} advance online locks your slot. Rest at the venue. Free cancellation up to ${payCfg.refund_cutoff_hours} hours before.` }
+      : { ic:'💰', title:'Pay at venue',      text:'No advance payment. Cash or UPI when you show up.' },
     { ic:'🎯', title:'Pick your game',    text:'Every game we run is bookable right here, with live prices.' },
     { ic:'📅', title:'15-day window',     text:'Book today or two weeks out. Plan ahead without stress.' }
   ];
@@ -913,11 +1158,142 @@ function VenueInfo(){
   );
 }
 
+function ManageBooking({ id, token, onDone }){
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [result, setResult] = useState(null);
+
+  async function load(){
+    setErr(null);
+    try { setData(await API.get('getManagedBooking', { id, t: token })); }
+    catch(e){ setErr(e.message); }
+  }
+  useEffect(()=>{ load(); }, [id, token]);
+
+  async function cancel(){
+    setBusy(true);
+    try { const r = await API.post('cancelMyBooking', { id, t: token }); setResult(r); setConfirming(false); load(); }
+    catch(e){ setErr(e.message); setConfirming(false); }
+    finally { setBusy(false); }
+  }
+
+  const b = data && data.booking;
+  const t = data && data.terms;
+  const sm = data && data.sport_meta;
+  const timeText = b ? (sm && sm.pricing_mode === 'session' ? `${startTime12(b.slot_time)} · ${sm.session_qty * (b.duration_hrs||1)} ${sm.session_unit}` : b.slot_time) : '';
+  const statusText = b ? ({ confirmed:'Confirmed', cancelled:'Cancelled', pending_payment:'Awaiting payment', expired:'Not completed' }[b.status] || b.status) : '';
+  return (
+    <section className="section" id="book" style={{paddingTop:120}}>
+      <div className="section-head" style={{textAlign:'center'}}>
+        <span className="section-eyebrow">Your booking</span>
+        <h2 className="section-h2">Manage<br/><span className="lime">booking.</span></h2>
+      </div>
+      <div className="manage-card anim-rise">
+        {!data && !err && <div className="loading-block"><Spinner/></div>}
+        {err && !data && <div className="empty-block"><div className="empty-title">Couldn't open this booking</div><div style={{fontSize:13}}>{err}</div></div>}
+        {b && <>
+          <div className="ticket-row"><span className="ticket-label">Booking ID</span><span className="ticket-value mono">{b.booking_id}</span></div>
+          <div className="ticket-row"><span className="ticket-label">Status</span><span className="ticket-value" style={{color: b.status==='confirmed' ? 'var(--lime)' : '#fca5a5'}}>{statusText}</span></div>
+          <div className="ticket-row"><span className="ticket-label">Sport</span><span className="ticket-value">{data.sport_name}</span></div>
+          <div className="ticket-row"><span className="ticket-label">Date</span><span className="ticket-value">{dateLong(b.booking_date)}</span></div>
+          <div className="ticket-row"><span className="ticket-label">Time</span><span className="ticket-value">{timeText}</span></div>
+          <div className="ticket-row"><span className="ticket-label">Total (incl. GST)</span><span className="ticket-value">{inr(b.amount)}</span></div>
+          {Number(b.amount_paid) > 0 && <div className="ticket-row"><span className="ticket-label">Paid</span><span className="ticket-value">{inr(b.amount_paid)}</span></div>}
+          {b.status === 'confirmed' && Number(b.balance_due) > 0 && <div className="ticket-row"><span className="ticket-label">Pay at venue</span><span className="ticket-value">{inr(b.balance_due)}</span></div>}
+          {Number(b.refund_amount) > 0 && <div className="ticket-row"><span className="ticket-label">Refund</span><span className="ticket-value">{inr(b.refund_amount)} · {b.refund_status === 'processed' ? 'processed' : 'in progress (5-7 working days)'}</span></div>}
+
+          {result && <div className="pay-status info">{result.refunded > 0 ? `Cancelled. ${inr(result.refunded)} is being refunded to your original payment method (5-7 working days).` : 'Cancelled. No refund applies to this booking.'}</div>}
+          {err && <div className="pay-status err">{err}</div>}
+
+          <div className="manage-actions">
+            {data.invoice_url && <a className="btn-secondary" style={{justifyContent:'center'}} href={data.invoice_url} target="_blank" rel="noopener">View GST invoice</a>}
+            <a className="btn-secondary" style={{justifyContent:'center'}} href={VENUE.maps} target="_blank" rel="noopener">Venue location</a>
+            {t && t.can_cancel && !confirming && (
+              <>
+                <div className="field-hint" style={{textAlign:'center',fontSize:12}}>
+                  {t.refund > 0 ? `Cancel now and get ${inr(t.refund)} back.` : `This is within ${t.cutoff_hours} hours of your slot, so the advance can't be refunded.`}
+                </div>
+                <button className="btn-danger" onClick={()=>setConfirming(true)}>Cancel booking</button>
+              </>
+            )}
+            {confirming && (
+              <div className="pay-status err" style={{textAlign:'center'}}>
+                <div style={{marginBottom:12,fontWeight:700}}>Cancel this booking? {t.refund > 0 ? `${inr(t.refund)} will be refunded.` : 'No refund applies.'}</div>
+                <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
+                  <button className="btn-danger" disabled={busy} onClick={cancel}>{busy ? 'Cancelling…' : 'Yes, cancel'}</button>
+                  <button className="btn-secondary" onClick={()=>setConfirming(false)}>Keep booking</button>
+                </div>
+              </div>
+            )}
+            {t && !t.can_cancel && b.status === 'confirmed' && <div className="field-hint" style={{textAlign:'center'}}>{t.reason} Call {VENUE.phone} for help.</div>}
+          </div>
+        </>}
+      </div>
+      <div style={{textAlign:'center',marginTop:28}}>
+        <button className="btn-secondary" onClick={onDone}>Book another slot</button>
+      </div>
+    </section>
+  );
+}
+
+function Policies({ payCfg }){
+  const cutoff = (payCfg && payCfg.refund_cutoff_hours) || 12;
+  const advance = (payCfg && payCfg.advance) || 300;
+  return (
+    <section className="section" id="policies">
+      <div className="section-head">
+        <span className="section-eyebrow">The fine print</span>
+        <h2 className="section-h2" style={{fontSize:'clamp(36px,5vw,56px)'}}>Policies.</h2>
+      </div>
+      <div className="policy-grid">
+        <div className="policy-card" id="refund-policy">
+          <h3>Cancellation &amp; refunds</h3>
+          <ul>
+            <li>A ₹{advance} advance is paid online to confirm a booking. The balance is paid at the venue.</li>
+            <li>Cancel at least {cutoff} hours before your slot for a full refund of the advance.</li>
+            <li>Cancellations within {cutoff} hours of the slot, and no-shows, are not refunded.</li>
+            <li>Refunds go back to the original payment method in 5-7 working days.</li>
+            <li>If we cancel (weather, maintenance), you get a full refund.</li>
+            <li>Cancel any time from the "Manage booking" link in your confirmation email.</li>
+          </ul>
+        </div>
+        <div className="policy-card" id="terms">
+          <h3>Terms of booking</h3>
+          <ul>
+            <li>Bookings are for the date, time and facility shown on your confirmation.</li>
+            <li>Please arrive on time; slots end on schedule and can't be extended into the next booking.</li>
+            <li>All prices include GST @ 18%. A GST tax invoice is issued for every paid booking.</li>
+            <li>Follow staff instructions and venue rules; damage to equipment may be charged.</li>
+            <li>For help, call {VENUE.phone} or email {VENUE.email}.</li>
+          </ul>
+        </div>
+        <div className="policy-card" id="privacy">
+          <h3>Privacy</h3>
+          <ul>
+            <li>We collect your name, phone and email only to manage your booking and send confirmations and invoices.</li>
+            <li>Payments are processed by Razorpay; we never see or store your card or UPI details.</li>
+            <li>We don't sell or share your details with anyone else.</li>
+            <li>To have your details removed, email {VENUE.email}.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Footer(){
   return (
     <footer className="footer">
       <div className="footer-inner">
         <div className="footer-copy">© {new Date().getFullYear()} {VENUE.name}. {VENUE.area}, {VENUE.city}.</div>
+        <div className="footer-links">
+          <a href="#refund-policy">Cancellation &amp; refunds</a>
+          <a href="#terms">Terms</a>
+          <a href="#privacy">Privacy</a>
+          <a href={VENUE.maps} target="_blank" rel="noopener">Location</a>
+        </div>
         <div className="footer-copy">Built with ❤️ for the players.</div>
       </div>
     </footer>
@@ -952,6 +1328,11 @@ function App(){
   const [toast, setToast] = useState({ show:false });
   const [sports, setSports] = useState(null);         // null = loading
   const [sportsError, setSportsError] = useState(null);
+  const [payCfg, setPayCfg] = useState(null);         // getVenueInfo().payments
+  const [manage, setManage] = useState(() => {
+    const q = new URLSearchParams(location.search);
+    return q.get('manage') && q.get('t') ? { id: q.get('manage'), t: q.get('t') } : null;
+  });
 
   async function loadSports(){
     setSportsError(null); setSports(null);
@@ -969,7 +1350,16 @@ function App(){
     } catch(_) { setLiveSlotsToday(0); }
   };
 
-  useEffect(()=>{ loadSports(); refreshSlotCount(); }, []);
+  useEffect(()=>{
+    loadSports(); refreshSlotCount();
+    API.get('getVenueInfo').then(v => setPayCfg(v.payments || { online:false }), () => setPayCfg({ online:false }));
+  }, []);
+
+  function leaveManage(){
+    setManage(null);
+    history.replaceState(null, '', location.pathname);
+    setTimeout(()=>document.getElementById('book')?.scrollIntoView({behavior:'smooth'}), 100);
+  }
 
   function complete(r){
     setBooking(r);
@@ -988,11 +1378,14 @@ function App(){
       <div className="stage-bg"><div className="orb orb-1"/><div className="orb orb-2"/><div className="orb orb-3"/></div>
       <div className="grain"/>
       <Nav/>
-      {!booking && <Hero liveSlotsToday={liveSlotsToday} sports={sports} sportsError={sportsError}/>}
-      {booking
-        ? <ConfirmationTicket booking={booking} onReset={reset}/>
-        : <BookingWidget sports={sports} sportsError={sportsError} onRetrySports={loadSports} onComplete={complete}/>}
-      {!booking && <><Features/><PricingCallout sports={sports} error={sportsError} onRetry={loadSports}/><VenueInfo/></>}
+      {manage ? <ManageBooking id={manage.id} token={manage.t} onDone={leaveManage}/> : <>
+        {!booking && <Hero liveSlotsToday={liveSlotsToday} sports={sports} sportsError={sportsError} payCfg={payCfg}/>}
+        {booking
+          ? <ConfirmationTicket booking={booking} onReset={reset}/>
+          : <BookingWidget sports={sports} sportsError={sportsError} onRetrySports={loadSports} onComplete={complete} payCfg={payCfg}/>}
+        {!booking && <><Features payCfg={payCfg}/><PricingCallout sports={sports} error={sportsError} onRetry={loadSports}/><VenueInfo/></>}
+      </>}
+      <Policies payCfg={payCfg}/>
       <Footer/>
       <Toast toast={toast} onClose={()=>setToast({show:false})}/>
     </>
