@@ -654,6 +654,9 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
     return ()=>{ cancelled = true; };
   }, [online, sportId, selectedSlot && selectedSlot.slot_id, effectiveDuration]);
 
+  // Load Razorpay's checkout script as soon as a slot is picked, so Pay opens instantly.
+  useEffect(()=>{ if (online && selectedSlot) loadRazorpay().catch(()=>{}); }, [online, !!selectedSlot]);
+
   async function applyCoupon(){
     const code = couponInput.trim().toUpperCase();
     if (!code || couponBusy) return;

@@ -100,7 +100,8 @@
     @keyframes drawerSlide { from { transform: translateX(100%); } to { transform: translateX(0); } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
-    .anim-up { animation: rise .2s ease both; }
+    /* backwards, not both: a transform left on the element would trap fixed-position popups inside it */
+    .anim-up { animation: rise .2s ease backwards; }
     .spin { animation: spin .8s linear infinite; }
     .pulse { animation: pulse 1.4s infinite; }
     .shake { animation: shake .4s; }
@@ -2567,7 +2568,7 @@ function CouponModal({ editing, sports, onClose, onSaved, err }){
     catch(e){ err(e.message); setBusy(false); }
   }
   const toggleSport = id => set('sports', f.sports.includes(id) ? f.sports.filter(x => x !== id) : [...f.sports, id]);
-  return (
+  return ReactDOM.createPortal(
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget && onClose()}>
       <div className="modal modal-inner" style={{ padding:24, maxWidth:560 }}>
         <div className="row" style={{ marginBottom:18 }}>
@@ -2614,7 +2615,8 @@ function CouponModal({ editing, sports, onClose, onSaved, err }){
           <button className="btn btn-primary" disabled={busy || !f.code || !f.discount_value} onClick={save}>{busy ? 'Saving…' : 'Save coupon'}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
