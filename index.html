@@ -332,6 +332,22 @@
     .coupon-applied{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.35);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#6ee7b7}
     .coupon-applied button{color:var(--text-2);font-size:12px;font-weight:700;text-decoration:underline}
     .coupon-err{font-size:12px;color:#fca5a5;margin:-6px 0 12px}
+    /* Offer bar + coupons modal */
+    .offer-bar{position:relative;z-index:60;background:linear-gradient(90deg,#14532d,#166534 50%,#14532d);color:#ecfdf5;font-size:13px;font-weight:600;display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;text-align:center}
+    .offer-bar b{font-family:var(--mono);letter-spacing:.08em;background:rgba(255,255,255,.14);border:1px dashed rgba(255,255,255,.55);border-radius:6px;padding:2px 8px}
+    .offer-bar button{color:#fff;text-decoration:underline;font-weight:800;font-size:13px}
+    .cp-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:120;display:grid;place-items:center;padding:16px}
+    .cp-modal{width:100%;max-width:480px;max-height:85vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px}
+    .cp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .cp-title{font-family:var(--display);font-size:22px;letter-spacing:.03em}
+    .cp-x{font-size:22px;color:var(--text-2);padding:2px 8px}
+    .cp-card{border:1.5px dashed var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .cp-off{font-weight:800;font-size:16px;color:var(--lime)}
+    .cp-desc{font-size:13px;color:var(--text-2);margin-top:2px}
+    .cp-meta{font-size:11.5px;color:var(--text-3);margin-top:6px;line-height:1.5}
+    .cp-code{font-family:var(--mono);font-weight:800;letter-spacing:.08em;font-size:13px;margin-top:6px}
+    .cp-use{padding:9px 14px;border-radius:99px;border:1.5px solid var(--lime);color:var(--lime);font-weight:800;font-size:12.5px;white-space:nowrap}
+    .cp-use:hover{background:var(--lime);color:#000}
     .policy-check{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-2);line-height:1.5;margin:4px 0 16px;cursor:pointer;text-align:left}
     .policy-check input{margin-top:3px;width:16px;height:16px;accent-color:var(--lime);flex-shrink:0}
     .policy-check a{color:var(--lime);text-decoration:underline}
@@ -437,7 +453,7 @@ function buildCalendarLink(b){
   return 'https://calendar.google.com/calendar/render?'+params.toString();
 }
 function buildShareText(b){
-  const when = isSession(b) ? `${startTime12(b.slot_time)} · ${sessionQty(b, b.duration_hrs)}` : b.slot_time;
+  const when = isSession(b) ? `${startTime12(b.slot_time)} · ${sessionQty(b, b.duration_hrs)}` : slotRange12(b.slot_time);
   return `${b.icon || '✅'} Booked at ${VENUE.name}!\n\n📅 ${dateLong(b.booking_date)}\n⏰ ${when}\n🎯 ${b.sport_name}\n\nBooking ID: ${b.booking_id}\n📍 Venue location: ${VENUE.maps}\nhttps://${VENUE.website}`;
 }
 
@@ -468,6 +484,66 @@ function Toast({ toast, onClose }){
   return <div className={`toast ${toast.isError?'err':''}`}><span>{toast.icon||(toast.isError?'⚠️':'✓')}</span><span>{toast.message}</span></div>;
 }
 
+function couponOff(c){
+  return c.discount_type === 'percent'
+    ? `${c.discount_value}% OFF${c.max_discount ? ` (up to ₹${c.max_discount})` : ''}`
+    : `₹${c.discount_value} OFF`;
+}
+function couponMeta(c){
+  const m = [];
+  if (c.first_booking_only) m.push('First booking only');
+  m.push(c.sports && c.sports.length ? 'On ' + c.sports.join(', ') : 'On any sport');
+  if (c.min_order) m.push('Min booking ₹' + c.min_order);
+  if (c.day_rule === 'weekday') m.push('Weekdays only');
+  if (c.day_rule === 'weekend') m.push('Weekends only');
+  if (c.valid_to) m.push('Valid till ' + dateNice(c.valid_to));
+  return m.join(' · ');
+}
+function useCoupon(code){
+  try { sessionStorage.setItem('hnr_coupon', code); } catch(_) {}
+  window.dispatchEvent(new CustomEvent('hnr-coupon', { detail: code }));
+  document.getElementById('book')?.scrollIntoView({behavior:'smooth'});
+}
+
+function OfferBar({ coupons }){
+  const [open, setOpen] = useState(false);
+  const [i, setI] = useState(0);
+  useEffect(()=>{
+    if (!coupons || coupons.length < 2) return;
+    const t = setInterval(()=>setI(x => (x + 1) % coupons.length), 4000);
+    return ()=>clearInterval(t);
+  }, [coupons && coupons.length]);
+  if (!coupons || !coupons.length) return null;
+  const c = coupons[i % coupons.length];
+  return (
+    <>
+      <div className="offer-bar" role="region" aria-label="Offers">
+        <span>🎉 <strong>{couponOff(c)}</strong>{c.first_booking_only ? ' on your first booking' : ''} — use code</span>
+        <b>{c.code}</b>
+        <button onClick={()=>setOpen(true)}>View all coupons</button>
+      </div>
+      {open && (
+        <div className="cp-backdrop" onClick={e=>e.target===e.currentTarget && setOpen(false)}>
+          <div className="cp-modal" role="dialog" aria-label="All coupons">
+            <div className="cp-head"><div className="cp-title">Available coupons</div><button className="cp-x" onClick={()=>setOpen(false)} aria-label="Close">×</button></div>
+            {coupons.map(x => (
+              <div className="cp-card" key={x.code}>
+                <div>
+                  <div className="cp-off">{couponOff(x)}</div>
+                  {x.description && <div className="cp-desc">{x.description}</div>}
+                  <div className="cp-code">{x.code}</div>
+                  <div className="cp-meta">{couponMeta(x)}</div>
+                </div>
+                <button className="cp-use" onClick={()=>{ setOpen(false); useCoupon(x.code); }}>Use code</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function Nav(){
   const scroll = () => document.getElementById('book')?.scrollIntoView({behavior:'smooth'});
   return (
@@ -493,6 +569,16 @@ function durationText(s, n){ return isSession(s) ? sessionQty(s, n) : `${n} hr${
 function startTime12(slotTime){
   const [h, m] = String(slotTime).split('-')[0].split(':').map(Number);
   return `${(h % 12) || 12}:${String(m || 0).padStart(2,'0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+// All times shown to customers are 12-hour. Stored slot_time stays "HH:MM-HH:MM".
+function time12(hhmm){
+  const [h, m] = String(hhmm).trim().split(':').map(Number);
+  if (isNaN(h)) return String(hhmm);
+  return `${(h % 12) || 12}:${String(m || 0).padStart(2,'0')} ${h % 24 >= 12 ? 'PM' : 'AM'}`;
+}
+function slotRange12(slotTime){
+  const p = String(slotTime || '').split(/\s*[–-]\s*/);
+  return p.length === 2 ? `${time12(p[0])} – ${time12(p[1])}` : time12(slotTime);
 }
 function priceLabel(s){
   const p = `₹${Number(s.price).toLocaleString('en-IN')}`;
@@ -577,6 +663,13 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
   const [coupon, setCoupon] = useState('');           // applied code
   const [couponErr, setCouponErr] = useState(null);
   const [couponBusy, setCouponBusy] = useState(false);
+  useEffect(()=>{
+    const fill = c => { if (c) { setCouponInput(String(c).toUpperCase()); setCouponErr(null); } };
+    try { fill(sessionStorage.getItem('hnr_coupon')); } catch(_) {}
+    const h = e => fill(e.detail);
+    window.addEventListener('hnr-coupon', h);
+    return ()=>window.removeEventListener('hnr-coupon', h);
+  }, []);
   const [agree, setAgree] = useState(false);
   const [payInfo, setPayInfo] = useState(null);       // { kind:'err'|'info', text }
 
@@ -892,9 +985,9 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
                       <div className="time-row"><span className="slot-time">{startTime12(h.slot_time)}</span></div>
                     ) : (
                       <div className="time-row">
-                        <span className="slot-time">{startT}</span>
+                        <span className="slot-time">{time12(startT)}</span>
                         <span className="slot-arrow">→</span>
-                        <span className="slot-time end">{endT}</span>
+                        <span className="slot-time end">{time12(endT)}</span>
                       </div>
                     )}
                     <div className="slot-price">₹{Number(h.price).toLocaleString('en-IN')}{isSession(sport) ? '' : ' / hr'}</div>
@@ -1061,7 +1154,7 @@ function ConfirmationTicket({ booking, onReset }){
           <div className="ticket-row"><span className="ticket-label">Booking ID</span><span className="ticket-value mono">{booking.booking_id}</span></div>
           <div className="ticket-row"><span className="ticket-label">Sport</span><span className="ticket-value big">{booking.sport_name}</span></div>
           <div className="ticket-row"><span className="ticket-label">Date</span><span className="ticket-value">{dateLong(booking.booking_date)}</span></div>
-          <div className="ticket-row"><span className="ticket-label">Time</span><span className="ticket-value big" style={{fontSize:20}}>{isSession(booking) ? startTime12(booking.slot_time) : booking.slot_time}</span></div>
+          <div className="ticket-row"><span className="ticket-label">Time</span><span className="ticket-value big" style={{fontSize:20}}>{isSession(booking) ? startTime12(booking.slot_time) : slotRange12(booking.slot_time)}</span></div>
           {isSession(booking) ? (
             <div className="ticket-row"><span className="ticket-label">Session</span><span className="ticket-value big">{sessionQty(booking, booking.duration_hrs)}</span></div>
           ) : booking.duration_hrs > 1 && (
@@ -1185,7 +1278,7 @@ function ManageBooking({ id, token, onDone }){
   const b = data && data.booking;
   const t = data && data.terms;
   const sm = data && data.sport_meta;
-  const timeText = b ? (sm && sm.pricing_mode === 'session' ? `${startTime12(b.slot_time)} · ${sm.session_qty * (b.duration_hrs||1)} ${sm.session_unit}` : b.slot_time) : '';
+  const timeText = b ? (sm && sm.pricing_mode === 'session' ? `${startTime12(b.slot_time)} · ${sm.session_qty * (b.duration_hrs||1)} ${sm.session_unit}` : slotRange12(b.slot_time)) : '';
   const statusText = b ? ({ confirmed:'Confirmed', cancelled:'Cancelled', pending_payment:'Awaiting payment', expired:'Not completed' }[b.status] || b.status) : '';
   return (
     <section className="section" id="book" style={{paddingTop:120}}>
@@ -1332,6 +1425,7 @@ function App(){
   const [sports, setSports] = useState(null);         // null = loading
   const [sportsError, setSportsError] = useState(null);
   const [payCfg, setPayCfg] = useState(null);         // getVenueInfo().payments
+  const [coupons, setCoupons] = useState([]);         // listPublicCoupons
   const [manage, setManage] = useState(() => {
     const q = new URLSearchParams(location.search);
     return q.get('manage') && q.get('t') ? { id: q.get('manage'), t: q.get('t') } : null;
@@ -1355,6 +1449,7 @@ function App(){
 
   useEffect(()=>{
     loadSports(); refreshSlotCount();
+    API.get('listPublicCoupons').then(c => setCoupons(Array.isArray(c) ? c : []), () => {});
     API.get('getVenueInfo').then(v => setPayCfg(v.payments || { online:false }), () => setPayCfg({ online:false }));
   }, []);
 
@@ -1380,6 +1475,7 @@ function App(){
     <>
       <div className="stage-bg"><div className="orb orb-1"/><div className="orb orb-2"/><div className="orb orb-3"/></div>
       <div className="grain"/>
+      <OfferBar coupons={coupons}/>
       <Nav/>
       {manage ? <ManageBooking id={manage.id} token={manage.t} onDone={leaveManage}/> : <>
         {!booking && <Hero liveSlotsToday={liveSlotsToday} sports={sports} sportsError={sportsError} payCfg={payCfg}/>}

@@ -384,7 +384,19 @@ function startTime12(slotTime){
   const [h, m] = String(slotTime).split('-')[0].split(':').map(Number);
   return `${(h % 12) || 12}:${String(m || 0).padStart(2,'0')} ${h >= 12 ? 'PM' : 'AM'}`;
 }
-function slotTimeText(sp, slotTime){ return isSession(sp) ? startTime12(slotTime) : slotTime; }
+// Every time shown in admin is 12-hour. Stored slot_time stays "HH:MM-HH:MM".
+function time12(hhmm){
+  const [h, m] = String(hhmm).trim().split(':').map(Number);
+  if (isNaN(h)) return String(hhmm);
+  return `${(h % 12) || 12}:${String(m || 0).padStart(2,'0')} ${h % 24 >= 12 ? 'PM' : 'AM'}`;
+}
+function slotRange12(slotTime){
+  const p = String(slotTime || '').split(/\s*[–-]\s*/);
+  return p.length === 2 ? `${time12(p[0])} – ${time12(p[1])}` : time12(slotTime);
+}
+function slotTimeText(sp, slotTime){ return isSession(sp) ? startTime12(slotTime) : slotRange12(slotTime); }
+// Payment mode is Cash or Online (older bookings may still say upi/card).
+function payModeLabel(m){ const v = String(m || '').toLowerCase(); return !v ? 'Unknown' : v === 'cash' ? 'Cash' : 'Online'; }
 function sportPriceText(s){
   return isSession(s) ? `${rupees(s.price_per_slot)} · ${sessionQty(s, 1)}`
                       : `${rupees(s.price_per_slot)} / hr${s.unit_label ? ` · ${s.unit_label}` : ''}`;
@@ -651,7 +663,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
     members_count: 1,
     amount: '',            // blank → server computes price_per_slot × hours
     payment_status:'pending',
-    payment_mode:''
+    payment_mode:'cash'
   });
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
@@ -700,7 +712,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
         members_count: parseInt(form.members_count,10)||1,
         amount: String(form.amount).trim() === '' ? undefined : parseInt(form.amount,10) || 0,
         payment_status: form.payment_status,
-        payment_mode: form.payment_mode
+        payment_mode: form.payment_status === 'paid' ? form.payment_mode : ''
       });
       onCreate(result);  // includes result.booking for optimistic UI
       onClose();
@@ -834,10 +846,8 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
             <div style={{ gridColumn:'span 2' }}>
               <label style={lblStyle}>Payment Mode</label>
               <select value={form.payment_mode} onChange={e=>setForm({...form, payment_mode:e.target.value})} style={inputStyle}>
-                <option value="">-- select --</option>
                 <option value="cash">Cash</option>
-                <option value="upi">UPI</option>
-                <option value="card">Card</option>
+                <option value="online">Online (UPI / card / transfer)</option>
               </select>
             </div>
           )}
@@ -1375,7 +1385,7 @@ function formatDateFull(iso){
 }
 function formatDateTime(ts){
   if (!ts) return '';
-  return new Date(ts).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'numeric', minute:'2-digit' });
+  return new Date(ts).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'numeric', minute:'2-digit', hour12:true });
 }
 
 const VENUE_MAPS = 'https://maps.app.goo.gl/N9pPgv9PESbgRMFY7';
@@ -1432,8 +1442,8 @@ function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit
     (isPaid
       ? 'Payment received, thank you!'
       : paid > 0
-        ? `Advance of ₹${paid.toLocaleString('en-IN')} received. Please pay the balance ₹${due.toLocaleString('en-IN')} at the venue (cash or UPI).`
-        : `Please pay ₹${amount.toLocaleString('en-IN')} at the venue (cash or UPI).`) +
+        ? `Advance of ₹${paid.toLocaleString('en-IN')} received. Please pay the balance ₹${due.toLocaleString('en-IN')} at the venue (cash or online).`
+        : `Please pay ₹${amount.toLocaleString('en-IN')} at the venue (cash or online).`) +
     `\n\nVenue location: ${VENUE_MAPS}`
   );
   const waUrl   = phoneDigits.length === 10 ? `https://wa.me/91${phoneDigits}?text=${waMessage}` : '#';
@@ -1513,8 +1523,8 @@ function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit
           <InfoRow label='Received' value={rupees(paid)}/>
           {!isCancelled && <InfoRow label='Due at venue' value={rupees(due)} highlight={due > 0}/>}
           {online && <InfoRow label='Razorpay payment' value={booking.rzp_payment_id} mono/>}
-          {booking.balance_method && <InfoRow label='Balance paid by' value={String(booking.balance_method).toUpperCase()}/>}
-          {!online && booking.payment_mode && <InfoRow label='Mode' value={String(booking.payment_mode).toUpperCase()}/>}
+          {booking.balance_method && <InfoRow label='Balance paid by' value={payModeLabel(booking.balance_method)}/>}
+          {!online && booking.payment_mode && <InfoRow label='Mode' value={payModeLabel(booking.payment_mode)}/>}
           {Number(booking.refund_amount) > 0 && <InfoRow label='Refund' value={`${rupees(booking.refund_amount)} · ${booking.refund_status || 'pending'}`}/>}
 
           {ledger && ledger.payments.length > 0 && (
@@ -1580,7 +1590,7 @@ function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:13, fontWeight:700 }}>{cfg.sport(b.sport).name} · {formatDateShort(b.booking_date)}</div>
                       <div style={{ fontSize:11.5, color:'var(--text-3)', marginTop:2 }}>
-                        {isSession(cfg.sport(b.sport)) ? `${startTime12(b.slot_time)} (${sessionQty(cfg.sport(b.sport), b.duration_hrs)})` : <>{b.slot_time}{b.duration_hrs > 1 ? ` (${b.duration_hrs}h)` : ''}</>}
+                        {isSession(cfg.sport(b.sport)) ? `${startTime12(b.slot_time)} (${sessionQty(cfg.sport(b.sport), b.duration_hrs)})` : <>{slotRange12(b.slot_time)}{b.duration_hrs > 1 ? ` (${b.duration_hrs}h)` : ''}</>}
                         {' · '}{rupees(b.amount)}
                       </div>
                     </div>
@@ -2397,7 +2407,7 @@ function PaymentsTab({ ok, err, onOpenBooking, payCfg }){
       )}
       <div className="kpis">
         <Kpi label="Received online" value={rupees(S.online_collected)} foot="Razorpay advances" icon="card"/>
-        <Kpi label="Collected at venue" value={rupees(S.venue_collected)} foot="Cash, UPI, card" icon="wallet"/>
+        <Kpi label="Collected at venue" value={rupees(S.venue_collected)} foot="Cash, Online" icon="wallet"/>
         <Kpi label="Refunds" value={rupees((S.refunded || 0) + (S.refunds_pending || 0))} foot={S.refunds_pending ? `${rupees(S.refunds_pending)} still processing` : 'All processed'} icon="undo"/>
         <Kpi label="Balance due (upcoming)" value={rupees(S.upcoming_balance_due)} foot="To collect at the venue" icon="clock" tone={S.upcoming_balance_due ? 'warning' : null}/>
       </div>
@@ -2415,9 +2425,9 @@ function PaymentsTab({ ok, err, onOpenBooking, payCfg }){
                   <tr key={a.booking_id} onClick={()=>onOpenBooking(a.booking_id)} style={{ cursor:'pointer' }}>
                     <td className="mono">{a.booking_id}</td>
                     <td><div className="strong">{a.customer_name}</div><div className="faint" style={{ fontSize:12 }}>{formatPhone(a.phone)}</div></td>
-                    <td>{cfg.sport(a.sport).name} · {formatDateShort(a.booking_date)} · {a.slot_time}</td>
+                    <td>{cfg.sport(a.sport).name} · {formatDateShort(a.booking_date)} · {slotRange12(a.slot_time)}</td>
                     <td className="num">{rupees(a.advance_amount)}</td>
-                    <td>{a.hold_expires_at ? new Date(a.hold_expires_at).toLocaleTimeString('en-IN', { hour:'numeric', minute:'2-digit' }) : '—'}</td>
+                    <td>{a.hold_expires_at ? new Date(a.hold_expires_at).toLocaleTimeString('en-IN', { hour:'numeric', minute:'2-digit', hour12:true }) : '—'}</td>
                     <td>{a.payment_failed_count > 0 ? <span className="pill p-danger">{a.payment_failed_count} failed</span> : <span className="pill p-info">Paying</span>}</td>
                   </tr>
                 ))}
@@ -2687,7 +2697,7 @@ function ReportsTab({ bookings, ok, err }){
   const tot = { bookings: live.length, value: live.reduce((s,b) => s + (Number(b.amount)||0), 0), collected: live.reduce((s,b) => s + collected(b), 0) };
 
   const bookingRows = list => list.map(b => ({
-    'Booking ID': b.booking_id, 'Booking date': b.booking_date, Time: b.slot_time, Sport: cfg.sport(b.sport).name, Resource: cfg.resourceLabel(b.resource),
+    'Booking ID': b.booking_id, 'Booking date': b.booking_date, Time: slotRange12(b.slot_time), Sport: cfg.sport(b.sport).name, Resource: cfg.resourceLabel(b.resource),
     Hours: Number(b.duration_hrs) || 1, Customer: b.customer_name, Phone: b.phone, Email: b.email || '', Source: b.source || 'admin', Status: b.status,
     'Payment status': b.payment_status, 'Total before coupon': Number(b.total_amount ?? b.amount) || 0, Coupon: b.coupon_code || '', Discount: Number(b.discount_amount) || 0,
     'Amount (incl. GST)': Number(b.amount) || 0, 'Paid online': b.rzp_payment_id ? Number(b.advance_amount) || 0 : 0, 'Collected total': collected(b),
@@ -2884,7 +2894,7 @@ function SettingsTab({ ok, err, setConfirm, onPayCfg }){
 }
 
 function CollectModal({ booking, due, onClose, onCollect }){
-  const [mode, setMode] = useState('upi');
+  const [mode, setMode] = useState('cash');
   const [busy, setBusy] = useState(false);
   return (
     <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget && onClose()}>
@@ -2895,7 +2905,7 @@ function CollectModal({ booking, due, onClose, onCollect }){
         </div>
         <div className="label" style={{ marginBottom:6 }}>Paid by</div>
         <div className="seg" style={{ marginBottom:20 }}>
-          {[['upi','UPI'],['cash','Cash'],['card','Card']].map(([k,l]) => <button key={k} className={mode===k?'on':''} onClick={()=>setMode(k)}>{l}</button>)}
+          {[['cash','Cash'],['online','Online']].map(([k,l]) => <button key={k} className={mode===k?'on':''} onClick={()=>setMode(k)}>{l}</button>)}
         </div>
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
           <button className="btn" onClick={onClose}>Cancel</button>
@@ -3350,7 +3360,7 @@ function App(){
     const when = (dateFilter === 'today' || dateFilter === 'tomorrow') ? formatDateFull(formatDateISO(d))
                : dateFilter === 'week' ? 'Next 7 days' : 'All dates';
     const sportPart = sportFilter === 'all' ? '' : ` · ${cfg.sport(sportFilter).name}`;
-    document.body.setAttribute('data-print-date', `${when}${sportPart} · printed ${new Date().toLocaleString('en-IN', { day:'numeric', month:'short', hour:'numeric', minute:'2-digit' })}`);
+    document.body.setAttribute('data-print-date', `${when}${sportPart} · printed ${new Date().toLocaleString('en-IN', { day:'numeric', month:'short', hour:'numeric', minute:'2-digit', hour12:true })}`);
     window.print();
   }
 
@@ -3550,7 +3560,7 @@ function App(){
             <div className="page-sub">{formatDateLong()} · {current.sub}</div>
           </div>
           <div className="topbar-actions">
-            <div className="hide-sm" title={lastSync ? `Auto-refreshing every ${REFRESH_INTERVAL_MS/1000}s · last sync ${lastSync.toLocaleTimeString('en-IN')}` : 'Connecting…'}
+            <div className="hide-sm" title={lastSync ? `Auto-refreshing every ${REFRESH_INTERVAL_MS/1000}s · last sync ${lastSync.toLocaleTimeString('en-IN', { hour12:true })}` : 'Connecting…'}
               style={{ display:'flex', alignItems:'center', gap:7, fontSize:12, color:'var(--text-3)', padding:'0 10px', height:36, border:'1px solid var(--border)', borderRadius:8, background:'var(--surface)', fontWeight:600 }}>
               {refreshing ? <Spinner small/> : <span className="live-dot-green"></span>}
               <span>{refreshing ? 'Syncing' : `Live · ${lastSync ? relativeTime(lastSync, now) : 'syncing'}`}</span>
@@ -3988,7 +3998,7 @@ function App(){
                     )}
                     {Object.entries(revenue.by_payment_mode || {}).map(([mode, val]) => (
                       <div key={mode} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--border-subtle)' }}>
-                        <span style={{ textTransform:'capitalize', fontSize:13 }}>{mode || 'Unknown'}</span>
+                        <span style={{ fontSize:13 }}>{mode === 'razorpay' ? 'Online advance (Razorpay)' : payModeLabel(mode)}</span>
                         <span style={{ fontWeight:700, fontSize:13 }}>₹{(parseFloat(val)||0).toLocaleString('en-IN')}</span>
                       </div>
                     ))}
@@ -4116,7 +4126,7 @@ function SlotCard({ group, resources, onBlock, onUnblock, onCancel }){
   return (
     <div className="slot-card-mobile" style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:14, boxShadow:'0 1px 3px rgba(0,0,0,.04)' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-        <div style={{ fontFamily:'monospace', fontSize:14, fontWeight:800 }}>{slot_time}</div>
+        <div style={{ fontFamily:'monospace', fontSize:14, fontWeight:800 }}>{slotRange12(slot_time)}</div>
       </div>
 
       {resources.filter(r => byRes[r.resource_id]).map(r => {
