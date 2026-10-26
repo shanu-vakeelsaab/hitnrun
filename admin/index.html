@@ -1396,8 +1396,19 @@ function invoiceLink(no, pdf){
 }
 const LEDGER_LABEL = {
   captured:['Received','p-success'], collected:['Collected','p-success'], failed:['Failed','p-danger'],
-  refund_pending:['Refund pending','p-warning'], refunded:['Refunded','p-muted'], refund_failed:['Refund failed','p-danger']
+  refund_pending:['Refund pending','p-warning'], refunded:['Refunded','p-muted'], refund_failed:['Refund failed','p-danger'],
+  superseded:['Not completed','p-muted']
 };
+// A failed advance attempt on a booking whose advance was paid by another attempt
+// (customer switched UPI app / method inside the same checkout). Not a real failure.
+const SUPERSEDED_NOTE = 'Unfinished attempt. Customer paid with another attempt, nothing was charged.';
+function paidBookingIds(payments){
+  return new Set((payments || []).filter(p => p.kind === 'advance' && p.status !== 'failed').map(p => p.booking_id));
+}
+function ledgerView(p, paidSet){
+  if (p.status === 'failed' && p.kind === 'advance' && paidSet.has(p.booking_id)) return { status:'superseded', note: SUPERSEDED_NOTE };
+  return { status: p.status, note: p.error || '' };
+}
 const KIND_LABEL = { advance:'Online advance', balance:'Balance at venue', full:'Paid at venue', refund:'Refund' };
 
 function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit, onCancel, onChanged, ok, err }){
@@ -1529,19 +1540,21 @@ function BookingDetailDrawer({ booking, allBookings, onClose, onMarkPaid, onEdit
 
           {ledger && ledger.payments.length > 0 && (
             <div style={{ marginTop:10, border:'1px solid var(--border-subtle)', borderRadius:8, overflow:'hidden' }}>
-              {ledger.payments.map(p => {
-                const [lbl, cls] = LEDGER_LABEL[p.status] || [p.status, 'p-muted'];
+              {(() => { const paidSet = paidBookingIds(ledger.payments); return ledger.payments.map(p => {
+                const v = ledgerView(p, paidSet);
+                const [lbl, cls] = LEDGER_LABEL[v.status] || [v.status, 'p-muted'];
                 return (
                   <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderBottom:'1px solid var(--border-subtle)', fontSize:12.5 }}>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontWeight:700 }}>{KIND_LABEL[p.kind] || p.kind} · {String(p.method || p.provider).toUpperCase()}</div>
-                      <div className="faint" style={{ fontSize:11.5 }}>{formatDateTime(p.created_at)}{p.error ? ' · ' + p.error : ''}</div>
+                      <div className="faint" style={{ fontSize:11.5 }}>{formatDateTime(p.created_at)}{v.note ? ' · ' + v.note : ''}</div>
+                      {(p.rzp_refund_id || p.rzp_payment_id) && <div className="faint mono" style={{ fontSize:11 }}>{p.rzp_refund_id || p.rzp_payment_id}</div>}
                     </div>
                     <span className="money">{p.kind === 'refund' ? '−' : ''}{rupees(p.amount)}</span>
                     <span className={`pill ${cls}`}>{lbl}</span>
                   </div>
                 );
-              })}
+              }); })()}
             </div>
           )}
           {!isPending && (
@@ -2376,12 +2389,13 @@ function PaymentsTab({ ok, err, onOpenBooking, payCfg }){
   }, [range.from, range.to]);
   useEffect(()=>{ load(); }, [load]);
 
+  const paidSet = paidBookingIds(data ? data.payments : []);
   const rows = (data ? data.payments : []).filter(p =>
     filter === 'all' ? true :
     filter === 'online' ? p.provider === 'razorpay' && p.kind !== 'refund' :
     filter === 'venue' ? p.provider !== 'razorpay' :
     filter === 'refunds' ? p.kind === 'refund' :
-    filter === 'failed' ? p.status === 'failed' : true);
+    filter === 'failed' ? ledgerView(p, paidSet).status === 'failed' : true);
   const S = (data && data.summary) || {};
 
   async function exportXlsx(){
@@ -2390,8 +2404,8 @@ function PaymentsTab({ ok, err, onOpenBooking, payCfg }){
       await downloadExcel(`HitNRun-Payments-${range.from}-to-${range.to}.xlsx`, [{ name:'Payments', rows: (data.payments || []).map(p => ({
         'Date & time': formatDateTime(p.created_at), 'Booking ID': p.booking_id, Customer: p.booking?.customer_name || '', Phone: p.booking?.phone || '',
         Type: KIND_LABEL[p.kind] || p.kind, Provider: p.provider, Method: p.method || '', Amount: (p.kind === 'refund' ? -1 : 1) * Number(p.amount),
-        Status: (LEDGER_LABEL[p.status] || [p.status])[0], 'Razorpay payment ID': p.rzp_payment_id || '', 'Razorpay refund ID': p.rzp_refund_id || '',
-        'Booking date': p.booking?.booking_date || '', Note: p.error || p.note || ''
+        Status: (LEDGER_LABEL[ledgerView(p, paidSet).status] || [p.status])[0], 'Razorpay payment ID': p.rzp_payment_id || '', 'Razorpay refund ID': p.rzp_refund_id || '',
+        'Booking date': p.booking?.booking_date || '', Note: ledgerView(p, paidSet).note || p.note || ''
       })) }]);
     } catch(e){ err(e.message); }
     setBusy(false);
@@ -2459,7 +2473,8 @@ function PaymentsTab({ ok, err, onOpenBooking, payCfg }){
               <tbody>
                 {rows.length === 0 && <tr><td colSpan={7} className="empty">No transactions in this period.</td></tr>}
                 {rows.map(p => {
-                  const [lbl, cls] = LEDGER_LABEL[p.status] || [p.status, 'p-muted'];
+                  const v = ledgerView(p, paidSet);
+                  const [lbl, cls] = LEDGER_LABEL[v.status] || [v.status, 'p-muted'];
                   return (
                     <tr key={p.id} onClick={()=>onOpenBooking(p.booking_id)} style={{ cursor:'pointer' }}>
                       <td style={{ whiteSpace:'nowrap' }}>{formatDateTime(p.created_at)}</td>
@@ -2467,7 +2482,7 @@ function PaymentsTab({ ok, err, onOpenBooking, payCfg }){
                       <td>{KIND_LABEL[p.kind] || p.kind}</td>
                       <td>{String(p.method || p.provider).toUpperCase()}</td>
                       <td className="num money" style={{ color: p.kind === 'refund' ? 'var(--danger-text)' : 'var(--text)' }}>{p.kind === 'refund' ? '−' : ''}{rupees(p.amount)}</td>
-                      <td><span className={`pill ${cls}`}>{lbl}</span>{p.error && <div className="faint" style={{ fontSize:11.5, marginTop:2 }}>{p.error}</div>}</td>
+                      <td><span className={`pill ${cls}`}>{lbl}</span>{v.note && <div className="faint" style={{ fontSize:11.5, marginTop:2 }}>{v.note}</div>}</td>
                       <td className="mono faint hide-sm" style={{ fontSize:11.5 }}>{p.rzp_refund_id || p.rzp_payment_id || '—'}</td>
                     </tr>
                   );
