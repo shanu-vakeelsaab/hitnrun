@@ -396,7 +396,7 @@ function slotRange12(slotTime){
 }
 function slotTimeText(sp, slotTime){ return isSession(sp) ? startTime12(slotTime) : slotRange12(slotTime); }
 // Payment mode is Cash or Online (older bookings may still say upi/card).
-function payModeLabel(m){ const v = String(m || '').toLowerCase(); return !v ? 'Unknown' : v === 'cash' ? 'Cash' : 'Online'; }
+function payModeLabel(m){ const v = String(m || '').toLowerCase(); return !v ? 'Unknown' : v === 'cash' ? 'Cash' : v === 'pass' ? 'Pass' : 'Online'; }
 function sportPriceText(s){
   return isSession(s) ? `${rupees(s.price_per_slot)} · ${sessionQty(s, 1)}`
                       : `${rupees(s.price_per_slot)} / hr${s.unit_label ? ` · ${s.unit_label}` : ''}`;
@@ -669,8 +669,25 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
   const [err, setErr] = useState(null);
   const [availSlots, setAvailSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [passInfo, setPassInfo] = useState(null);   // checkPass → { covered, pass, reason }
+  const [usePass, setUsePass] = useState(true);
   const sport = cfg.sport(form.sport_id);
   useEffect(()=>{ if (!form.sport_id && sports[0]) setForm(f => ({ ...f, sport_id: sports[0].sport_id })); }, [sports.length]);
+
+  // Pass holder? Ask the server once phone + sport + date + duration are known.
+  useEffect(()=>{
+    const ph = normalizePhone(form.phone);
+    if (ph.length !== 10 || !form.sport_id) { setPassInfo(null); return; }
+    let cancelled = false;
+    const t = setTimeout(async ()=>{
+      try {
+        const r = await API.get('checkPass', { phone: ph, sport_id: form.sport_id, date: form.booking_date, duration_hrs: parseInt(form.duration_hrs,10) || 1 });
+        if (!cancelled) setPassInfo(r && r.pass ? r : null);
+      } catch(_) { if (!cancelled) setPassInfo(null); }
+    }, 400);
+    return ()=>{ cancelled = true; clearTimeout(t); };
+  }, [form.phone, form.sport_id, form.booking_date, form.duration_hrs]);
+  const passApplies = !!(passInfo && passInfo.covered && usePass && String(form.amount).trim() === '');
 
   useEffect(()=>{
     if (!form.sport_id) return;
@@ -712,7 +729,8 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
         members_count: parseInt(form.members_count,10)||1,
         amount: String(form.amount).trim() === '' ? undefined : parseInt(form.amount,10) || 0,
         payment_status: form.payment_status,
-        payment_mode: form.payment_status === 'paid' ? form.payment_mode : ''
+        payment_mode: form.payment_status === 'paid' ? form.payment_mode : '',
+        use_pass: usePass ? 'true' : 'false'
       });
       onCreate(result);  // includes result.booking for optimistic UI
       onClose();
@@ -853,6 +871,17 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
           )}
         </div>
         <div style={{ fontSize:11, color:'var(--text-3)', marginTop:6 }}>Leave Amount blank and the server charges the sport's hourly price × hours.</div>
+        {passInfo && passInfo.pass && (
+          <div style={{ marginTop:12, padding:'12px 14px', borderRadius:10, background: passInfo.covered ? 'var(--success-bg)' : 'var(--warning-bg)', color: passInfo.covered ? 'var(--success-text)' : 'var(--warning-text)', fontSize:13, lineHeight:1.5 }}>
+            <div style={{ fontWeight:800 }}>🎟️ {passInfo.pass.plan_label} · {passInfo.pass.member_id}{passInfo.pass.hours_left !== null ? ` · ${passInfo.pass.hours_left} hrs left` : ''}</div>
+            {passInfo.covered ? (
+              <label style={{ display:'flex', gap:8, alignItems:'center', marginTop:6, cursor:'pointer' }}>
+                <input type="checkbox" checked={usePass} onChange={e=>setUsePass(e.target.checked)}/>
+                <span>{passApplies ? 'Book on the pass — ₹0, marked paid (Pass).' : usePass ? 'Pass ignored because an amount is typed.' : 'Charge normally instead of using the pass.'}</span>
+              </label>
+            ) : <div style={{ marginTop:4 }}>{passInfo.reason || 'This pass does not cover the booking.'} Charging normally.</div>}
+          </div>
+        )}
 
         {err && <div style={{ background:'var(--danger-bg)', color:'var(--danger-text)', padding:'10px 14px', borderRadius:8, fontSize:13, marginTop:14 }}>{err}</div>}
 
@@ -1110,6 +1139,7 @@ function PassModal({ onClose, onCreate, editing }){
     members_list: editing.members_list || '',
     start_date: editing.start_date || formatDateISO(new Date()),
     amount_paid: editing.amount_paid || '',
+    hours_used: editing.hours_used ?? 0,
     notes: editing.notes || ''
   } : {
     plan_key: PLANS[0].key,
@@ -1144,6 +1174,7 @@ function PassModal({ onClose, onCreate, editing }){
           contact_email: form.contact_email.trim(),
           members_list: form.members_list.trim(),
           amount_paid: parseInt(form.amount_paid,10) || plan.price,
+          hours_used: editing.hours_quota > 0 ? Math.max(0, parseInt(form.hours_used,10) || 0) : undefined,
           notes: form.notes.trim()
         });
       } else {
@@ -1232,6 +1263,12 @@ function PassModal({ onClose, onCreate, editing }){
             <label style={lblStyle}>Amount Paid (₹)</label>
             <input type="number" value={form.amount_paid} onChange={e=>setForm({...form, amount_paid:e.target.value})} style={inputStyle}/>
           </div>
+          {editing && editing.hours_quota > 0 && (
+            <div>
+              <label style={lblStyle}>Hours Used (of {editing.hours_quota})</label>
+              <input type="number" min={0} max={editing.hours_quota} value={form.hours_used} onChange={e=>setForm({...form, hours_used:e.target.value})} style={inputStyle}/>
+            </div>
+          )}
           <div style={{ gridColumn: 'span 2' }}>
             <label style={lblStyle}>Members List</label>
             <textarea value={form.members_list} onChange={e=>setForm({...form, members_list:e.target.value})} placeholder="Comma-separated names" style={{...inputStyle, minHeight:60, resize:'vertical', fontFamily:'inherit'}}/>
@@ -3899,7 +3936,7 @@ function App(){
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:10 }}>
               <div>
                 <div style={{ fontSize:16, fontWeight:800 }}>Memberships & Passes</div>
-                <div style={{ fontSize:12, color:'var(--text-4)' }}>{members.length} active</div>
+                <div style={{ fontSize:12, color:'var(--text-4)' }}>{members.filter(m => m.status === 'active' && !m.is_expired).length} active · {members.length} total</div>
               </div>
               <button onClick={()=>{ setEditingMember(null); setShowPass(true); }} style={{ padding:'9px 16px', background:'var(--ink)', color:'var(--on-ink)', borderRadius:8, fontSize:13, fontWeight:700 }}>+ New Pass</button>
             </div>
@@ -3934,7 +3971,11 @@ function App(){
                         <Badge bg={m.category==='turf'?'var(--warning-bg)':'var(--info-bg)'} text={m.category==='turf'?'var(--warning-text)':'var(--info-text)'}>{m.category}</Badge>
                         <Badge bg={m.status==='active'&&!m.is_expired?'var(--success-bg)':'var(--danger-bg)'} text={m.status==='active'&&!m.is_expired?'var(--success-text)':'var(--danger-text)'}>{m.is_expired?'Expired':m.status}</Badge>
                         <span style={{ fontSize:11, color:'var(--text-3)' }}>{m.days_left>0?`${m.days_left} days left`:m.days_left===0?'Expires today':`Expired ${-m.days_left}d ago`}</span>
+                        {Number(m.hours_quota) > 0
+                          ? <span style={{ fontSize:11, fontWeight:700, color: (m.hours_quota - m.hours_used) > 0 ? 'var(--text-2)' : 'var(--danger-text)' }}>· {m.hours_used}/{m.hours_quota} hrs used</span>
+                          : <span style={{ fontSize:11, color:'var(--text-3)' }}>· unlimited hrs</span>}
                       </div>
+                      <div style={{ fontSize:11, color:'var(--text-4)', marginTop:6 }}>Bookings on {formatPhone(m.contact_phone)} for {m.category === 'turf' ? 'turf sports' : 'net practice'} are auto-covered (₹0, mode: Pass) — on the website and in walk-ins.</div>
                     </div>
                     <div style={{ fontSize:13, fontWeight:700, color:'var(--success-text)' }}>₹{parseInt(m.amount_paid||0).toLocaleString('en-IN')}</div>
                     <div style={{ display:'flex', gap:6 }}>

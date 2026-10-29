@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0a0d0a" />
+  <meta name="theme-color" content="#060807" />
   <title>Hit N Run Sports Arena · Book your turf in Dehradun</title>
   <meta name="description" content="Dehradun's premier multi-sport arena in Panditwari. Live availability, book online in 60 seconds, open daily. Pay at venue." />
   <link rel="icon" type="image/jpeg" href="/logo.jpeg" />
@@ -21,113 +21,185 @@
 
   <style>
     :root {
-      --bg:#0a0d0a; --bg-alt:#0e120e; --surface:#141914; --surface-2:#1a201a;
-      --border:#232a23; --text:#f5f5f4; --text-2:#a8a29e; --text-3:#57534e;
-      --lime:#c4f000; --lime-soft:#d9f99d; --lime-dim:#6b8a00;
-      --orange:#fbbf24; --success:#10b981; --danger:#ef4444; --info:#38bdf8;
+      /* Floodlight theme — black / logo green / white, red for the ball */
+      --bg:#060807; --bg-alt:#0c100d; --surface:#10150f; --surface-2:#161c15;
+      --border:#1f2a20; --border-2:#2b3a2c; --text:#f7f8f5; --text-2:#a7b0a6; --text-3:#5d6a5e;
+      --lime:#22e05a; --lime-soft:#8af0ad; --lime-dim:#0fa843; --lime-rgb:34,224,90;
+      --red:#e63946; --red-rgb:230,57,70;
+      --orange:#fbbf24; --success:#22e05a; --danger:#ef4444; --info:#38bdf8;
       --display:'Anton',system-ui,sans-serif; --body:'Outfit',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+      --ease:cubic-bezier(.16,1,.3,1); --spring:cubic-bezier(.34,1.56,.64,1);
+      --r:18px;
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{scroll-behavior:smooth}
     body{font-family:var(--body);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden;line-height:1.5}
+    body.locked{overflow:hidden}
     input,textarea,select,button{font-family:var(--body)}
     button{background:none;border:none;cursor:pointer;color:inherit}
     a{color:inherit;text-decoration:none}
+    ::selection{background:var(--lime);color:#000}
 
     ::-webkit-scrollbar{width:6px;height:6px}
     ::-webkit-scrollbar-track{background:var(--bg-alt)}
-    ::-webkit-scrollbar-thumb{background:#2a352a;border-radius:99px}
+    ::-webkit-scrollbar-thumb{background:#243126;border-radius:99px}
 
-    @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    /* ── Keyframes ── */
+    @keyframes rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
     @keyframes risefade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(196,240,0,.4)}50%{box-shadow:0 0 0 12px rgba(196,240,0,0)}}
-    @keyframes float-orb{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,-30px) scale(1.05)}66%{transform:translate(-30px,25px) scale(.95)}}
+    @keyframes pop{0%{opacity:0;transform:scale(.92) translateY(8px)}100%{opacity:1;transform:none}}
+    @keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(var(--lime-rgb),.45)}50%{box-shadow:0 0 0 14px rgba(var(--lime-rgb),0)}}
     @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-    @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
     @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-    .anim-rise{animation:rise .6s cubic-bezier(.16,1,.3,1) both}
-    .anim-rise-fast{animation:risefade .35s cubic-bezier(.16,1,.3,1) both}
-    .pulse-glow{animation:glow 2.4s infinite}
-    .live-dot{animation:blink 1.6s ease-in-out infinite}
+    @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    @keyframes stripes{from{background-position:0 0}to{background-position:160px 0}}
+    @keyframes floodlight{0%,100%{opacity:.55;transform:translateX(-50%) scale(1)}50%{opacity:.8;transform:translateX(-50%) scale(1.06)}}
+    @keyframes ballfly{0%{transform:translate(-40px,0) rotate(0)}50%{transform:translate(0,-26px) rotate(180deg)}100%{transform:translate(40px,0) rotate(360deg)}}
+    @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-14px) rotate(6deg)}}
+    @keyframes bob2{0%,100%{transform:translateY(0) rotate(8deg)}50%{transform:translateY(-18px) rotate(-10deg)}}
+    @keyframes shine{from{transform:translateX(-120%) skewX(-18deg)}to{transform:translateX(220%) skewX(-18deg)}}
+    @keyframes underline{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+    @keyframes tick{0%{transform:scale(.4) rotate(-20deg);opacity:0}60%{transform:scale(1.15) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+    @keyframes loading-bounce{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+    @keyframes pl-ball{0%{transform:translate(-120px,0) rotate(0)}30%{transform:translate(-40px,-52px) rotate(200deg)}55%{transform:translate(20px,0) rotate(380deg)}75%{transform:translate(70px,-22px) rotate(520deg)}100%{transform:translate(130px,0) rotate(720deg)}}
+    @keyframes pl-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+    @keyframes pl-out{to{transform:translateY(-100%);opacity:0}}
+    @keyframes pl-text{0%,100%{opacity:.4}50%{opacity:1}}
+    @keyframes pl-stump{0%,70%{transform:none}80%{transform:rotate(-12deg) translateX(-2px)}100%{transform:rotate(-30deg) translate(-6px,2px)}}
+    @keyframes shake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}
+
+    .anim-rise{animation:rise .7s var(--ease) both}
+    body.locked .anim-rise,body.locked .hero-h1 .accent::after,body.locked .ticker-track{animation-play-state:paused}
+    .anim-rise-fast{animation:risefade .4s var(--ease) both}
+    .anim-pop{animation:pop .45s var(--spring) both}
+    .pulse-glow{animation:glow 2.2s infinite}
+    .live-dot{animation:blink 1.4s ease-in-out infinite}
     .spin{animation:spin .9s linear infinite}
     .shimmer{background:linear-gradient(90deg,var(--surface) 0%,var(--surface-2) 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite}
+    .shake{animation:shake .5s both}
 
-    /* Visible loading on dark hero */
-    .loading-dot{
-      width:8px;height:8px;border-radius:50%;background:var(--lime);
-      display:inline-block;animation:loading-bounce 1s ease-in-out infinite;
-      box-shadow:0 0 12px rgba(196,240,0,.5)
-    }
-    @keyframes loading-bounce{
-      0%,100%{opacity:.3;transform:scale(.8)}
-      50%{opacity:1;transform:scale(1.1)}
-    }
+    /* Scroll reveal */
+    .reveal{opacity:0;transform:translateY(26px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+    .reveal.in{opacity:1;transform:none}
+    .reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}.reveal.d4{transition-delay:.32s}
 
-    .stage-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-    .orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18;animation:float-orb 16s ease-in-out infinite}
-    .orb-1{width:460px;height:460px;background:#c4f000;top:-120px;left:-100px}
-    .orb-2{width:380px;height:380px;background:#38bdf8;top:40%;right:-120px;animation-delay:-6s;opacity:.13}
-    .orb-3{width:320px;height:320px;background:#fbbf24;bottom:-60px;left:30%;animation-delay:-10s;opacity:.1}
-    .grain{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.04;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+    .loading-dot{width:8px;height:8px;border-radius:50%;background:var(--lime);display:inline-block;animation:loading-bounce 1s ease-in-out infinite;box-shadow:0 0 12px rgba(var(--lime-rgb),.5)}
 
-    /* Nav */
-    .nav{position:sticky;top:0;z-index:50;background:rgba(10,13,10,.7);backdrop-filter:blur(20px) saturate(1.2);border-bottom:1px solid rgba(255,255,255,.04)}
-    .nav-inner{max-width:1280px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+    /* ── Preloader ── */
+    .preloader{position:fixed;inset:0;z-index:1000;background:#050605;display:grid;place-items:center;overflow:hidden}
+    .preloader.out{animation:pl-out .7s var(--ease) forwards;pointer-events:none}
+    .pl-inner{display:flex;flex-direction:column;align-items:center;gap:22px}
+    .pl-logo{width:92px;height:92px;border-radius:22px;object-fit:cover;box-shadow:0 0 0 1px #1c261d,0 30px 80px rgba(var(--lime-rgb),.18)}
+    .pl-scene{position:relative;width:300px;height:90px}
+    .pl-ground{position:absolute;left:0;right:0;bottom:12px;height:2px;background:linear-gradient(90deg,transparent,var(--lime-dim) 20%,var(--lime) 50%,var(--lime-dim) 80%,transparent)}
+    .pl-ball{position:absolute;left:50%;bottom:16px;width:28px;height:28px;margin-left:-14px;animation:pl-ball 1.5s cubic-bezier(.45,0,.55,1) infinite}
+    .pl-stumps{position:absolute;right:52px;bottom:14px;display:flex;gap:5px;align-items:flex-end}
+    .pl-stumps i{display:block;width:5px;height:40px;background:linear-gradient(#f7f8f5,#b9c0b8);border-radius:3px 3px 0 0;transform-origin:bottom center}
+    .pl-stumps i:nth-child(3){animation:pl-stump 1.5s ease-in infinite}
+    .pl-bar{width:220px;height:3px;background:#161c17;border-radius:99px;overflow:hidden}
+    .pl-bar i{display:block;height:100%;background:var(--lime);transform-origin:left;animation:pl-bar 2.4s var(--ease) forwards}
+    .pl-text{font-family:var(--display);font-size:13px;letter-spacing:.32em;text-transform:uppercase;color:var(--text-2);animation:pl-text 1.2s ease-in-out infinite}
+    .pl-text b{color:var(--lime)}
+
+    /* ── Stage background ── */
+    .stage-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;background:
+      radial-gradient(1200px 600px at 50% -200px,rgba(var(--lime-rgb),.16),transparent 60%),
+      radial-gradient(800px 500px at 100% 100%,rgba(var(--red-rgb),.07),transparent 60%),
+      var(--bg)}
+    .flood{position:absolute;top:-340px;left:50%;width:1100px;height:720px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(var(--lime-rgb),.22),rgba(var(--lime-rgb),.06) 55%,transparent 72%);filter:blur(30px);animation:floodlight 9s ease-in-out infinite}
+    .pitch{position:absolute;inset:0;background-image:
+      linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:80px 80px;mask-image:radial-gradient(ellipse at 50% 0%,#000 10%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 50% 0%,#000 10%,transparent 70%)}
+    .stripes{position:absolute;inset:0;opacity:.06;background:repeating-linear-gradient(-55deg,transparent 0 60px,rgba(var(--lime-rgb),.9) 60px 62px);animation:stripes 6s linear infinite}
+    .grain{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.05;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+
+    /* ── Nav ── */
+    .nav{position:sticky;top:0;z-index:50;background:rgba(6,8,7,.72);backdrop-filter:blur(20px) saturate(1.3);border-bottom:1px solid rgba(255,255,255,.05)}
+    .nav-inner{max-width:1280px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
     .logo{display:flex;align-items:center;gap:10px}
-    .logo-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--lime) 0%,#94c800 100%);display:grid;place-items:center;font-size:16px;color:#000}
+    .logo img{height:46px;width:auto;border-radius:10px;transition:transform .4s var(--spring)}
+    .logo:hover img{transform:rotate(-6deg) scale(1.06)}
     .logo-text{font-family:var(--display);font-size:18px;letter-spacing:.04em}
     .logo-text small{font-family:var(--body);font-size:9px;font-weight:600;letter-spacing:.15em;color:var(--text-3);text-transform:uppercase;display:block;margin-top:-3px}
     .nav-cta{display:flex;align-items:center;gap:8px}
     .nav-link{font-size:13px;font-weight:600;color:var(--text-2);padding:8px 14px;border-radius:8px;transition:color .15s}
     .nav-link:hover{color:var(--text)}
-    .btn-cta{background:var(--lime);color:#000;padding:9px 18px;border-radius:99px;font-size:13px;font-weight:800;letter-spacing:.02em;transition:transform .15s,box-shadow .15s}
-    .btn-cta:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(196,240,0,.3)}
+    .btn-cta{background:var(--lime);color:#000;padding:9px 18px;border-radius:99px;font-size:13px;font-weight:800;letter-spacing:.02em;transition:transform .2s var(--spring),box-shadow .2s;position:relative;overflow:hidden}
+    .btn-cta:hover{transform:translateY(-1px) scale(1.03);box-shadow:0 8px 24px rgba(var(--lime-rgb),.35)}
+    .btn-ghost{background:transparent;color:var(--text);padding:8px 14px;border-radius:99px;border:1.5px solid var(--border-2);font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:7px;transition:border-color .15s,background .15s,transform .2s var(--spring)}
+    .btn-ghost:hover{border-color:var(--lime);background:rgba(var(--lime-rgb),.06);transform:translateY(-1px)}
+    .btn-ghost .avatar{width:22px;height:22px;border-radius:50%;background:var(--lime);color:#000;display:grid;place-items:center;font-size:11px;font-weight:900}
     @media (max-width:560px){
-      .nav-inner{padding:12px 16px}
+      .nav-inner{padding:10px 14px}
       .nav-link{display:none}
       .logo-text{font-size:15px}
-      .btn-cta{padding:7px 14px;font-size:12px}
+      .logo img{height:40px}
+      .btn-cta{padding:8px 13px;font-size:12px}
+      .btn-ghost{padding:7px 11px;font-size:12px}
+      .btn-ghost .lbl{display:none}
     }
 
-    /* Hero */
-    .hero{position:relative;z-index:2;min-height:calc(100vh - 60px);display:flex;flex-direction:column;justify-content:center;padding:80px 24px 60px;max-width:1280px;margin:0 auto}
+    /* ── Ticker ── */
+    .ticker{position:relative;z-index:2;overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(var(--lime-rgb),.05);padding:9px 0;user-select:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+    .ticker-track{display:flex;width:max-content;animation:marquee 28s linear infinite}
+    .ticker:hover .ticker-track{animation-play-state:paused}
+    .ticker span{font-family:var(--display);font-size:14px;letter-spacing:.22em;text-transform:uppercase;color:var(--text-2);padding:0 22px;display:inline-flex;align-items:center;gap:22px;white-space:nowrap}
+    .ticker span::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime)}
+
+    /* ── Hero ── */
+    .hero{position:relative;z-index:2;min-height:calc(100vh - 110px);display:flex;flex-direction:column;justify-content:center;padding:70px 24px 60px;max-width:1280px;margin:0 auto}
     @media (max-width:720px){
-      .hero{padding:40px 16px 40px;min-height:auto}
+      .hero{padding:40px 16px 36px;min-height:auto}
       .hero-h1{margin-bottom:18px!important}
       .hero-sub{margin-bottom:24px!important;font-size:14px!important}
-      .hero-ctas{margin-bottom:36px!important}
+      .hero-ctas{margin-bottom:34px!important}
       .btn-primary,.btn-secondary{padding:13px 22px!important;font-size:13px!important}
       .hero-stats{padding-top:22px!important;gap:10px!important}
       .hero-stat-num{font-size:28px!important}
       .hero-stat-lbl{font-size:9px!important}
+      .hero-art{display:none}
     }
-    .hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(196,240,0,.08);border:1px solid rgba(196,240,0,.2);border-radius:99px;font-size:11px;font-weight:700;color:var(--lime);letter-spacing:.15em;text-transform:uppercase;margin-bottom:28px;align-self:flex-start}
-    .hero-tag .live-dot{width:6px;height:6px;background:var(--lime);border-radius:50%}
-    .hero-h1{font-family:var(--display);font-size:clamp(56px,12vw,180px);line-height:.86;letter-spacing:-.02em;color:var(--text);margin-bottom:28px;text-transform:uppercase}
-    .hero-h1 .accent{background:linear-gradient(180deg,var(--lime) 0%,#94c800 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(var(--lime-rgb),.08);border:1px solid rgba(var(--lime-rgb),.25);border-radius:99px;font-size:11px;font-weight:700;color:var(--lime);letter-spacing:.15em;text-transform:uppercase;margin-bottom:28px;align-self:flex-start}
+    .hero-tag .live-dot{width:6px;height:6px;background:var(--lime);border-radius:50%;box-shadow:0 0 10px var(--lime)}
+    .hero-h1{font-family:var(--display);font-size:clamp(60px,12.5vw,190px);line-height:.86;letter-spacing:-.015em;color:var(--text);margin-bottom:28px;text-transform:uppercase;font-style:italic;transform:skewX(-4deg);transform-origin:left bottom}
+    .hero-h1 .accent{position:relative;display:inline-block;background:linear-gradient(180deg,var(--lime) 0%,var(--lime-dim) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-right:.08em}
+    .hero-h1 .accent::after{content:'';position:absolute;left:0;right:.1em;bottom:-.02em;height:.09em;background:var(--red);transform:scaleX(0);transform-origin:left;animation:underline .9s var(--ease) .7s forwards;border-radius:99px}
     .hero-sub{font-size:clamp(15px,1.6vw,19px);color:var(--text-2);max-width:580px;margin-bottom:36px;line-height:1.6}
     .hero-sub strong{color:var(--text);font-weight:600}
-    .hero-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:60px}
-    .btn-primary{background:var(--lime);color:#000;padding:16px 28px;border-radius:99px;font-size:14px;font-weight:800;letter-spacing:.03em;display:inline-flex;align-items:center;gap:10px;transition:transform .15s,box-shadow .2s}
-    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(196,240,0,.35)}
-    .btn-primary svg{transition:transform .2s}
-    .btn-primary:hover svg{transform:translateX(4px)}
-    .btn-secondary{background:transparent;color:var(--text);padding:16px 28px;border-radius:99px;border:1.5px solid var(--border);font-size:14px;font-weight:700;letter-spacing:.02em;display:inline-flex;align-items:center;gap:10px;transition:border-color .15s,background .15s}
-    .btn-secondary:hover{border-color:var(--text-2);background:rgba(255,255,255,.02)}
+    .hero-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:56px}
+    .btn-primary{position:relative;overflow:hidden;background:var(--lime);color:#000;padding:16px 28px;border-radius:99px;font-size:14px;font-weight:800;letter-spacing:.03em;display:inline-flex;align-items:center;gap:10px;transition:transform .25s var(--spring),box-shadow .2s}
+    .btn-primary::after,.btn-submit::after,.btn-cta::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);transform:translateX(-120%) skewX(-18deg)}
+    .btn-primary:hover::after,.btn-submit:hover:not(:disabled)::after,.btn-cta:hover::after{animation:shine .7s var(--ease)}
+    .btn-primary:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 14px 40px rgba(var(--lime-rgb),.38)}
+    .btn-primary:active{transform:scale(.98)}
+    .btn-primary svg{transition:transform .25s var(--spring)}
+    .btn-primary:hover svg{transform:translateX(5px)}
+    .btn-secondary{background:transparent;color:var(--text);padding:16px 28px;border-radius:99px;border:1.5px solid var(--border-2);font-size:14px;font-weight:700;letter-spacing:.02em;display:inline-flex;align-items:center;gap:10px;transition:border-color .15s,background .15s,transform .25s var(--spring)}
+    .btn-secondary:hover{border-color:var(--text-2);background:rgba(255,255,255,.03);transform:translateY(-1px)}
     .hero-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;max-width:780px;padding-top:32px;border-top:1px solid var(--border)}
-    .hero-stat-num{font-family:var(--display);font-size:38px;line-height:1;color:var(--lime);margin-bottom:4px;letter-spacing:.01em}
+    .hero-stat-num{font-family:var(--display);font-size:40px;line-height:1;color:var(--lime);margin-bottom:4px;letter-spacing:.01em}
     .hero-stat-lbl{font-size:11px;font-weight:600;color:var(--text-2);letter-spacing:.12em;text-transform:uppercase}
+    .hero-art{position:absolute;right:24px;top:50%;transform:translateY(-50%);width:min(34vw,420px);aspect-ratio:1;pointer-events:none;z-index:-1}
+    .hero-art .ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(var(--lime-rgb),.18);box-shadow:inset 0 0 80px rgba(var(--lime-rgb),.08)}
+    .hero-art .ring.r2{inset:14%;border-style:dashed;animation:spin 60s linear infinite}
+    .hero-art .ring.r3{inset:30%;border-color:rgba(var(--red-rgb),.25)}
+    .hero-art .ball{position:absolute;width:26%;left:8%;top:14%;animation:bob 5s ease-in-out infinite;filter:drop-shadow(0 20px 30px rgba(0,0,0,.6))}
+    .hero-art .foot{position:absolute;width:30%;right:4%;bottom:12%;animation:bob2 6.5s ease-in-out infinite;filter:drop-shadow(0 20px 30px rgba(0,0,0,.6))}
+    .hero-art .shuttle{position:absolute;width:16%;left:44%;bottom:0;animation:bob 7s ease-in-out -2s infinite}
 
-    /* Sections */
-    .section{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:80px 24px}
+    /* ── Sections ── */
+    .section{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:84px 24px}
     @media (max-width:720px){.section{padding:48px 16px} .section-head{margin-bottom:24px!important}}
     .section-head{margin-bottom:40px}
-    .section-eyebrow{display:inline-block;font-size:11px;font-weight:700;color:var(--lime);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px}
-    .section-h2{font-family:var(--display);font-size:clamp(40px,6.5vw,76px);line-height:.95;letter-spacing:-.01em;color:var(--text);text-transform:uppercase;margin-bottom:16px}
+    .section-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:700;color:var(--lime);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px}
+    .section-eyebrow::before{content:'';width:26px;height:2px;background:var(--lime);border-radius:99px}
+    .section-h2{font-family:var(--display);font-size:clamp(40px,6.5vw,76px);line-height:.95;letter-spacing:-.01em;color:var(--text);text-transform:uppercase;margin-bottom:16px;font-style:italic}
     .section-sub{font-size:16px;color:var(--text-2);max-width:620px;line-height:1.6}
 
-    /* Booking */
-    .booking-card{background:var(--surface);border:1px solid var(--border);border-radius:28px;padding:36px;position:relative}
+    /* ── Booking ── */
+    .booking-card{background:linear-gradient(180deg,var(--surface),var(--bg-alt));border:1px solid var(--border);border-radius:28px;padding:36px;position:relative;box-shadow:0 40px 120px rgba(0,0,0,.45)}
+    .booking-card::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(var(--lime-rgb),.35),transparent 40%,transparent 60%,rgba(var(--red-rgb),.25));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
     @media (max-width:720px){
       .booking-card{padding:18px 14px;border-radius:20px}
       .booking-step{margin-bottom:24px!important}
@@ -138,23 +210,23 @@
     .booking-step{margin-bottom:36px}
     .booking-step:last-child{margin-bottom:0}
     .step-label{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-    .step-num{width:26px;height:26px;border-radius:50%;background:var(--lime);color:#000;font-family:var(--mono);font-size:12px;font-weight:700;display:grid;place-items:center}
-    .step-num.dim{background:var(--border);color:var(--text-2)}
+    .step-num{width:28px;height:28px;border-radius:50%;background:var(--lime);color:#000;font-family:var(--mono);font-size:12px;font-weight:700;display:grid;place-items:center;box-shadow:0 0 0 4px rgba(var(--lime-rgb),.15)}
+    .step-num.dim{background:var(--border);color:var(--text-2);box-shadow:none}
     .step-title{font-family:var(--display);font-size:22px;letter-spacing:.02em;color:var(--text);text-transform:uppercase}
     .step-meta{margin-left:auto;font-size:12px;color:var(--text-2);font-weight:500}
 
     /* Date pills */
     .date-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
     .date-strip::-webkit-scrollbar{height:4px}
-    .date-pill{flex:0 0 auto;padding:12px 16px;background:var(--bg-alt);border:1.5px solid var(--border);border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:84px;transition:all .15s;scroll-snap-align:start}
-    .date-pill:hover{border-color:var(--text-3);transform:translateY(-1px)}
-    .date-pill.active{background:var(--lime);color:#000;border-color:var(--lime)}
+    .date-pill{flex:0 0 auto;padding:12px 16px;background:var(--bg-alt);border:1.5px solid var(--border);border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:84px;transition:transform .25s var(--spring),border-color .15s,background .15s;scroll-snap-align:start}
+    .date-pill:hover{border-color:var(--text-3);transform:translateY(-2px)}
+    .date-pill.active{background:var(--lime);color:#000;border-color:var(--lime);transform:translateY(-2px) scale(1.04);box-shadow:0 10px 28px rgba(var(--lime-rgb),.3)}
     .date-pill .d-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2)}
     .date-pill.active .d-label{color:#000}
     .date-pill .d-num{font-family:var(--display);font-size:26px;line-height:1;color:var(--text)}
     .date-pill.active .d-num{color:#000}
     .date-pill .d-wd{font-size:10px;color:var(--text-3);font-weight:600}
-    .date-pill.active .d-wd{color:rgba(0,0,0,.5)}
+    .date-pill.active .d-wd{color:rgba(0,0,0,.55)}
     @media (max-width:720px){
       .date-pill{min-width:64px;padding:9px 11px;border-radius:11px}
       .date-pill .d-label{font-size:9px}
@@ -165,23 +237,25 @@
     /* Sport selector */
     .sport-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     @media (max-width:560px){.sport-grid{grid-template-columns:1fr;gap:8px}}
-    .sport-card{background:var(--bg-alt);border:1.5px solid var(--border);border-radius:16px;padding:18px 16px;display:flex;align-items:center;gap:14px;transition:all .15s;text-align:left}
-    .sport-card:hover{border-color:var(--text-3);transform:translateY(-2px)}
-    .sport-card.active{background:var(--lime);color:#000;border-color:var(--lime);transform:translateY(-2px);box-shadow:0 12px 32px rgba(196,240,0,.2)}
-    .sport-card .ic{font-size:30px;flex-shrink:0}
+    .sport-card{position:relative;overflow:hidden;background:var(--bg-alt);border:1.5px solid var(--border);border-radius:16px;padding:18px 16px;display:flex;align-items:center;gap:14px;transition:transform .3s var(--spring),border-color .15s,background .2s,box-shadow .2s;text-align:left}
+    .sport-card:hover{border-color:var(--lime-dim);transform:translateY(-3px)}
+    .sport-card:hover .ic{transform:scale(1.2) rotate(-10deg)}
+    .sport-card.active{background:linear-gradient(135deg,var(--lime),var(--lime-dim));color:#000;border-color:var(--lime);transform:translateY(-3px);box-shadow:0 16px 40px rgba(var(--lime-rgb),.28)}
+    .sport-card.active::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:shine .9s var(--ease)}
+    .sport-card .ic{font-size:30px;flex-shrink:0;transition:transform .35s var(--spring)}
     .sport-card-text{flex:1;min-width:0}
     .sport-card .name{font-family:var(--display);font-size:17px;letter-spacing:.04em;text-transform:uppercase;line-height:1.1}
     .sport-card .price{font-size:11px;color:var(--text-2);font-weight:600;margin-top:3px}
-    .sport-card.active .price{color:rgba(0,0,0,.6)}
+    .sport-card.active .price{color:rgba(0,0,0,.62)}
 
     /* Slots */
     .slots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
     @media (max-width:720px){.slots-grid{grid-template-columns:repeat(3,1fr);gap:7px}}
     @media (max-width:380px){.slots-grid{grid-template-columns:repeat(2,1fr)}}
-    .slot-card{background:var(--bg-alt);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;transition:all .15s;text-align:left}
+    .slot-card{background:var(--bg-alt);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;transition:transform .3s var(--spring),border-color .15s,background .2s,box-shadow .2s;text-align:left;animation:pop .45s var(--spring) both}
     @media (max-width:720px){.slot-card{padding:11px 9px;border-radius:11px}}
-    .slot-card:hover{border-color:var(--lime);transform:translateY(-2px);box-shadow:0 8px 24px rgba(196,240,0,.08)}
-    .slot-card.active{background:var(--lime);color:#000;border-color:var(--lime);transform:translateY(-2px);box-shadow:0 12px 32px rgba(196,240,0,.3)}
+    .slot-card:hover{border-color:var(--lime);transform:translateY(-3px);box-shadow:0 10px 26px rgba(var(--lime-rgb),.1)}
+    .slot-card.active{background:var(--lime);color:#000;border-color:var(--lime);transform:translateY(-3px) scale(1.03);box-shadow:0 14px 36px rgba(var(--lime-rgb),.35)}
     .slot-card .time-row{display:flex;align-items:baseline;gap:6px;margin-bottom:6px;flex-wrap:wrap}
     .slot-time{font-family:var(--display);font-size:21px;letter-spacing:.02em;color:var(--text)}
     .slot-time.end{font-size:14px;opacity:.7}
@@ -192,18 +266,13 @@
     .slot-card.active .slot-price{color:#000}
     .slot-meta{font-size:10px;font-weight:700;color:var(--text-2);letter-spacing:.08em;text-transform:uppercase;margin-top:5px}
     .slot-card.active .slot-meta{color:rgba(0,0,0,.6)}
-    @media (max-width:720px){
-      .slot-time{font-size:16px}
-      .slot-time.end{font-size:12px}
-      .slot-price{font-size:11px}
-      .slot-meta{font-size:9px}
-    }
+    @media (max-width:720px){.slot-time{font-size:16px}.slot-time.end{font-size:12px}.slot-price{font-size:11px}.slot-meta{font-size:9px}}
 
     /* Duration picker */
     .duration-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:520px}
-    .duration-card{background:var(--bg-alt);border:1.5px solid var(--border);border-radius:14px;padding:16px 14px;transition:all .15s;text-align:center;cursor:pointer;color:var(--text)}
-    .duration-card:hover:not(.disabled){border-color:var(--lime);transform:translateY(-2px)}
-    .duration-card.active{background:var(--lime);color:#000;border-color:var(--lime);transform:translateY(-2px);box-shadow:0 12px 32px rgba(196,240,0,.3)}
+    .duration-card{background:var(--bg-alt);border:1.5px solid var(--border);border-radius:14px;padding:16px 14px;transition:transform .3s var(--spring),border-color .15s,background .2s;text-align:center;cursor:pointer;color:var(--text)}
+    .duration-card:hover:not(.disabled){border-color:var(--lime);transform:translateY(-3px)}
+    .duration-card.active{background:var(--lime);color:#000;border-color:var(--lime);transform:translateY(-3px) scale(1.03);box-shadow:0 14px 36px rgba(var(--lime-rgb),.3)}
     .duration-card.disabled{opacity:.35;cursor:not-allowed;background:transparent}
     .dur-h{font-family:var(--display);font-size:20px;letter-spacing:.02em;margin-bottom:4px}
     .dur-price{font-size:13px;font-weight:700;color:var(--lime)}
@@ -217,74 +286,85 @@
     .form-field.span-2{grid-column:span 2}
     @media (max-width:560px){.form-field.span-2{grid-column:span 1}}
     .form-label{display:block;font-size:11px;font-weight:700;color:var(--text-2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
-    .form-input{width:100%;padding:14px 16px;background:var(--bg-alt);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:500;transition:border-color .15s,background .15s;outline:none}
-    .form-input:focus{border-color:var(--lime);background:var(--bg)}
+    .form-input{width:100%;padding:14px 16px;background:var(--bg-alt);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:500;transition:border-color .15s,background .15s,box-shadow .15s;outline:none}
+    .form-input:focus{border-color:var(--lime);background:var(--bg);box-shadow:0 0 0 4px rgba(var(--lime-rgb),.12)}
     .form-input::placeholder{color:var(--text-3)}
     .field-hint{font-size:11px;color:var(--text-3);margin-top:6px}
 
-    /* Returning */
-    .return-banner{background:linear-gradient(135deg,rgba(196,240,0,.12) 0%,rgba(196,240,0,.04) 100%);border:1px solid rgba(196,240,0,.3);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;grid-column:span 2}
+    /* Returning / pass banners */
+    .return-banner{background:linear-gradient(135deg,rgba(var(--lime-rgb),.14) 0%,rgba(var(--lime-rgb),.04) 100%);border:1px solid rgba(var(--lime-rgb),.3);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;grid-column:span 2}
     @media (max-width:560px){.return-banner{grid-column:span 1}}
     .return-emoji{font-size:26px}
     .return-text{font-size:14px;color:var(--text)}
     .return-text strong{color:var(--lime)}
     .return-text .sub{font-size:12px;color:var(--text-2);display:block;margin-top:2px}
+    .pass-box{grid-column:1/-1;position:relative;overflow:hidden;background:linear-gradient(135deg,#0d2a16,#0a1a10);border:1.5px solid rgba(var(--lime-rgb),.5);border-radius:16px;padding:18px 20px;margin-top:4px;display:flex;gap:14px;align-items:center}
+    .pass-box::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);animation:shine 1.4s var(--ease)}
+    .pass-box .ic{font-size:30px}
+    .pass-box strong{display:block;color:var(--lime);font-family:var(--display);font-size:20px;letter-spacing:.03em;text-transform:uppercase}
+    .pass-box span{font-size:13px;color:var(--text-2)}
 
     /* Submit */
     .submit-row{margin-top:24px;display:flex;flex-direction:column;gap:10px}
-    .btn-submit{width:100%;padding:18px 28px;background:var(--lime);color:#000;border-radius:14px;font-family:var(--display);font-size:18px;letter-spacing:.04em;text-transform:uppercase;display:inline-flex;align-items:center;justify-content:center;gap:12px;transition:transform .15s,box-shadow .2s}
-    .btn-submit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 14px 40px rgba(196,240,0,.35)}
+    .btn-submit{position:relative;overflow:hidden;width:100%;padding:18px 28px;background:var(--lime);color:#000;border-radius:14px;font-family:var(--display);font-size:18px;letter-spacing:.04em;text-transform:uppercase;display:inline-flex;align-items:center;justify-content:center;gap:12px;transition:transform .25s var(--spring),box-shadow .2s}
+    .btn-submit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 18px 44px rgba(var(--lime-rgb),.38)}
+    .btn-submit:active:not(:disabled){transform:scale(.99)}
     .btn-submit:disabled{background:var(--border);color:var(--text-3);cursor:not-allowed}
     .submit-note{font-size:12px;color:var(--text-2);text-align:center}
 
     /* Loading */
     .loading-block{padding:50px 0;text-align:center}
-    .loading-spinner{display:inline-block;width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--lime);border-radius:50%}
+    .loading-spinner{display:inline-block;width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--lime);border-right-color:var(--red);border-radius:50%}
     .loading-spinner.small{width:18px;height:18px;border-width:2px}
-    .empty-block{padding:40px;text-align:center;color:var(--text-2);border:1.5px dashed var(--border);border-radius:16px}
+    .empty-block{padding:40px;text-align:center;color:var(--text-2);border:1.5px dashed var(--border-2);border-radius:16px}
     .empty-block .ic{font-size:38px;margin-bottom:10px}
     .empty-title{font-family:var(--display);font-size:20px;color:var(--text);letter-spacing:.03em;text-transform:uppercase;margin-bottom:6px}
 
     /* Ticket */
-    .ticket{max-width:540px;margin:0 auto;background:var(--surface);border:1.5px solid var(--lime);border-radius:24px;overflow:hidden;position:relative;box-shadow:0 24px 80px rgba(196,240,0,.15)}
-    .ticket-head{padding:36px 32px 24px;text-align:center;background:linear-gradient(180deg,rgba(196,240,0,.06) 0%,transparent 100%)}
-    .ticket-check{width:64px;height:64px;border-radius:50%;background:var(--lime);color:#000;display:inline-grid;place-items:center;font-size:32px;margin-bottom:20px;box-shadow:0 0 0 8px rgba(196,240,0,.15)}
+    .ticket{max-width:540px;margin:0 auto;background:var(--surface);border:1.5px solid var(--lime);border-radius:24px;overflow:hidden;position:relative;box-shadow:0 30px 90px rgba(var(--lime-rgb),.16)}
+    .ticket-head{padding:36px 32px 24px;text-align:center;background:linear-gradient(180deg,rgba(var(--lime-rgb),.08) 0%,transparent 100%)}
+    .ticket-check{width:68px;height:68px;border-radius:50%;background:var(--lime);color:#000;display:inline-grid;place-items:center;font-size:34px;margin-bottom:20px;box-shadow:0 0 0 8px rgba(var(--lime-rgb),.15);animation:tick .7s var(--spring) both}
     .ticket-title{font-family:var(--display);font-size:32px;letter-spacing:.02em;text-transform:uppercase;margin-bottom:6px}
     .ticket-sub{font-size:13px;color:var(--text-2)}
     .ticket-divider{position:relative;height:36px;padding:0 32px;display:flex;align-items:center}
     .ticket-divider::before,.ticket-divider::after{content:'';position:absolute;width:24px;height:24px;border-radius:50%;background:var(--bg);border:1.5px solid var(--lime);top:50%;transform:translateY(-50%)}
     .ticket-divider::before{left:-12px}
     .ticket-divider::after{right:-12px}
-    .ticket-divider .dash{flex:1;border-top:1.5px dashed var(--border)}
+    .ticket-divider .dash{flex:1;border-top:1.5px dashed var(--border-2)}
     .ticket-body{padding:8px 32px 32px}
-    .ticket-row{display:flex;justify-content:space-between;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--border)}
+    .ticket-row{display:flex;justify-content:space-between;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--border);gap:12px}
     .ticket-row:last-child{border-bottom:none}
     .ticket-label{font-size:10px;color:var(--text-2);letter-spacing:.15em;text-transform:uppercase;font-weight:700}
-    .ticket-value{font-size:16px;color:var(--text);font-weight:600}
+    .ticket-value{font-size:16px;color:var(--text);font-weight:600;text-align:right}
     .ticket-value.mono{font-family:var(--mono);font-size:14px}
     .ticket-value.big{font-family:var(--display);font-size:24px;letter-spacing:.02em}
     .ticket-actions{padding:0 32px 32px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .ticket-btn{padding:12px;border-radius:10px;background:var(--bg-alt);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
-    .ticket-btn:hover{background:var(--surface-2);border-color:var(--text-3)}
-    .ticket-pay-note{margin:16px 32px 0;background:rgba(196,240,0,.06);border:1px solid rgba(196,240,0,.2);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--lime-soft);display:flex;gap:10px;align-items:flex-start}
+    .ticket-btn{padding:12px;border-radius:10px;background:var(--bg-alt);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .2s var(--spring)}
+    .ticket-btn:hover{background:var(--surface-2);border-color:var(--lime-dim);transform:translateY(-2px)}
+    .ticket-pay-note{margin:16px 32px 0;background:rgba(var(--lime-rgb),.06);border:1px solid rgba(var(--lime-rgb),.22);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--lime-soft);display:flex;gap:10px;align-items:flex-start}
     .ticket-pay-note strong{color:var(--lime);display:block;margin-bottom:2px}
 
     /* Features */
     .features{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
     @media (max-width:900px){.features{grid-template-columns:repeat(2,1fr)}}
     @media (max-width:480px){.features{grid-template-columns:1fr}}
-    .feat-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px 22px;transition:border-color .15s,transform .15s}
-    .feat-card:hover{border-color:var(--lime);transform:translateY(-3px)}
-    .feat-ic{width:44px;height:44px;border-radius:12px;background:rgba(196,240,0,.1);border:1px solid rgba(196,240,0,.2);color:var(--lime);display:grid;place-items:center;font-size:20px;margin-bottom:16px}
+    .feat-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px 22px;transition:border-color .2s,transform .3s var(--spring),box-shadow .3s;overflow:hidden}
+    .feat-card::before{content:'';position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(closest-side,rgba(var(--lime-rgb),.22),transparent);opacity:0;transition:opacity .3s}
+    .feat-card:hover{border-color:var(--lime-dim);transform:translateY(-5px);box-shadow:0 24px 60px rgba(0,0,0,.4)}
+    .feat-card:hover::before{opacity:1}
+    .feat-ic{width:46px;height:46px;border-radius:13px;background:rgba(var(--lime-rgb),.1);border:1px solid rgba(var(--lime-rgb),.22);color:var(--lime);display:grid;place-items:center;font-size:21px;margin-bottom:16px;transition:transform .35s var(--spring)}
+    .feat-card:hover .feat-ic{transform:rotate(-8deg) scale(1.1)}
     .feat-title{font-family:var(--display);font-size:18px;letter-spacing:.03em;text-transform:uppercase;margin-bottom:8px}
     .feat-text{font-size:13px;color:var(--text-2);line-height:1.6}
 
-    /* Pricing callout */
+    /* Pricing */
     .price-callout{background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%);border:1.5px solid var(--border);border-radius:28px;padding:48px;overflow:hidden;position:relative}
+    .price-callout::after{content:'';position:absolute;right:-120px;top:-120px;width:360px;height:360px;border-radius:50%;background:radial-gradient(closest-side,rgba(var(--lime-rgb),.16),transparent);pointer-events:none}
     @media (max-width:720px){.price-callout{padding:28px 20px;border-radius:20px}}
-    .price-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px}
+    .price-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;position:relative}
     @media (max-width:720px){.price-grid{grid-template-columns:1fr;gap:14px}}
-    .price-tile{background:var(--bg-alt);border:1.5px solid var(--border);border-radius:18px;padding:24px 24px}
+    .price-tile{background:var(--bg-alt);border:1.5px solid var(--border);border-radius:18px;padding:24px 24px;transition:transform .3s var(--spring),border-color .2s}
+    .price-tile:hover{transform:translateY(-4px);border-color:var(--lime-dim)}
     .price-tile-tag{display:inline-block;font-size:10px;font-weight:700;color:var(--lime);letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px}
     .price-tile-title{font-family:var(--display);font-size:24px;letter-spacing:.02em;text-transform:uppercase;margin-bottom:10px}
     .price-tile-big{font-family:var(--display);font-size:48px;line-height:1;color:var(--lime);margin-bottom:6px}
@@ -295,7 +375,7 @@
     @media (max-width:800px){.venue-grid{grid-template-columns:1fr}}
     .venue-stat{display:flex;gap:16px;padding:18px 0;border-bottom:1px solid var(--border)}
     .venue-stat:last-child{border-bottom:none}
-    .venue-stat .ic{width:40px;height:40px;border-radius:10px;background:var(--surface);display:grid;place-items:center;font-size:18px;flex-shrink:0}
+    .venue-stat .ic{width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;font-size:18px;flex-shrink:0}
     .venue-stat-label{font-size:11px;color:var(--text-2);letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin-bottom:4px}
     .venue-stat-val{font-size:15px;color:var(--text);font-weight:500}
     .venue-stat-val a{color:var(--lime)}
@@ -306,7 +386,7 @@
     .footer-copy{font-size:12px;color:var(--text-3)}
 
     /* Toast */
-    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);padding:14px 22px;border-radius:99px;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:500;z-index:100;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-2);padding:14px 22px;border-radius:99px;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:500;z-index:300;box-shadow:0 24px 64px rgba(0,0,0,.5);animation:pop .4s var(--spring) both}
     .toast.err{border-color:var(--danger);background:rgba(239,68,68,.1);color:#fca5a5}
 
     /* Config error */
@@ -315,33 +395,35 @@
     .config-err pre{background:var(--surface);padding:14px 16px;border-radius:10px;font-size:12px;color:var(--lime);border:1px solid var(--border);overflow-x:auto;margin:14px 0;font-family:var(--mono)}
 
     .lime{color:var(--lime)}
+    .red{color:var(--red)}
     .mono{font-family:var(--mono)}
+
     /* ── Online payment, coupons, manage booking, policies ── */
     .pay-box{grid-column:1/-1;background:var(--bg-alt);border:1.5px solid var(--border);border-radius:16px;padding:18px 20px;margin-top:4px}
     .pay-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:5px 0;color:var(--text-2)}
     .pay-row strong{color:var(--text);font-weight:700}
-    .pay-row.total{border-top:1px dashed var(--border);margin-top:6px;padding-top:12px;font-size:15px}
+    .pay-row.total{border-top:1px dashed var(--border-2);margin-top:6px;padding-top:12px;font-size:15px}
     .pay-row.now{color:var(--text)}
     .pay-row.now strong{color:var(--lime);font-size:20px;font-family:var(--display);letter-spacing:.02em}
     .pay-row .disc{color:var(--success)}
     .pay-gst{font-size:11px;color:var(--text-3);margin-top:6px}
     .coupon-row{display:flex;gap:8px;margin-bottom:14px}
     .coupon-row .form-input{text-transform:uppercase;letter-spacing:.08em;font-weight:700}
-    .coupon-btn{padding:0 18px;border-radius:12px;border:1.5px solid var(--border);background:transparent;color:var(--text);font-weight:800;font-size:13px;white-space:nowrap}
+    .coupon-btn{padding:0 18px;border-radius:12px;border:1.5px solid var(--border-2);background:transparent;color:var(--text);font-weight:800;font-size:13px;white-space:nowrap}
     .coupon-btn:hover{border-color:var(--lime);color:var(--lime)}
-    .coupon-applied{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.35);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#6ee7b7}
+    .coupon-applied{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(var(--lime-rgb),.08);border:1px solid rgba(var(--lime-rgb),.35);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--lime-soft)}
     .coupon-applied button{color:var(--text-2);font-size:12px;font-weight:700;text-decoration:underline}
     .coupon-err{font-size:12px;color:#fca5a5;margin:-6px 0 12px}
-    /* Offer bar + coupons modal */
-    .offer-bar{position:relative;z-index:60;background:linear-gradient(90deg,#14532d,#166534 50%,#14532d);color:#ecfdf5;font-size:13px;font-weight:600;display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;text-align:center}
-    .offer-bar b{font-family:var(--mono);letter-spacing:.08em;background:rgba(255,255,255,.14);border:1px dashed rgba(255,255,255,.55);border-radius:6px;padding:2px 8px}
+    .offer-bar{position:relative;z-index:60;background:linear-gradient(90deg,#0b3d1e,#0fa843 50%,#0b3d1e);background-size:200% 100%;animation:shimmer 6s linear infinite;color:#ecfdf5;font-size:13px;font-weight:600;display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;text-align:center}
+    .offer-bar b{font-family:var(--mono);letter-spacing:.08em;background:rgba(0,0,0,.25);border:1px dashed rgba(255,255,255,.55);border-radius:6px;padding:2px 8px}
     .offer-bar button{color:#fff;text-decoration:underline;font-weight:800;font-size:13px}
-    .cp-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:120;display:grid;place-items:center;padding:16px}
-    .cp-modal{width:100%;max-width:480px;max-height:85vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px}
+    .cp-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:120;display:grid;place-items:center;padding:16px;animation:risefade .25s var(--ease)}
+    .cp-modal{width:100%;max-width:480px;max-height:85vh;overflow:auto;background:var(--surface);border:1px solid var(--border-2);border-radius:20px;padding:22px;animation:pop .4s var(--spring)}
     .cp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-    .cp-title{font-family:var(--display);font-size:22px;letter-spacing:.03em}
-    .cp-x{font-size:22px;color:var(--text-2);padding:2px 8px}
-    .cp-card{border:1.5px dashed var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .cp-title{font-family:var(--display);font-size:22px;letter-spacing:.03em;text-transform:uppercase}
+    .cp-x{font-size:22px;color:var(--text-2);padding:2px 8px;border-radius:8px;transition:background .15s}
+    .cp-x:hover{background:var(--surface-2)}
+    .cp-card{border:1.5px dashed var(--border-2);border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
     .cp-off{font-weight:800;font-size:16px;color:var(--lime)}
     .cp-desc{font-size:13px;color:var(--text-2);margin-top:2px}
     .cp-meta{font-size:11.5px;color:var(--text-3);margin-top:6px;line-height:1.5}
@@ -367,6 +449,67 @@
     .footer-links{display:flex;gap:16px;flex-wrap:wrap}
     .footer-links a{font-size:12px;color:var(--text-2)}
     .footer-links a:hover{color:var(--lime)}
+
+    /* ── My Account ── */
+    .acct-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);z-index:150;display:grid;place-items:center;padding:16px;animation:risefade .25s var(--ease)}
+    .acct-modal{width:100%;max-width:560px;max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--border-2);border-radius:24px;padding:26px;animation:pop .45s var(--spring);position:relative}
+    .acct-modal.wide{max-width:720px}
+    @media (max-width:560px){.acct-modal{padding:20px 16px;border-radius:18px;max-height:94vh}}
+    .acct-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+    .acct-title{font-family:var(--display);font-size:28px;letter-spacing:.02em;text-transform:uppercase;font-style:italic;line-height:1}
+    .acct-sub{font-size:13px;color:var(--text-2);margin-top:6px}
+    .otp-row{display:flex;gap:8px;justify-content:center;margin:18px 0 8px}
+    .otp-box{width:46px;height:56px;border-radius:12px;background:var(--bg-alt);border:1.5px solid var(--border-2);color:var(--text);font-family:var(--mono);font-size:24px;font-weight:700;text-align:center;outline:none;transition:border-color .15s,box-shadow .15s,transform .2s var(--spring)}
+    .otp-box:focus{border-color:var(--lime);box-shadow:0 0 0 4px rgba(var(--lime-rgb),.15);transform:translateY(-2px)}
+    .otp-box.filled{border-color:var(--lime-dim)}
+    @media (max-width:400px){.otp-box{width:40px;height:50px;font-size:20px}}
+    .acct-link{color:var(--lime);font-weight:700;font-size:13px;text-decoration:underline;background:none}
+    .acct-link:disabled{color:var(--text-3);text-decoration:none;cursor:default}
+    .acct-profile{display:flex;align-items:center;gap:14px;padding:16px 18px;background:linear-gradient(135deg,rgba(var(--lime-rgb),.12),transparent);border:1px solid rgba(var(--lime-rgb),.25);border-radius:16px;margin-bottom:18px}
+    .acct-avatar{width:48px;height:48px;border-radius:50%;background:var(--lime);color:#000;display:grid;place-items:center;font-family:var(--display);font-size:22px;flex-shrink:0}
+    .acct-name{font-family:var(--display);font-size:20px;letter-spacing:.02em;text-transform:uppercase;line-height:1.1}
+    .acct-meta{font-size:12px;color:var(--text-2);margin-top:3px;word-break:break-all}
+    .acct-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+    .acct-tab{padding:8px 14px;border-radius:99px;border:1.5px solid var(--border);font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-2);transition:all .2s var(--spring)}
+    .acct-tab.active{background:var(--lime);color:#000;border-color:var(--lime);transform:scale(1.04)}
+    .acct-tab b{margin-left:6px;opacity:.7}
+    .bk-card{background:var(--bg-alt);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;animation:pop .4s var(--spring) both;transition:border-color .2s,transform .25s var(--spring)}
+    .bk-card:hover{border-color:var(--border-2);transform:translateX(2px)}
+    .bk-card.cancelled{opacity:.55}
+    .bk-date{text-align:center;min-width:52px;padding:8px 6px;border-radius:12px;background:var(--surface);border:1px solid var(--border)}
+    .bk-date .d{font-family:var(--display);font-size:24px;line-height:1;color:var(--lime)}
+    .bk-date .m{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-2);margin-top:3px}
+    .bk-main .t{font-family:var(--display);font-size:17px;letter-spacing:.03em;text-transform:uppercase}
+    .bk-main .s{font-size:12px;color:var(--text-2);margin-top:2px}
+    .bk-main .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .tag{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;border:1px solid var(--border-2);color:var(--text-2)}
+    .tag.ok{color:var(--lime);border-color:rgba(var(--lime-rgb),.4);background:rgba(var(--lime-rgb),.08)}
+    .tag.warn{color:var(--orange);border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08)}
+    .tag.bad{color:#fca5a5;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08)}
+    .tag.pass{color:#000;background:var(--lime);border-color:var(--lime)}
+    .bk-amt{text-align:right}
+    .bk-amt .a{font-family:var(--display);font-size:20px;letter-spacing:.02em}
+    .bk-amt .l{font-size:10px;color:var(--text-3);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+    .bk-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:1px dashed var(--border)}
+    .bk-actions a,.bk-actions button{font-size:12px;font-weight:700;padding:8px 12px;border-radius:9px;background:var(--surface);border:1px solid var(--border);transition:all .2s var(--spring)}
+    .bk-actions a:hover,.bk-actions button:hover{border-color:var(--lime-dim);transform:translateY(-1px)}
+    @media (max-width:480px){.bk-card{grid-template-columns:auto 1fr}.bk-amt{grid-column:2;text-align:left}}
+    .pass-card{position:relative;overflow:hidden;background:linear-gradient(135deg,#0e2e18,#0a1a10);border:1.5px solid rgba(var(--lime-rgb),.45);border-radius:18px;padding:18px 20px;margin-bottom:12px;animation:pop .4s var(--spring) both}
+    .pass-card.off{background:var(--bg-alt);border-color:var(--border);opacity:.7}
+    .pass-card::before{content:'';position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(closest-side,rgba(var(--lime-rgb),.25),transparent)}
+    .pass-card .pt{font-family:var(--display);font-size:22px;letter-spacing:.03em;text-transform:uppercase;color:var(--lime)}
+    .pass-card.off .pt{color:var(--text-2)}
+    .pass-card .ps{font-size:12px;color:var(--text-2);margin-top:4px}
+    .pass-bar{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:12px}
+    .pass-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--lime-dim),var(--lime));border-radius:99px;transition:width 1s var(--ease)}
+    .pass-nums{display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);margin-top:6px}
+    .pass-nums b{color:var(--text)}
+
+    @media (prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+      .reveal{opacity:1;transform:none}
+      .ticker-track{animation:none}
+    }
   </style>
 </head>
 <body>
@@ -478,6 +621,115 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function Spinner({ small }){ return <span className={`loading-spinner ${small?'small':''} spin`}/>; }
 
+// ── Scroll reveal: any .reveal element animates in when it enters the viewport ──
+function useReveal(deps = []){
+  useEffect(()=>{
+    let io = null, off = null;
+    const setup = () => {
+      const els = Array.from(document.querySelectorAll('.reveal:not(.in)'));
+      if (!els.length) return;
+      if (!('IntersectionObserver' in window)) { els.forEach(el => el.classList.add('in')); return; }
+      io = new IntersectionObserver(entries => {
+        entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+      els.forEach(el => io.observe(el));
+    };
+    // Wait for the preloader to lift so the first reveals play in view
+    if (document.body.classList.contains('locked')) { off = () => setup(); window.addEventListener('hnr-ready', off, { once: true }); }
+    else setup();
+    return ()=>{ if (io) io.disconnect(); if (off) window.removeEventListener('hnr-ready', off); };
+  }, deps);
+}
+
+// Count-up for hero numbers
+function CountUp({ value, duration = 900 }){
+  const [n, setN] = useState(0);
+  useEffect(()=>{
+    const target = Number(value) || 0;
+    if (!target) { setN(0); return; }
+    let raf, start;
+    const step = t => {
+      if (!start) start = t;
+      const k = Math.min(1, (t - start) / duration);
+      const e = 1 - Math.pow(1 - k, 3);
+      setN(Math.round(target * e));
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return ()=>cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{n.toLocaleString('en-IN')}</>;
+}
+
+const BallSVG = ({ className }) => (
+  <svg className={className} viewBox="0 0 64 64" aria-hidden="true">
+    <defs><radialGradient id="bg1" cx="35%" cy="30%" r="75%"><stop offset="0" stopColor="#ff5a63"/><stop offset=".6" stopColor="#c8161f"/><stop offset="1" stopColor="#5a060a"/></radialGradient></defs>
+    <circle cx="32" cy="32" r="30" fill="url(#bg1)"/>
+    <path d="M22 4 C14 20 14 44 22 60" fill="none" stroke="#fff" strokeWidth="1.6" strokeDasharray="2.5 3" opacity=".9"/>
+    <path d="M42 4 C50 20 50 44 42 60" fill="none" stroke="#fff" strokeWidth="1.6" strokeDasharray="2.5 3" opacity=".9"/>
+  </svg>
+);
+const FootballSVG = ({ className }) => (
+  <svg className={className} viewBox="0 0 64 64" aria-hidden="true">
+    <defs><radialGradient id="fg1" cx="35%" cy="30%" r="75%"><stop offset="0" stopColor="#ffffff"/><stop offset=".7" stopColor="#d9dcd7"/><stop offset="1" stopColor="#6b7069"/></radialGradient></defs>
+    <circle cx="32" cy="32" r="30" fill="url(#fg1)"/>
+    <polygon points="32,20 43,28 39,41 25,41 21,28" fill="#111"/>
+    <polygon points="32,3 40,9 36,19 28,19 24,9" fill="#111" opacity=".9"/>
+    <polygon points="54,22 60,34 54,44 46,40 47,29" fill="#111" opacity=".9"/>
+    <polygon points="10,22 17,29 18,40 10,44 4,34" fill="#111" opacity=".9"/>
+    <polygon points="22,60 26,50 38,50 42,60 32,62" fill="#111" opacity=".9"/>
+  </svg>
+);
+
+const PRELOAD_MIN_MS = 1700;
+function Preloader({ ready }){
+  const [gone, setGone] = useState(false);
+  const [out, setOut] = useState(false);
+  useEffect(()=>{
+    document.body.classList.add('locked');
+    return ()=>document.body.classList.remove('locked');
+  }, []);
+  useEffect(()=>{
+    if (!ready) return;
+    const t = setTimeout(()=>{ setOut(true); document.body.classList.remove('locked'); window.dispatchEvent(new Event('hnr-ready')); setTimeout(()=>setGone(true), 700); }, 250);
+    return ()=>clearTimeout(t);
+  }, [ready]);
+  if (gone) return null;
+  return (
+    <div className={`preloader ${out?'out':''}`} aria-hidden="true">
+      <div className="pl-inner">
+        <img className="pl-logo" src="/logo.jpeg" alt=""/>
+        <div className="pl-scene">
+          <div className="pl-stumps"><i/><i/><i/></div>
+          <BallSVG className="pl-ball"/>
+          <div className="pl-ground"/>
+        </div>
+        <div className="pl-bar"><i/></div>
+        <div className="pl-text">Warming <b>up</b></div>
+      </div>
+    </div>
+  );
+}
+
+function Ticker({ sports }){
+  const items = (sports && sports.length ? sports.map(s => `${s.icon} ${s.name}`) : ['🏏 Cricket','⚽ Football','🏐 Volleyball','🥅 Net practice','🎯 Bowling machine'])
+    .concat([`📍 ${VENUE.area}, ${VENUE.city}`, '⚡ Live availability', '🕐 Open daily']);
+  const row = items.concat(items);
+  return (
+    <div className="ticker" aria-hidden="true">
+      <div className="ticker-track">{row.map((t, i) => <span key={i}>{t}</span>)}</div>
+    </div>
+  );
+}
+
+// ── My Account session (email OTP). Booking never needs this. ──
+const ACCT_KEY = 'hnr_account';
+function loadAccount(){
+  try { const a = JSON.parse(localStorage.getItem(ACCT_KEY) || 'null'); if (a && a.token && new Date(a.expires_at) > new Date()) return a; } catch(_) {}
+  return null;
+}
+function saveAccount(a){ try { a ? localStorage.setItem(ACCT_KEY, JSON.stringify(a)) : localStorage.removeItem(ACCT_KEY); } catch(_) {} }
+
 function Toast({ toast, onClose }){
   useEffect(()=>{ if(!toast?.show) return; const t=setTimeout(onClose,4000); return ()=>clearTimeout(t); },[toast?.show]);
   if(!toast?.show) return null;
@@ -544,17 +796,22 @@ function OfferBar({ coupons }){
   );
 }
 
-function Nav(){
+function Nav({ account, onAccount }){
   const scroll = () => document.getElementById('book')?.scrollIntoView({behavior:'smooth'});
+  const initial = account && account.name ? account.name.trim()[0].toUpperCase() : null;
   return (
     <nav className="nav">
       <div className="nav-inner">
         <a href="#" className="logo" onClick={e=>{e.preventDefault();window.scrollTo({top:0,behavior:'smooth'})}}>
-          <img src="/logo.jpeg" alt="Hit N Run Sports Arena" style={{height:48,width:'auto',borderRadius:8}} />
+          <img src="/logo.jpeg" alt="Hit N Run Sports Arena" />
           <span className="logo-text">{VENUE.name.split(' ').slice(0,3).join(' ')}<small>{VENUE.area}, {VENUE.city}</small></span>
         </a>
         <div className="nav-cta">
           <a className="nav-link" href={`tel:${VENUE.phone.replace(/\s/g,'')}`}>📞 {VENUE.phone}</a>
+          <button className="btn-ghost" onClick={onAccount} aria-label="My account">
+            {initial ? <span className="avatar">{initial}</span> : <span>👤</span>}
+            <span className="lbl">My Account</span>
+          </button>
           <button className="btn-cta" onClick={scroll}>Book Slot</button>
         </div>
       </div>
@@ -604,6 +861,11 @@ function Hero({ liveSlotsToday, sports, sportsError, payCfg }){
   const minPrice = priced.length ? Math.min(...priced.map(s => Number(s.price))) : null;
   return (
     <section className="hero">
+      <div className="hero-art" aria-hidden="true">
+        <div className="ring"/><div className="ring r2"/><div className="ring r3"/>
+        <BallSVG className="ball"/>
+        <FootballSVG className="foot"/>
+      </div>
       <div className="hero-tag anim-rise">
         <span className="live-dot"></span>
         <span>Live availability · {VENUE.area}, {VENUE.city}</span>
@@ -629,7 +891,7 @@ function Hero({ liveSlotsToday, sports, sportsError, payCfg }){
                 <span className="loading-dot"></span>
                 Loading
               </span>
-            ) : liveSlotsToday}
+            ) : <CountUp value={liveSlotsToday}/>}
           </div>
           <div className="hero-stat-lbl">{liveSlotsToday===null ? 'Checking availability…' : 'Slots open today'}</div>
         </div>
@@ -637,7 +899,7 @@ function Hero({ liveSlotsToday, sports, sportsError, payCfg }){
           <div className="hero-stat-num">{minPrice !== null ? `₹${minPrice.toLocaleString('en-IN')}` : sportsError ? '—' : '…'}</div>
           <div className="hero-stat-lbl">{minPrice === null ? 'Hourly rates' : hourly.length ? 'From / hour' : 'From'}</div>
         </div>
-        <div><div className="hero-stat-num">15</div><div className="hero-stat-lbl">Day booking window</div></div>
+        <div><div className="hero-stat-num"><CountUp value={15}/></div><div className="hero-stat-lbl">Day booking window</div></div>
       </div>
     </section>
   );
@@ -703,9 +965,9 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
       try {
         const r = await API.get('lookupCustomer', { phone: ph });
         if(cancelled || !r) return;
-        if(r.found){
+        if(r.found || r.pass){
           setReturning(r);
-          setForm(p => ({ ...p, name: p.name || r.customer_name, email: p.email || r.email || '' }));
+          if (r.found) setForm(p => ({ ...p, name: p.name || r.customer_name, email: p.email || r.email || '' }));
         } else { setReturning(null); }
       } catch(_) {}
     }, 500);
@@ -724,8 +986,11 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
   // lookupCustomer returns a sport_id; only ever show a public sport's name
   const lastSportName = returning && ((sports || []).find(s => s.id === returning.last_sport) || {}).name;
 
-  const canBook = sport && selectedSlot && form.name.trim() && normalizePhone(form.phone).length === 10 && isValidEmail(form.email)
-    && (!online || (agree && quote));
+  const phoneOk = normalizePhone(form.phone).length === 10;
+  // A weekly/monthly pass on this phone covers the booking: no advance, no Razorpay.
+  const passCovered = !!(quote && quote.pass_covered);
+  const canBook = sport && selectedSlot && form.name.trim() && phoneOk && isValidEmail(form.email)
+    && (!online || passCovered || (agree && quote));
 
   // Server price quote (with coupon) whenever the selection changes. The browser never computes money.
   async function fetchQuote(code){
@@ -736,8 +1001,10 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
     setQuote(r);
     return r;
   }
+  // Re-quoted when the phone becomes valid too, so a pass holder sees "covered" before paying.
   useEffect(()=>{
-    if (!online || !sport || !selectedSlot) { setQuote(null); return; }
+    if (!sport || !selectedSlot) { setQuote(null); return; }
+    if (!online && !phoneOk) { setQuote(null); return; }
     let cancelled = false;
     setQuote(null);
     fetchQuote(coupon).catch(e => {
@@ -745,7 +1012,7 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
       if (e.code === 'COUPON_INVALID' && coupon) { setCoupon(''); setCouponErr(e.message); fetchQuote('').catch(()=>{}); }
     });
     return ()=>{ cancelled = true; };
-  }, [online, sportId, selectedSlot && selectedSlot.slot_id, effectiveDuration]);
+  }, [online, sportId, selectedSlot && selectedSlot.slot_id, effectiveDuration, phoneOk]);
 
   // Load Razorpay's checkout script as soon as a slot is picked, so Pay opens instantly.
   useEffect(()=>{ if (online && selectedSlot) loadRazorpay().catch(()=>{}); }, [online, !!selectedSlot]);
@@ -821,7 +1088,7 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
       image: 'https://hitnrunarena.in/logo.jpeg',
       prefill: order.prefill,
       notes: { booking_id: order.booking_id },
-      theme: { color: '#c4f000' },
+      theme: { color: '#22e05a' },
       timeout: order.timeout,
       retry: { enabled: true, max_count: 3 },
       handler: async (resp) => {
@@ -860,7 +1127,7 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
   }
 
   async function submit(){
-    if (online) return payAndBook();
+    if (online && !passCovered) return payAndBook();
     if(!canBook || submitting) return;
     setSubmitting(true);
     setError(null);
@@ -884,26 +1151,29 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
         pricing_mode: sport.pricing_mode, session_qty: sport.session_qty, session_unit: sport.session_unit,
         members_count: parseInt(form.members,10) || 1,
         customer_name: form.name.trim(),
-        email: form.email.trim()
+        email: form.email.trim(),
+        on_pass: result.payment_mode === 'pass'
       });
     } catch(e) {
       setError(e.message);
       setSubmitting(false);
       // Someone beat us to it — show fresh counts
       if (e.code === 'SLOT_TAKEN' || e.code === 'SPORT_FULL') setAvailNonce(n => n + 1);
+      // Pass no longer covers (used up / expired) while the form was open → fall back to normal pricing
+      if (e.code === 'PAYMENT_REQUIRED') fetchQuote(coupon).catch(()=>{});
     }
   }
 
   return (
     <section className="section" id="book">
-      <div className="section-head">
+      <div className="section-head reveal">
         <span className="section-eyebrow">Book in 60 seconds</span>
         <h2 className="section-h2">Lock in<br/>your slot.</h2>
         <p className="section-sub">{online
           ? `Pay a ₹${payCfg.advance} advance online to lock your slot; the rest at the venue. Free cancellation up to ${payCfg.refund_cutoff_hours} hours before.`
           : 'No advance payment. Pay at the venue when you arrive. Email confirmation hits your inbox immediately.'}</p>
       </div>
-      <div className="booking-card">
+      <div className="booking-card reveal d1">
         {/* STEP 1 */}
         <div className="booking-step">
           <div className="step-label">
@@ -980,7 +1250,7 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
                 const active = selectedSlot && selectedSlot.slot_time === h.slot_time;
                 const [startT, endT] = h.slot_time.split('-');
                 return (
-                  <button key={h.slot_time} className={`slot-card ${active?'active':''}`} onClick={()=>setSelectedSlot(h)}>
+                  <button key={h.slot_time} className={`slot-card ${active?'active':''}`} style={{animationDelay:`${Math.min(hours.indexOf(h),12)*35}ms`}} onClick={()=>setSelectedSlot(h)}>
                     {isSession(sport) ? (
                       <div className="time-row"><span className="slot-time">{startTime12(h.slot_time)}</span></div>
                     ) : (
@@ -1040,12 +1310,24 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
               <span className="step-meta">Almost there.</span>
             </div>
             <div className="form-grid">
-              {returning && (
+              {returning && returning.found && (
                 <div className="return-banner anim-rise-fast">
                   <span className="return-emoji">👋</span>
                   <div className="return-text">
                     <strong>Welcome back, {returning.customer_name}!</strong>
-                    <span className="sub">{returning.bookings_count} previous {returning.bookings_count===1?'booking':'bookings'}{lastSportName?` · Last played ${lastSportName}`:''}</span>
+                    <span className="sub">{returning.booking_count} previous {returning.booking_count===1?'booking':'bookings'}{lastSportName?` · Last played ${lastSportName}`:''}</span>
+                  </div>
+                </div>
+              )}
+              {returning && returning.pass && !passCovered && (
+                <div className="return-banner anim-rise-fast" style={{borderColor:'rgba(var(--lime-rgb),.5)'}}>
+                  <span className="return-emoji">🎟️</span>
+                  <div className="return-text">
+                    <strong>{returning.pass.plan_label} on this number</strong>
+                    <span className="sub">
+                      {returning.pass.hours_left !== null ? `${returning.pass.hours_left} of ${returning.pass.hours_quota} hrs left · ` : ''}valid till {dateNice(returning.pass.end_date)}
+                      {quote && quote.pass_reason ? ` · ${quote.pass_reason}` : ''}
+                    </span>
                   </div>
                 </div>
               )}
@@ -1073,7 +1355,16 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
                 <input type="text" className="form-input" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Team name, special equipment, anything we should know…"/>
               </div>
             </div>
-            {online && (
+            {passCovered && (
+              <div className="pass-box anim-pop" style={{marginTop:22}}>
+                <span className="ic">🎟️</span>
+                <div>
+                  <strong>Covered by your pass</strong>
+                  <span>{quote.pass.plan_label} · {quote.pass.hours_left !== null ? `${quote.pass.hours_left} hr${quote.pass.hours_left===1?'':'s'} left before this booking · ` : ''}nothing to pay{online ? ', no advance' : ''}.</span>
+                </div>
+              </div>
+            )}
+            {online && !passCovered && (
               <div style={{marginTop:22}}>
                 {coupon ? (
                   <div className="coupon-applied">
@@ -1101,7 +1392,7 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
               </div>
             )}
             <div className="submit-row">
-              {online && (
+              {online && !passCovered && (
                 <label className="policy-check">
                   <input type="checkbox" checked={agree} onChange={e=>setAgree(e.target.checked)}/>
                   <span>I agree to the <a href="#policies" onClick={e=>{e.preventDefault();document.getElementById('policies')?.scrollIntoView({behavior:'smooth'});}}>cancellation policy</a>: free cancellation up to {payCfg.refund_cutoff_hours} hours before the slot; the advance is non-refundable after that.</span>
@@ -1109,12 +1400,16 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
               )}
               <button className="btn-submit" onClick={submit} disabled={!canBook || submitting}>
                 {submitting
-                  ? <><Spinner small/> {online ? 'Processing payment…' : 'Booking…'}</>
+                  ? <><Spinner small/> {online && !passCovered ? 'Processing payment…' : 'Booking…'}</>
+                  : passCovered
+                    ? <>Confirm with pass · {durationText(sport, effectiveDuration)} <span>→</span></>
                   : online
                     ? <>Pay {quote ? inr(quote.advance) : ''} & confirm <span>→</span></>
                     : <>Lock in {durationText(sport, effectiveDuration)} · {displayTotal(effectiveDuration)} <span>→</span></>}
               </button>
-              {online
+              {passCovered
+                ? <div className="submit-note">🎟️ Booked on your membership — no payment needed.</div>
+                : online
                 ? <div className="secure-note">Secured by Razorpay · UPI, cards, netbanking, wallets</div>
                 : <div className="submit-note">💰 Pay at the venue — cash or UPI. Cancel anytime by calling us.</div>}
               {payInfo && <div className={`pay-status ${payInfo.kind}`}>{payInfo.text}</div>}
@@ -1127,7 +1422,7 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
   );
 }
 
-function ConfirmationTicket({ booking, onReset }){
+function ConfirmationTicket({ booking, onReset, onAccount }){
   const [copied, setCopied] = useState(false);
 
   function copyShare(){
@@ -1161,13 +1456,16 @@ function ConfirmationTicket({ booking, onReset }){
             <div className="ticket-row"><span className="ticket-label">Duration</span><span className="ticket-value big">{booking.duration_hrs} hours</span></div>
           )}
           <div className="ticket-row"><span className="ticket-label">Players</span><span className="ticket-value">{booking.members_count}</span></div>
-          <div className="ticket-row"><span className="ticket-label">{booking.paid_online ? 'Total (incl. GST)' : 'Amount'}</span><span className="ticket-value big lime">₹{parseInt(booking.amount||0).toLocaleString('en-IN')}</span></div>
+          <div className="ticket-row"><span className="ticket-label">{booking.paid_online ? 'Total (incl. GST)' : 'Amount'}</span><span className="ticket-value big lime">{booking.on_pass ? 'On pass' : '₹' + parseInt(booking.amount||0).toLocaleString('en-IN')}</span></div>
+          {booking.on_pass && booking.pass && <div className="ticket-row"><span className="ticket-label">Pass</span><span className="ticket-value">{booking.pass.plan_label}{booking.pass.hours_left !== null ? ` · ${booking.pass.hours_left} hrs left` : ''}</span></div>}
           {booking.paid_online && <div className="ticket-row"><span className="ticket-label">Paid online</span><span className="ticket-value">{inr(booking.amount_paid)}</span></div>}
           {booking.paid_online && booking.invoice_no && <div className="ticket-row"><span className="ticket-label">Invoice</span><span className="ticket-value mono">{booking.invoice_no}</span></div>}
         </div>
         <div className="ticket-pay-note">
           <span style={{fontSize:18}}>💰</span>
-          {booking.paid_online
+          {booking.on_pass
+            ? <div><strong>Covered by your pass</strong>Nothing to pay. Just turn up and play.</div>
+            : booking.paid_online
             ? <div><strong>{Number(booking.balance_due) > 0 ? `Pay ${inr(booking.balance_due)} at the venue` : 'Fully paid'}</strong>{Number(booking.balance_due) > 0 ? 'Cash or UPI on arrival. Your advance is received.' : 'Nothing more to pay.'}</div>
             : <div><strong>Pay at the venue</strong>Cash or UPI accepted on arrival.</div>}
         </div>
@@ -1180,8 +1478,9 @@ function ConfirmationTicket({ booking, onReset }){
           {booking.manage_url && <a className="ticket-btn" href={booking.manage_url}>⚙️ Manage / cancel</a>}
         </div>
       </div>
-      <div style={{textAlign:'center',marginTop:32}}>
+      <div style={{textAlign:'center',marginTop:32,display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
         <button className="btn-secondary" onClick={onReset}>Book another slot</button>
+        <button className="btn-secondary" onClick={onAccount}>👤 See all my bookings</button>
       </div>
     </section>
   );
@@ -1199,11 +1498,11 @@ function Features({ payCfg }){
   ];
   return (
     <section className="section">
-      <div className="section-head">
+      <div className="section-head reveal">
         <span className="section-eyebrow">Why book here</span>
         <h2 className="section-h2">No fuss.<br/>Just play.</h2>
       </div>
-      <div className="features">{items.map(i => <div key={i.title} className="feat-card"><div className="feat-ic">{i.ic}</div><div className="feat-title">{i.title}</div><div className="feat-text">{i.text}</div></div>)}</div>
+      <div className="features">{items.map((i, k) => <div key={i.title} className={`feat-card reveal d${k+1}`}><div className="feat-ic">{i.ic}</div><div className="feat-title">{i.title}</div><div className="feat-text">{i.text}</div></div>)}</div>
     </section>
   );
 }
@@ -1211,7 +1510,7 @@ function Features({ payCfg }){
 function PricingCallout({ sports, error, onRetry }){
   return (
     <section className="section">
-      <div className="price-callout">
+      <div className="price-callout reveal">
         <div style={{marginBottom:32}}>
           <span className="section-eyebrow">Hourly rates</span>
           <h3 style={{fontFamily:'var(--display)',fontSize:'clamp(32px,4.5vw,52px)',letterSpacing:'-.01em',textTransform:'uppercase',lineHeight:1}}>Simple<br/><span className="lime">pricing.</span></h3>
@@ -1220,8 +1519,8 @@ function PricingCallout({ sports, error, onRetry }){
         {!error && !sports && <div className="loading-block"><Spinner/></div>}
         {sports && (
           <div className="price-grid">
-            {sports.map(s => (
-              <div key={s.id} className="price-tile">
+            {sports.map((s, k) => (
+              <div key={s.id} className={`price-tile reveal d${Math.min(4,k+1)}`}>
                 <span className="price-tile-tag">{s.icon} {s.name}</span>
                 <div className="price-tile-big">₹{Number(s.price).toLocaleString('en-IN')}</div>
                 <div className="price-tile-meta">{isSession(s) ? sessionQty(s, 1) : `Per hour${s.unit_label ? ` · ${s.unit_label}` : ''}`}</div>
@@ -1238,7 +1537,7 @@ function PricingCallout({ sports, error, onRetry }){
 function VenueInfo(){
   return (
     <section className="section">
-      <div className="venue-grid">
+      <div className="venue-grid reveal">
         <div>
           <span className="section-eyebrow">Find us</span>
           <h2 className="section-h2" style={{fontSize:'clamp(36px,5vw,56px)'}}>{VENUE.area}.<br/>Open daily.</h2>
@@ -1254,7 +1553,7 @@ function VenueInfo(){
   );
 }
 
-function ManageBooking({ id, token, onDone }){
+function ManageBooking({ id, token, onDone, account, onAccount }){
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -1295,8 +1594,10 @@ function ManageBooking({ id, token, onDone }){
           <div className="ticket-row"><span className="ticket-label">Sport</span><span className="ticket-value">{data.sport_name}</span></div>
           <div className="ticket-row"><span className="ticket-label">Date</span><span className="ticket-value">{dateLong(b.booking_date)}</span></div>
           <div className="ticket-row"><span className="ticket-label">Time</span><span className="ticket-value">{timeText}</span></div>
-          <div className="ticket-row"><span className="ticket-label">Total (incl. GST)</span><span className="ticket-value">{inr(b.amount)}</span></div>
-          {Number(b.amount_paid) > 0 && <div className="ticket-row"><span className="ticket-label">Paid</span><span className="ticket-value">{inr(b.amount_paid)}</span></div>}
+          {b.payment_mode === 'pass'
+            ? <div className="ticket-row"><span className="ticket-label">Payment</span><span className="ticket-value lime">Covered by your pass</span></div>
+            : <div className="ticket-row"><span className="ticket-label">Total (incl. GST)</span><span className="ticket-value">{inr(b.amount)}</span></div>}
+          {b.payment_mode !== 'pass' && Number(b.amount_paid) > 0 && <div className="ticket-row"><span className="ticket-label">Paid</span><span className="ticket-value">{inr(b.amount_paid)}</span></div>}
           {b.status === 'confirmed' && Number(b.balance_due) > 0 && <div className="ticket-row"><span className="ticket-label">Pay at venue</span><span className="ticket-value">{inr(b.balance_due)}</span></div>}
           {Number(b.refund_amount) > 0 && <div className="ticket-row"><span className="ticket-label">Refund</span><span className="ticket-value">{inr(b.refund_amount)} · {b.refund_status === 'processed' ? 'processed' : 'in progress (5-7 working days)'}</span></div>}
 
@@ -1327,8 +1628,9 @@ function ManageBooking({ id, token, onDone }){
           </div>
         </>}
       </div>
-      <div style={{textAlign:'center',marginTop:28}}>
+      <div style={{textAlign:'center',marginTop:28,display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
         <button className="btn-secondary" onClick={onDone}>Book another slot</button>
+        <button className="btn-secondary" onClick={onAccount}>👤 {account ? 'My account' : 'See all my bookings'}</button>
       </div>
     </section>
   );
@@ -1339,12 +1641,12 @@ function Policies({ payCfg }){
   const advance = (payCfg && payCfg.advance) || 300;
   return (
     <section className="section" id="policies">
-      <div className="section-head">
+      <div className="section-head reveal">
         <span className="section-eyebrow">The fine print</span>
         <h2 className="section-h2" style={{fontSize:'clamp(36px,5vw,56px)'}}>Policies.</h2>
       </div>
       <div className="policy-grid">
-        <div className="policy-card" id="refund-policy">
+        <div className="policy-card reveal d1" id="refund-policy">
           <h3>Cancellation &amp; refunds</h3>
           <ul>
             <li>A ₹{advance} advance is paid online to confirm a booking. The balance is paid at the venue.</li>
@@ -1355,7 +1657,7 @@ function Policies({ payCfg }){
             <li>Cancel any time from the "Manage booking" link in your confirmation email.</li>
           </ul>
         </div>
-        <div className="policy-card" id="terms">
+        <div className="policy-card reveal d2" id="terms">
           <h3>Terms of booking</h3>
           <ul>
             <li>Bookings are for the date, time and facility shown on your confirmation.</li>
@@ -1365,7 +1667,7 @@ function Policies({ payCfg }){
             <li>For help, call {VENUE.phone} or email {VENUE.email}.</li>
           </ul>
         </div>
-        <div className="policy-card" id="privacy">
+        <div className="policy-card reveal d3" id="privacy">
           <h3>Privacy</h3>
           <ul>
             <li>We collect your name, phone and email only to manage your booking and send confirmations and invoices.</li>
@@ -1379,12 +1681,13 @@ function Policies({ payCfg }){
   );
 }
 
-function Footer(){
+function Footer({ onAccount }){
   return (
     <footer className="footer">
       <div className="footer-inner">
         <div className="footer-copy">© {new Date().getFullYear()} {VENUE.name}. {VENUE.area}, {VENUE.city}.</div>
         <div className="footer-links">
+          <a href="#" onClick={e=>{e.preventDefault(); onAccount && onAccount();}}>My account</a>
           <a href="#refund-policy">Cancellation &amp; refunds</a>
           <a href="#terms">Terms</a>
           <a href="#privacy">Privacy</a>
@@ -1393,6 +1696,223 @@ function Footer(){
         <div className="footer-copy">Built with ❤️ for the players.</div>
       </div>
     </footer>
+  );
+}
+
+
+// ════════════════════════════════════════════════════════════
+// MY ACCOUNT — email → 6-digit code → bookings & passes.
+// Optional: booking never requires signing in.
+// ════════════════════════════════════════════════════════════
+function OtpInput({ value, onChange, onComplete, disabled }){
+  const refs = useRef([]);
+  const digits = Array.from({ length: 6 }, (_, i) => value[i] || '');
+  function set(i, ch){
+    const next = digits.slice(); next[i] = ch;
+    const v = next.join('').slice(0, 6);
+    onChange(v);
+    if (ch && i < 5) refs.current[i + 1]?.focus();
+    if (v.replace(/\D/g, '').length === 6) onComplete && onComplete(v);
+  }
+  function onKey(e, i){
+    if (e.key === 'Backspace' && !digits[i] && i > 0) { refs.current[i - 1]?.focus(); }
+    if (e.key === 'ArrowLeft' && i > 0) refs.current[i - 1]?.focus();
+    if (e.key === 'ArrowRight' && i < 5) refs.current[i + 1]?.focus();
+  }
+  function onPaste(e){
+    const t = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+    if (t.length) { e.preventDefault(); onChange(t); refs.current[Math.min(5, t.length - 1)]?.focus(); if (t.length === 6) onComplete && onComplete(t); }
+  }
+  return (
+    <div className="otp-row" onPaste={onPaste}>
+      {digits.map((d, i) => (
+        <input key={i} ref={el => refs.current[i] = el} className={`otp-box ${d?'filled':''}`} inputMode="numeric" pattern="[0-9]*" maxLength={1}
+          value={d} disabled={disabled} autoFocus={i === 0}
+          onChange={e => set(i, e.target.value.replace(/\D/g, '').slice(-1))}
+          onKeyDown={e => onKey(e, i)} aria-label={`Digit ${i + 1}`}/>
+      ))}
+    </div>
+  );
+}
+
+function AccountModal({ account, onLogin, onLogout, onClose, onManage }){
+  const [step, setStep] = useState(account ? 'account' : 'email');
+  const [email, setEmail] = useState(account ? account.email : '');
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const [resendIn, setResendIn] = useState(0);
+  const [data, setData] = useState(null);
+  const [tab, setTab] = useState('upcoming');
+  const [shake, setShake] = useState(false);
+
+  useEffect(()=>{ if (!resendIn) return; const t = setTimeout(()=>setResendIn(n => n - 1), 1000); return ()=>clearTimeout(t); }, [resendIn]);
+  useEffect(()=>{ const h = e => e.key === 'Escape' && onClose(); window.addEventListener('keydown', h); return ()=>window.removeEventListener('keydown', h); }, []);
+
+  async function load(tok){
+    setErr(null);
+    try {
+      const d = await API.get('getMyAccount', { token: tok });
+      setData(d);
+      if (d.profile && d.profile.name && (!account || account.name !== d.profile.name)) onLogin({ ...(account || {}), token: tok, email: d.email, expires_at: d.session_expires_at, name: d.profile.name }, true);
+      if (!d.upcoming.length && (d.passes.length || d.past.length)) setTab(d.passes.some(p => p.is_active) ? 'passes' : 'past');
+    } catch(e){
+      if (e.code === 'SESSION_EXPIRED') { onLogout(); setStep('email'); setErr('Your session expired. Sign in again.'); }
+      else setErr(e.message);
+    }
+  }
+  useEffect(()=>{ if (account && step === 'account') load(account.token); }, []);
+
+  async function sendCode(){
+    const e = email.trim().toLowerCase();
+    if (!isValidEmail(e)) { setErr('Enter a valid email address.'); return; }
+    setBusy(true); setErr(null);
+    try {
+      const r = await API.post('requestAccountOtp', { email: e });
+      setEmail(e); setCode(''); setStep('code'); setResendIn(r.resend_in || 45);
+    } catch(ex){
+      if (ex.code === 'TOO_SOON') { setStep('code'); setErr(ex.message); const m = /(\d+)s/.exec(ex.message); setResendIn(m ? +m[1] : 30); }
+      else setErr(ex.message);
+    } finally { setBusy(false); }
+  }
+  async function verify(v){
+    const c = (v || code).replace(/\D/g, '');
+    if (c.length !== 6 || busy) return;
+    setBusy(true); setErr(null);
+    try {
+      const r = await API.post('verifyAccountOtp', { email, code: c });
+      const acct = { token: r.token, email: r.email, expires_at: r.expires_at, name: null };
+      onLogin(acct);
+      setStep('account');
+      await load(r.token);
+    } catch(ex){
+      setErr(ex.message); setShake(true); setTimeout(()=>setShake(false), 600);
+      if (ex.code === 'OTP_EXPIRED' || ex.code === 'OTP_LOCKED') { setCode(''); }
+    } finally { setBusy(false); }
+  }
+
+  const p = data && data.profile;
+  const initial = ((p && p.name ? p.name : email) || '?').trim().charAt(0).toUpperCase() || '?';
+  const list = data ? (tab === 'upcoming' ? data.upcoming : tab === 'past' ? data.past : []) : [];
+
+  function BookingCard({ b }){
+    const d = new Date(b.booking_date + 'T00:00:00');
+    const when = b.pricing_mode === 'session' ? `${startTime12(b.slot_time)} · ${b.session_qty * b.duration_hrs} ${b.session_unit}` : slotRange12(b.slot_time);
+    const cls = b.status === 'confirmed' ? 'ok' : b.status === 'cancelled' ? 'bad' : 'warn';
+    return (
+      <div className={`bk-card ${b.status === 'cancelled' ? 'cancelled' : ''}`}>
+        <div className="bk-date"><div className="d">{d.getDate()}</div><div className="m">{d.toLocaleDateString('en-IN',{month:'short'})}</div></div>
+        <div className="bk-main">
+          <div className="t">{b.icon} {b.sport_name}</div>
+          <div className="s">{d.toLocaleDateString('en-IN',{weekday:'short'})} · {when}{b.duration_hrs > 1 && b.pricing_mode !== 'session' ? ` · ${b.duration_hrs} hrs` : ''} · <span className="mono">{b.booking_id}</span></div>
+          <div className="tags">
+            <span className={`tag ${cls}`}>{b.status_label}</span>
+            {b.on_pass ? <span className="tag pass">On pass</span>
+              : b.status === 'confirmed' && (b.payment_status === 'paid' ? <span className="tag ok">Paid</span> : b.balance_due > 0 ? <span className="tag warn">Pay {inr(b.balance_due)} at venue</span> : null)}
+            {b.refund_amount > 0 && <span className="tag">{inr(b.refund_amount)} refund {b.refund_status === 'processed' ? 'done' : 'in progress'}</span>}
+          </div>
+        </div>
+        <div className="bk-amt"><div className="a">{b.on_pass ? '₹0' : inr(b.amount)}</div><div className="l">{b.on_pass ? 'pass' : b.status === 'confirmed' ? 'total' : 'amount'}</div></div>
+        {(b.status === 'confirmed' || b.invoice_url) && (
+          <div className="bk-actions">
+            {b.status === 'confirmed' && b.manage_url && <button onClick={()=>onManage(b.manage_url)}>{b.can_cancel ? '⚙️ Manage / cancel' : '⚙️ View booking'}</button>}
+            {b.invoice_url && <a href={b.invoice_url} target="_blank" rel="noopener">🧾 Invoice</a>}
+            {b.status === 'confirmed' && <a href={buildCalendarLink({ ...b, amount: b.amount })} target="_blank" rel="noopener">📅 Calendar</a>}
+            {b.status === 'confirmed' && <a href={VENUE.maps} target="_blank" rel="noopener">📍 Directions</a>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function PassCard({ m }){
+    const used = m.hours_quota ? Math.min(100, Math.round(100 * m.hours_used / m.hours_quota)) : 0;
+    return (
+      <div className={`pass-card ${m.is_active ? '' : 'off'}`}>
+        <div className="pt">🎟️ {m.plan_label}</div>
+        <div className="ps">
+          {m.team_name ? `${m.team_name} · ` : ''}{m.is_active ? `Valid till ${dateNice(m.end_date)}` : m.status === 'cancelled' ? 'Cancelled' : m.is_expired ? `Expired ${dateNice(m.end_date)}` : `Starts ${dateNice(m.start_date)}`}
+          {m.day_rule !== 'all' ? ` · ${m.day_rule}s only` : ''}
+        </div>
+        {m.hours_quota ? <>
+          <div className="pass-bar"><i style={{width: used + '%'}}/></div>
+          <div className="pass-nums"><span><b>{m.hours_left}</b> hrs left</span><span>{m.hours_used} / {m.hours_quota} used</span></div>
+        </> : <div className="pass-nums" style={{marginTop:10}}><span><b>Unlimited</b> {m.category === 'turf' ? 'turf' : 'net'} hours during validity</span></div>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="acct-backdrop" onClick={e=>e.target===e.currentTarget && onClose()}>
+      <div className={`acct-modal ${step === 'account' ? 'wide' : ''} ${shake ? 'shake' : ''}`} role="dialog" aria-label="My account">
+        <div className="acct-head">
+          <div>
+            <div className="acct-title">{step === 'account' ? 'My Account' : step === 'code' ? 'Check your inbox' : 'My Account'}</div>
+            <div className="acct-sub">
+              {step === 'email' && 'See your bookings, passes and invoices. We\'ll email you a one-time code — no password needed.'}
+              {step === 'code' && <>We sent a 6-digit code to <strong style={{color:'var(--text)'}}>{email}</strong>. It's valid for 10 minutes.</>}
+              {step === 'account' && 'Your bookings and passes, all in one place.'}
+            </div>
+          </div>
+          <button className="cp-x" onClick={onClose} aria-label="Close">×</button>
+        </div>
+
+        {step === 'email' && (
+          <div>
+            <label className="form-label">Email address</label>
+            <input className="form-input" type="email" value={email} autoFocus onChange={e=>{ setEmail(e.target.value); setErr(null); }} onKeyDown={e=>e.key==='Enter' && sendCode()} placeholder="you@example.com" autoComplete="email"/>
+            <div className="field-hint">Use the email you booked with.</div>
+            {err && <div className="pay-status err">{err}</div>}
+            <button className="btn-submit" style={{marginTop:18}} onClick={sendCode} disabled={busy || !email.trim()}>{busy ? <><Spinner small/> Sending…</> : <>Send me a code <span>→</span></>}</button>
+            <div className="submit-note" style={{marginTop:12}}>Booking a slot doesn't need an account. This is just to look things up.</div>
+          </div>
+        )}
+
+        {step === 'code' && (
+          <div>
+            <OtpInput value={code} onChange={v=>{ setCode(v); setErr(null); }} onComplete={verify} disabled={busy}/>
+            {err && <div className="pay-status err" style={{textAlign:'center'}}>{err}</div>}
+            <button className="btn-submit" style={{marginTop:14}} onClick={()=>verify()} disabled={busy || code.replace(/\D/g,'').length !== 6}>{busy ? <><Spinner small/> Checking…</> : <>Sign in <span>→</span></>}</button>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:14,gap:10,flexWrap:'wrap'}}>
+              <button className="acct-link" onClick={()=>{ setStep('email'); setErr(null); setCode(''); }}>← Change email</button>
+              <button className="acct-link" onClick={sendCode} disabled={busy || resendIn > 0}>{resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}</button>
+            </div>
+            <div className="submit-note" style={{marginTop:14}}>Can't find it? Check spam, or that it's the email you booked with.</div>
+          </div>
+        )}
+
+        {step === 'account' && (
+          <div>
+            <div className="acct-profile">
+              <div className="acct-avatar">{initial}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div className="acct-name">{p && p.name ? p.name : 'Player'}</div>
+                <div className="acct-meta">{email}{p && p.phone ? ` · ${p.phone}` : ''}{p ? ` · ${p.bookings_count} booking${p.bookings_count===1?'':'s'}` : ''}</div>
+              </div>
+              <button className="acct-link" onClick={()=>{ onLogout(); onClose(); }}>Sign out</button>
+            </div>
+            {!data && !err && <div className="loading-block"><Spinner/><div style={{marginTop:14,fontSize:13,color:'var(--text-2)'}}>Fetching your bookings…</div></div>}
+            {err && !data && <div className="pay-status err">{err}</div>}
+            {data && <>
+              <div className="acct-tabs">
+                <button className={`acct-tab ${tab==='upcoming'?'active':''}`} onClick={()=>setTab('upcoming')}>Upcoming<b>{data.upcoming.length}</b></button>
+                <button className={`acct-tab ${tab==='passes'?'active':''}`} onClick={()=>setTab('passes')}>Passes<b>{data.passes.length}</b></button>
+                <button className={`acct-tab ${tab==='past'?'active':''}`} onClick={()=>setTab('past')}>History<b>{data.past.length}</b></button>
+              </div>
+              {tab === 'passes' && (data.passes.length ? data.passes.map(m => <PassCard key={m.member_id} m={m}/>) : (
+                <div className="empty-block"><div className="ic">🎟️</div><div className="empty-title">No passes yet</div><div style={{fontSize:13}}>Weekly and monthly passes are issued at the venue. Call {VENUE.phone} to get one — bookings on a pass are free here.</div></div>
+              ))}
+              {tab !== 'passes' && (list.length ? list.map((b, i) => <div key={b.booking_id} style={{animationDelay:`${i*40}ms`}}><BookingCard b={b}/></div>) : (
+                <div className="empty-block"><div className="ic">{tab==='upcoming'?'🗓️':'📭'}</div><div className="empty-title">{tab==='upcoming'?'Nothing booked yet':'No past bookings'}</div>
+                  <div style={{fontSize:13,marginBottom:tab==='upcoming'?16:0}}>{tab==='upcoming' ? 'Pick a slot and we\'ll see you on the ground.' : `Bookings made with ${email} will show up here.`}</div>
+                  {tab==='upcoming' && <button className="btn-cta" onClick={()=>{ onClose(); document.getElementById('book')?.scrollIntoView({behavior:'smooth'}); }}>Book a slot</button>}
+                </div>
+              ))}
+            </>}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1430,6 +1950,10 @@ function App(){
     const q = new URLSearchParams(location.search);
     return q.get('manage') && q.get('t') ? { id: q.get('manage'), t: q.get('t') } : null;
   });
+  const [account, setAccount] = useState(loadAccount);
+  const [acctOpen, setAcctOpen] = useState(() => new URLSearchParams(location.search).get('account') === '1');
+  const [ready, setReady] = useState(false);        // preloader
+  useReveal([booking, manage, sports]);
 
   async function loadSports(){
     setSportsError(null); setSports(null);
@@ -1448,10 +1972,25 @@ function App(){
   };
 
   useEffect(()=>{
-    loadSports(); refreshSlotCount();
+    const t0 = Date.now();
+    const done = Promise.allSettled([loadSports(), refreshSlotCount(),
+      API.get('getVenueInfo').then(v => setPayCfg(v.payments || { online:false }), () => setPayCfg({ online:false }))]);
     API.get('listPublicCoupons').then(c => setCoupons(Array.isArray(c) ? c : []), () => {});
-    API.get('getVenueInfo').then(v => setPayCfg(v.payments || { online:false }), () => setPayCfg({ online:false }));
+    // Preloader: wait for the first data, but never longer than ~3.5s and never shorter than the warm-up animation
+    const fallback = sleep(3500);
+    Promise.race([done, fallback]).then(() => sleep(Math.max(0, PRELOAD_MIN_MS - (Date.now() - t0)))).then(() => setReady(true));
   }, []);
+
+  function login(a, silent){ setAccount(a); saveAccount(a); if (!silent) setToast({ show:true, message:'Signed in', icon:'👤' }); }
+  function logout(){ setAccount(null); saveAccount(null); }
+  function openManageFromAccount(url){
+    const q = new URL(url, location.href).searchParams;
+    setAcctOpen(false);
+    setBooking(null);
+    setManage({ id: q.get('manage'), t: q.get('t') });
+    history.replaceState(null, '', `?manage=${encodeURIComponent(q.get('manage'))}&t=${encodeURIComponent(q.get('t'))}`);
+    setTimeout(()=>window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+  }
 
   function leaveManage(){
     setManage(null);
@@ -1473,19 +2012,22 @@ function App(){
 
   return (
     <>
-      <div className="stage-bg"><div className="orb orb-1"/><div className="orb orb-2"/><div className="orb orb-3"/></div>
+      <Preloader ready={ready}/>
+      <div className="stage-bg"><div className="flood"/><div className="pitch"/><div className="stripes"/></div>
       <div className="grain"/>
       <OfferBar coupons={coupons}/>
-      <Nav/>
-      {manage ? <ManageBooking id={manage.id} token={manage.t} onDone={leaveManage}/> : <>
+      <Nav account={account} onAccount={()=>setAcctOpen(true)}/>
+      {manage ? <ManageBooking id={manage.id} token={manage.t} onDone={leaveManage} account={account} onAccount={()=>setAcctOpen(true)}/> : <>
         {!booking && <Hero liveSlotsToday={liveSlotsToday} sports={sports} sportsError={sportsError} payCfg={payCfg}/>}
+        {!booking && <Ticker sports={sports}/>}
         {booking
-          ? <ConfirmationTicket booking={booking} onReset={reset}/>
+          ? <ConfirmationTicket booking={booking} onReset={reset} onAccount={()=>setAcctOpen(true)}/>
           : <BookingWidget sports={sports} sportsError={sportsError} onRetrySports={loadSports} onComplete={complete} payCfg={payCfg}/>}
         {!booking && <><Features payCfg={payCfg}/><PricingCallout sports={sports} error={sportsError} onRetry={loadSports}/><VenueInfo/></>}
       </>}
       <Policies payCfg={payCfg}/>
-      <Footer/>
+      <Footer onAccount={()=>setAcctOpen(true)}/>
+      {acctOpen && <AccountModal account={account} onLogin={login} onLogout={logout} onClose={()=>setAcctOpen(false)} onManage={openManageFromAccount}/>}
       <Toast toast={toast} onClose={()=>setToast({show:false})}/>
     </>
   );
