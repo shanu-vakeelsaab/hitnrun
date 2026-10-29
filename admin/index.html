@@ -879,7 +879,7 @@ function SpotBookingModal({ onClose, onCreate, defaultDate }){
             {passInfo.covered ? (
               <label style={{ display:'flex', gap:8, alignItems:'center', marginTop:6, cursor:'pointer' }}>
                 <input type="checkbox" checked={usePass} onChange={e=>setUsePass(e.target.checked)}/>
-                <span>{passApplies ? 'Book on the pass — ₹0, marked paid (Pass).' : usePass ? 'Pass ignored because an amount is typed.' : 'Charge normally instead of using the pass.'}</span>
+                <span>{passApplies ? 'Pay from the pass — full price deducted from the advance, marked paid (Pass), GST invoice issued.' : usePass ? 'Pass ignored because an amount is typed.' : 'Charge normally instead of using the pass.'}</span>
               </label>
             ) : <div style={{ marginTop:4 }}>{passInfo.reason || 'This pass does not cover the booking.'} Charging normally.</div>}
           </div>
@@ -4164,8 +4164,9 @@ function App(){
                         {Number(m.hours_quota) > 0
                           ? <span style={{ fontSize:11, fontWeight:700, color: (m.hours_quota - m.hours_used) > 0 ? 'var(--text-2)' : 'var(--danger-text)' }}>· {m.hours_used}/{m.hours_quota} hrs used</span>
                           : <span style={{ fontSize:11, color:'var(--text-3)' }}>· unlimited hrs</span>}
+                        <span style={{ fontSize:11, fontWeight:700, color:'var(--text-2)' }}>· advance {rupees(m.amount_paid)} · used {rupees(m.value_used || 0)} · left {rupees(Math.max(0, (m.amount_paid||0) - (m.value_used||0)))}</span>
                       </div>
-                      <div style={{ fontSize:11, color:'var(--text-4)', marginTop:6 }}>Bookings on {formatPhone(m.contact_phone)} for {m.category === 'turf' ? 'turf sports' : 'net practice'} are auto-covered (₹0, mode: Pass) — on the website and in walk-ins.</div>
+                      <div style={{ fontSize:11, color:'var(--text-4)', marginTop:6 }}>Bookings on {formatPhone(m.contact_phone)} for {m.category === 'turf' ? 'turf sports' : 'net practice'} are paid from this pass (full price deducted, mode: Pass, GST invoice issued) — on the website and in walk-ins.</div>
                     </div>
                     <div style={{ fontSize:13, fontWeight:700, color:'var(--success-text)' }}>₹{parseInt(m.amount_paid||0).toLocaleString('en-IN')}</div>
                     <div style={{ display:'flex', gap:6 }}>

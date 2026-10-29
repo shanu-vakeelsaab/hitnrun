@@ -1442,8 +1442,8 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
               <div className="pass-box anim-pop" style={{marginTop:22}}>
                 <span className="ic">🎟️</span>
                 <div>
-                  <strong>Covered by your pass</strong>
-                  <span>{quote.pass.plan_label} · {quote.pass.hours_left !== null ? `${quote.pass.hours_left} hr${quote.pass.hours_left===1?'':'s'} left before this booking · ` : ''}nothing to pay{online ? ', no advance' : ''}.</span>
+                  <strong>Paid from your pass</strong>
+                  <span>{inr(quote.pass_value || quote.total)} deducted from {quote.pass.plan_label} · {quote.pass.hours_left !== null ? `${quote.pass.hours_left} hr${quote.pass.hours_left===1?'':'s'} left · ` : ''}{inr(quote.pass.value_left)} advance left · nothing to pay now, GST bill emailed.</span>
                 </div>
               </div>
             )}
@@ -1491,7 +1491,7 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
                     : <>Lock in {durationText(sport, effectiveDuration)} · {displayTotal(effectiveDuration)} <span>→</span></>}
               </button>
               {passCovered
-                ? <div className="submit-note">🎟️ Booked on your membership — no payment needed.</div>
+                ? <div className="submit-note">🎟️ Deducted from your pass — no payment at the venue. A GST invoice is emailed for every booking.</div>
                 : online
                 ? <div className="secure-note">Secured by Razorpay · UPI, cards, netbanking, wallets</div>
                 : <div className="submit-note">💰 Pay at the venue — cash or UPI. Cancel anytime by calling us.</div>}
@@ -1539,15 +1539,15 @@ function ConfirmationTicket({ booking, onReset, onAccount }){
             <div className="ticket-row"><span className="ticket-label">Duration</span><span className="ticket-value big">{booking.duration_hrs} hours</span></div>
           )}
           <div className="ticket-row"><span className="ticket-label">Players</span><span className="ticket-value">{booking.members_count}</span></div>
-          <div className="ticket-row"><span className="ticket-label">{booking.paid_online ? 'Total (incl. GST)' : 'Amount'}</span><span className="ticket-value big lime">{booking.on_pass ? 'On pass' : '₹' + parseInt(booking.amount||0).toLocaleString('en-IN')}</span></div>
-          {booking.on_pass && booking.pass && <div className="ticket-row"><span className="ticket-label">Pass</span><span className="ticket-value">{booking.pass.plan_label}{booking.pass.hours_left !== null ? ` · ${booking.pass.hours_left} hrs left` : ''}</span></div>}
+          <div className="ticket-row"><span className="ticket-label">{booking.paid_online ? 'Total (incl. GST)' : 'Amount'}</span><span className="ticket-value big lime">₹{parseInt(booking.amount||0).toLocaleString('en-IN')}</span></div>
+          {booking.on_pass && booking.pass && <div className="ticket-row"><span className="ticket-label">Paid from pass</span><span className="ticket-value">{booking.pass.plan_label}{booking.pass.hours_left !== null ? ` · ${booking.pass.hours_left} hrs left` : ''} · {inr(booking.pass.value_left)} left</span></div>}
           {booking.paid_online && <div className="ticket-row"><span className="ticket-label">Paid online</span><span className="ticket-value">{inr(booking.amount_paid)}</span></div>}
           {booking.paid_online && booking.invoice_no && <div className="ticket-row"><span className="ticket-label">Invoice</span><span className="ticket-value mono">{booking.invoice_no}</span></div>}
         </div>
         <div className="ticket-pay-note">
           <span style={{fontSize:18}}>💰</span>
           {booking.on_pass
-            ? <div><strong>Covered by your pass</strong>Nothing to pay. Just turn up and play.</div>
+            ? <div><strong>Paid from your pass</strong>{inr(booking.amount)} deducted from your advance. Nothing to pay at the venue — your GST invoice is on its way by email.</div>
             : booking.paid_online
             ? <div><strong>{Number(booking.balance_due) > 0 ? `Pay ${inr(booking.balance_due)} at the venue` : 'Fully paid'}</strong>{Number(booking.balance_due) > 0 ? 'Cash or UPI on arrival. Your advance is received.' : 'Nothing more to pay.'}</div>
             : <div><strong>Pay at the venue</strong>Cash or UPI accepted on arrival.</div>}
@@ -1678,7 +1678,7 @@ function ManageBooking({ id, token, onDone, account, onAccount }){
           <div className="ticket-row"><span className="ticket-label">Date</span><span className="ticket-value">{dateLong(b.booking_date)}</span></div>
           <div className="ticket-row"><span className="ticket-label">Time</span><span className="ticket-value">{timeText}</span></div>
           {b.payment_mode === 'pass'
-            ? <div className="ticket-row"><span className="ticket-label">Payment</span><span className="ticket-value lime">Covered by your pass</span></div>
+            ? <><div className="ticket-row"><span className="ticket-label">Total (incl. GST)</span><span className="ticket-value">{inr(b.amount)}</span></div><div className="ticket-row"><span className="ticket-label">Payment</span><span className="ticket-value lime">Paid from your pass</span></div></>
             : <div className="ticket-row"><span className="ticket-label">Total (incl. GST)</span><span className="ticket-value">{inr(b.amount)}</span></div>}
           {b.payment_mode !== 'pass' && Number(b.amount_paid) > 0 && <div className="ticket-row"><span className="ticket-label">Paid</span><span className="ticket-value">{inr(b.amount_paid)}</span></div>}
           {b.status === 'confirmed' && Number(b.balance_due) > 0 && <div className="ticket-row"><span className="ticket-label">Pay at venue</span><span className="ticket-value">{inr(b.balance_due)}</span></div>}
@@ -1728,7 +1728,7 @@ function planBullets(p){
   if (p.day_rule === 'weekday') b.push('Weekdays only (Mon–Fri)');
   if (p.day_rule === 'weekend') b.push('Weekends only (Sat–Sun)');
   if (p.max_members) b.push(`Team pass · up to ${p.max_members} players`);
-  b.push('Book online at ₹0 — no advance');
+  b.push('Bookings deducted from the pass — nothing to pay at the venue');
   return b;
 }
 
@@ -1743,7 +1743,7 @@ function PassesSection({ plans, payCfg, onBuy, onAccount }){
       <div className="section-head reveal">
         <span className="section-eyebrow">Weekly &amp; monthly passes</span>
         <h2 className="section-h2">Play more.<br/><span className="lime">Pay less.</span></h2>
-        <p className="section-sub">Buy a pass once, then book your slots here at ₹0 — no advance, no queue. Your pass is linked to your phone number; hours and days left are always in <button className="acct-link" onClick={onAccount}>My Account</button>.</p>
+        <p className="section-sub">Pay once, play all week or month. Every booking is deducted from your pass — no advance, no queue, and a GST bill for each one. Your pass is linked to your phone number; balance, hours and days left are always in <button className="acct-link" onClick={onAccount}>My Account</button>.</p>
       </div>
       {cats.length > 1 && (
         <div className="plan-tabs reveal">
@@ -1838,7 +1838,7 @@ function PassBuyModal({ plan, payCfg, onClose, onDone, account }){
               <div className="pass-nums" style={{marginTop:10}}><span><b>{m.hours_quota ? `${m.hours_quota} hrs` : 'Unlimited hours'}</b></span><span><b>{m.days_left}</b> days left</span></div>
             </div>
             <div className="buy-summary">
-              <div><b>How to use:</b> book any slot on this site with <b>{normalizePhone(form.phone)}</b> — it shows "Covered by your pass" and needs no payment. Walk-ins at the counter are covered too.</div>
+              <div><b>How to use:</b> book any slot on this site with <b>{normalizePhone(form.phone)}</b> — it's deducted from your pass and needs no payment. Walk-ins at the counter work the same way.</div>
               <div>Days and hours left are always in <b>My Account</b>.</div>
             </div>
             <button className="btn-submit" onClick={()=>{ onClose(); document.getElementById('book')?.scrollIntoView({behavior:'smooth'}); }}>Book my first slot <span>→</span></button>
@@ -2109,12 +2109,12 @@ function AccountModal({ account, onLogin, onLogout, onClose, onManage }){
           <div className="s">{d.toLocaleDateString('en-IN',{weekday:'short'})} · {when}{b.duration_hrs > 1 && b.pricing_mode !== 'session' ? ` · ${b.duration_hrs} hrs` : ''} · <span className="mono">{b.booking_id}</span></div>
           <div className="tags">
             <span className={`tag ${cls}`}>{b.status_label}</span>
-            {b.on_pass ? <span className="tag pass">On pass</span>
+            {b.on_pass ? <span className="tag pass">Paid from pass</span>
               : b.status === 'confirmed' && (b.payment_status === 'paid' ? <span className="tag ok">Paid</span> : b.balance_due > 0 ? <span className="tag warn">Pay {inr(b.balance_due)} at venue</span> : null)}
             {b.refund_amount > 0 && <span className="tag">{inr(b.refund_amount)} refund {b.refund_status === 'processed' ? 'done' : 'in progress'}</span>}
           </div>
         </div>
-        <div className="bk-amt"><div className="a">{b.on_pass ? '₹0' : inr(b.amount)}</div><div className="l">{b.on_pass ? 'pass' : b.status === 'confirmed' ? 'total' : 'amount'}</div></div>
+        <div className="bk-amt"><div className="a">{inr(b.amount)}</div><div className="l">{b.on_pass ? 'from pass' : b.status === 'confirmed' ? 'total' : 'amount'}</div></div>
         {(b.status === 'confirmed' || b.invoice_url) && (
           <div className="bk-actions">
             {b.status === 'confirmed' && b.manage_url && <button onClick={()=>onManage(b.manage_url)}>{b.can_cancel ? '⚙️ Manage / cancel' : '⚙️ View booking'}</button>}
@@ -2144,7 +2144,11 @@ function AccountModal({ account, onLogin, onLogout, onClose, onManage }){
         </> : <div className="pass-nums" style={{marginTop:10}}><span><b>Unlimited</b> hours during validity</span></div>}
         {m.is_active && <>
           <div className="pass-bar" style={{marginTop:10,height:5}}><i style={{width: daysPct + '%', background:'linear-gradient(90deg,var(--text-3),var(--text-2))'}}/></div>
-          <div className="pass-nums"><span><b>{m.days_left}</b> day{m.days_left===1?'':'s'} left</span><span>₹{Number(m.amount_paid||0).toLocaleString('en-IN')} paid{m.source === 'online' ? ' online' : ''}</span></div>
+          <div className="pass-nums"><span><b>{m.days_left}</b> day{m.days_left===1?'':'s'} left</span><span>{dateNice(m.end_date)}</span></div>
+          <div className="buy-summary" style={{margin:'12px 0 0',padding:'10px 12px'}}>
+            <div>Advance paid <b>{inr(m.amount_paid)}</b>{m.source === 'online' ? ' (online)' : ''} · used <b>{inr(m.value_used)}</b> · left <b style={{color:'var(--lime)'}}>{inr(m.value_left)}</b></div>
+            <div style={{fontSize:11.5,color:'var(--text-3)'}}>Every booking is deducted at its normal price and gets its own GST invoice (in History).</div>
+          </div>
         </>}
         {m.is_active && m.hours_quota && m.hours_left === 0 && <div className="pay-status err" style={{marginTop:10,padding:'8px 12px',fontSize:12}}>All hours used — bookings on this number are charged normally until you renew.</div>}
       </div>
