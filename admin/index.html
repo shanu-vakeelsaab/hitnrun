@@ -1163,6 +1163,7 @@ function PassModal({ onClose, onCreate, editing, plans: allPlans }){
 
   async function submit(){
     setErr(null);
+    let created = null;
     if(!form.team_name.trim()){ setErr('Team name required'); return; }
     if(!form.contact_name.trim()){ setErr('Contact name required'); return; }
     if(normalizePhone(form.contact_phone).length !== 10){ setErr('Valid 10-digit phone required'); return; }
@@ -1182,7 +1183,7 @@ function PassModal({ onClose, onCreate, editing, plans: allPlans }){
           notes: form.notes.trim()
         });
       } else {
-        await API.post('createMember', {
+        created = await API.post('createMember', {
           plan_key: form.plan_key,
           team_name: form.team_name.trim(),
           contact_name: form.contact_name.trim(),
@@ -1194,7 +1195,7 @@ function PassModal({ onClose, onCreate, editing, plans: allPlans }){
           notes: form.notes.trim()
         });
       }
-      onCreate();
+      onCreate(created);
       onClose();
     } catch(e){ setErr(e.message); setSubmitting(false); }
   }
@@ -3113,6 +3114,14 @@ function App(){
   const [plans, setPlans] = useState(null);              // listPassPlans (null = not loaded)
   const [plansFromDb, setPlansFromDb] = useState(true);
   const [showPlan, setShowPlan] = useState(false);
+  const [lastAck, setLastAck] = useState(null);   // { member_id, whatsapp_url, email_sent, email_error, renewed }
+  async function passAck(m, { email }){
+    try {
+      const r = await API.post('passAck', { id: m.member_id, email: email ? 'true' : 'false', renewed: 'false' });
+      if (email) ok(r.email_sent ? `Email sent to ${m.contact_email}` : (r.email_error || 'No email on this pass'));
+      else window.open(r.whatsapp_url, '_blank', 'noopener');
+    } catch(e){ err(e.message); }
+  }
   const [editingPlan, setEditingPlan] = useState(null);
   const loadPlans = useCallback(async () => {
     try { const r = await API.get('listPassPlans'); setPlans(r.plans || []); setPlansFromDb(!!r.from_db); }
@@ -3649,7 +3658,7 @@ function App(){
 
   async function renewMember(id){
     setConfirm({ show:true, title:'Renew Membership?', message:'This will extend the membership from today.', confirmLabel:'Renew', onConfirm: async()=>{
-      try { await API.post('renewMember', { id }); ok('Membership renewed'); loadSnapshot({ includeMembers: true, noCache: true }); }
+      try { const r = await API.post('renewMember', { id }); ok(r.message || 'Membership renewed'); setLastAck({ member_id: id, ...r, renewed: true }); loadSnapshot({ includeMembers: true, noCache: true }); }
       catch(e){ err(e.message); }
     }});
   }
@@ -4125,6 +4134,15 @@ function App(){
               </div>
             </div>
 
+            {lastAck && (
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:14, padding:'12px 16px', background:'var(--success-bg)', color:'var(--success-text)', borderRadius:10, fontSize:13 }}>
+                <div><b>{lastAck.member_id}</b> {lastAck.renewed ? 'renewed' : 'created'} · {lastAck.email_sent ? 'acknowledgement emailed ✓' : (lastAck.email_error ? `email not sent (${lastAck.email_error})` : 'no email on this pass')}</div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <a href={lastAck.whatsapp_url} target="_blank" rel="noopener" style={{ padding:'7px 12px', background:'#25D366', color:'#fff', borderRadius:6, fontSize:12, fontWeight:800 }}>📲 Send on WhatsApp</a>
+                  <button onClick={()=>setLastAck(null)} style={{ padding:'7px 10px', fontSize:12, color:'var(--text-3)' }}>Dismiss</button>
+                </div>
+              </div>
+            )}
             <div style={{ display:'grid', gap:10 }}>
               {members.length === 0 && (
                 <div style={{ padding:40, textAlign:'center', color:'var(--text-4)', fontSize:13, border:'1.5px dashed var(--border)', borderRadius:12 }}>
@@ -4140,6 +4158,7 @@ function App(){
                       <div style={{ fontSize:11, color:'var(--text-4)', marginTop:2 }}>{m.contact_name} · {formatPhone(m.contact_phone)}</div>
                       <div style={{ display:'flex', gap:6, marginTop:8, flexWrap:'wrap' }}>
                         <Badge bg={m.category==='turf'?'var(--warning-bg)':'var(--info-bg)'} text={m.category==='turf'?'var(--warning-text)':'var(--info-text)'}>{m.category}</Badge>
+                        {m.source === 'online' && <Badge bg='var(--surface-3)' text='var(--text-3)'>bought online</Badge>}
                         <Badge bg={m.status==='active'&&!m.is_expired?'var(--success-bg)':'var(--danger-bg)'} text={m.status==='active'&&!m.is_expired?'var(--success-text)':'var(--danger-text)'}>{m.is_expired?'Expired':m.status}</Badge>
                         <span style={{ fontSize:11, color:'var(--text-3)' }}>{m.days_left>0?`${m.days_left} days left`:m.days_left===0?'Expires today':`Expired ${-m.days_left}d ago`}</span>
                         {Number(m.hours_quota) > 0
@@ -4150,6 +4169,8 @@ function App(){
                     </div>
                     <div style={{ fontSize:13, fontWeight:700, color:'var(--success-text)' }}>₹{parseInt(m.amount_paid||0).toLocaleString('en-IN')}</div>
                     <div style={{ display:'flex', gap:6 }}>
+                      <button onClick={()=>passAck(m, { email:false })} title="Open WhatsApp with the pass details" style={{ fontSize:11, padding:'6px 11px', background:'rgba(37,211,102,.15)', color:'#25D366', borderRadius:6, fontWeight:700 }}>📲 WhatsApp</button>
+                      {m.contact_email && <button onClick={()=>passAck(m, { email:true })} title={`Resend acknowledgement email to ${m.contact_email}`} style={{ fontSize:11, padding:'6px 11px', background:'var(--surface-3)', borderRadius:6, fontWeight:600 }}>✉️ Email</button>}
                       <button onClick={()=>{ setEditingMember(m); setShowPass(true); }} style={{ fontSize:11, padding:'6px 11px', background:'var(--surface-3)', borderRadius:6, fontWeight:600 }}>Edit</button>
                       {(expired || m.status==='cancelled') && <button onClick={()=>renewMember(m.member_id)} style={{ fontSize:11, padding:'6px 11px', background:'var(--success-bg)', color:'var(--success-text)', borderRadius:6, fontWeight:700 }}>Renew</button>}
                       {m.status==='active' && <CancelBtn onClick={()=>cancelMember(m.member_id)} small/>}
@@ -4298,7 +4319,7 @@ function App(){
           loadSnapshot({ noCache: true });
         }}
       />}
-      {showPass && <PassModal plans={plans} editing={editingMember} onClose={()=>{setShowPass(false); setEditingMember(null);}} onCreate={()=>{ ok(editingMember?'Updated':'Pass created'); loadSnapshot({ includeMembers:true, noCache:true }); loadPlans(); }}/>}
+      {showPass && <PassModal plans={plans} editing={editingMember} onClose={()=>{setShowPass(false); setEditingMember(null);}} onCreate={r=>{ ok(editingMember?'Updated':'Pass created' + (r && r.email_sent ? ' · email sent' : '')); if (r && r.whatsapp_url) setLastAck({ ...r, renewed: false }); loadSnapshot({ includeMembers:true, noCache:true }); loadPlans(); }}/>}
       {showPlan && <PlanModal plan={editingPlan} onClose={()=>{setShowPlan(false); setEditingPlan(null);}} onSaved={msg=>{ ok(msg); loadPlans(); }}/>}
       {showLead && <LeadModal editing={editingLead} onClose={()=>{setShowLead(false); setEditingLead(null);}} onSave={()=>{ ok(editingLead?'Updated':'Lead added'); loadSnapshot({ includeLeads:true, noCache:true }); }}/>}
       {editingBooking && <EditBookingModal
