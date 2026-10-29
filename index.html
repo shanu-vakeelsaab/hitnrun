@@ -898,7 +898,7 @@ function Hero({ liveSlotsToday, sports, sportsError, payCfg }){
                 <span className="loading-dot"></span>
                 Loading
               </span>
-            ) : <CountUp value={liveSlotsToday}/>}
+            ) : liveSlotsToday}
           </div>
           <div className="hero-stat-lbl">{liveSlotsToday===null ? 'Checking availability…' : 'Slots open today'}</div>
         </div>
@@ -906,7 +906,7 @@ function Hero({ liveSlotsToday, sports, sportsError, payCfg }){
           <div className="hero-stat-num">{minPrice !== null ? `₹${minPrice.toLocaleString('en-IN')}` : sportsError ? '—' : '…'}</div>
           <div className="hero-stat-lbl">{minPrice === null ? 'Hourly rates' : hourly.length ? 'From / hour' : 'From'}</div>
         </div>
-        <div><div className="hero-stat-num"><CountUp value={15}/></div><div className="hero-stat-lbl">Day booking window</div></div>
+        <div><div className="hero-stat-num">15</div><div className="hero-stat-lbl">Day booking window</div></div>
       </div>
     </section>
   );
