@@ -2746,7 +2746,7 @@ function InvoicesTab({ err, onOpenBooking }){
 
 // ── Coupons ─────────────────────────────────────────────────
 function CouponModal({ editing, sports, onClose, onSaved, err }){
-  const blank = { code:'', description:'', discount_type:'percent', discount_value:'', max_discount:'', min_order:'', max_uses:'', per_phone_limit:'1', valid_from:'', valid_to:'', sports:[], day_rule:'all', first_booking_only:false, active:true };
+  const blank = { code:'', description:'', discount_type:'percent', discount_value:'', max_discount:'', min_order:'', max_uses:'', per_phone_limit:'1', valid_from:'', valid_to:'', sports:[], day_rule:'all', first_booking_only:false, active:true, show_on_site:true };
   const [f, setF] = useState(() => editing ? { ...blank, ...Object.fromEntries(Object.entries(editing).map(([k,v]) => [k, v === null ? '' : v])), sports: editing.sports || [] } : blank);
   const [busy, setBusy] = useState(false);
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -2797,6 +2797,7 @@ function CouponModal({ editing, sports, onClose, onSaved, err }){
             ))}</div></div>
           <label className="row" style={{ fontSize:13.5, cursor:'pointer' }}><input type="checkbox" checked={!!f.first_booking_only} onChange={e=>set('first_booking_only', e.target.checked)}/> First booking only (new customers)</label>
           <label className="row" style={{ fontSize:13.5, cursor:'pointer' }}><input type="checkbox" checked={!!f.active} onChange={e=>set('active', e.target.checked)}/> Active</label>
+          <label className="row" style={{ fontSize:13.5, cursor:'pointer' }}><input type="checkbox" checked={f.show_on_site !== false && f.show_on_site !== ''} onChange={e=>set('show_on_site', e.target.checked)}/> Show on website <span className="faint" style={{ fontSize:12 }}>(offer bar + "all offers" list; off = works only when the customer types the code)</span></label>
         </div>
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:20 }}>
           <button className="btn" onClick={onClose}>Cancel</button>
@@ -2847,7 +2848,7 @@ function CouponsTab({ ok, err }){
                     <td className="muted hide-sm" style={{ fontSize:12.5, whiteSpace:'nowrap' }}>{c.valid_from || c.valid_to ? `${c.valid_from ? formatDateShort(c.valid_from) : 'Now'} – ${c.valid_to ? formatDateShort(c.valid_to) : 'No end'}` : 'Always'}</td>
                     <td className="num">{c.usage.redeemed}{c.max_uses != null ? ` / ${c.max_uses}` : ''}{c.usage.reserved ? <div className="faint" style={{ fontSize:11 }}>+{c.usage.reserved} in checkout</div> : null}</td>
                     <td className="num hide-sm">{rupees(c.usage.discount_given)}</td>
-                    <td><span className={`pill ${cls}`}>{lbl}</span></td>
+                    <td><span className={`pill ${cls}`}>{lbl}</span>{c.show_on_site === false && <div className="faint" style={{ fontSize:11, marginTop:3 }}>hidden on site</div>}</td>
                     <td style={{ whiteSpace:'nowrap', textAlign:'right' }}>
                       <button className="btn btn-sm" onClick={()=>setEditing(c)}>Edit</button>{' '}
                       <button className="btn btn-sm" onClick={()=>toggle(c)}>{c.active ? 'Pause' : 'Activate'}</button>
