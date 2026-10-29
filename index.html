@@ -13,7 +13,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
 
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -27,7 +27,7 @@
       --lime:#22e05a; --lime-soft:#8af0ad; --lime-dim:#0fa843; --lime-rgb:34,224,90;
       --red:#e63946; --red-rgb:230,57,70;
       --orange:#fbbf24; --success:#22e05a; --danger:#ef4444; --info:#38bdf8;
-      --display:'Anton',system-ui,sans-serif; --body:'Outfit',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+      --display:'Anton',system-ui,sans-serif; --serif:'Instrument Serif',Georgia,serif; --body:'Outfit',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
       --ease:cubic-bezier(.16,1,.3,1); --spring:cubic-bezier(.34,1.56,.64,1);
       --r:18px;
     }
@@ -148,27 +148,38 @@
     .ticker span::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime)}
 
     /* ── Hero ── */
-    .hero{position:relative;z-index:2;min-height:calc(100vh - 110px);display:flex;flex-direction:column;justify-content:center;padding:70px 24px 60px;max-width:1280px;margin:0 auto}
-    @media (max-width:720px){
-      .hero{padding:40px 16px 36px;min-height:auto}
-      .hero-h1{margin-bottom:18px!important}
-      .hero-sub{margin-bottom:24px!important;font-size:14px!important}
-      .hero-ctas{margin-bottom:34px!important}
-      .btn-primary,.btn-secondary{padding:13px 22px!important;font-size:13px!important}
-      .hero-stats{padding-top:22px!important;gap:10px!important}
-      .hero-stat-num{font-size:28px!important}
-      .hero-stat-lbl{font-size:9px!important}
-      .hero-art{display:none}
-    }
-    .hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(var(--lime-rgb),.08);border:1px solid rgba(var(--lime-rgb),.25);border-radius:99px;font-size:11px;font-weight:700;color:var(--lime);letter-spacing:.15em;text-transform:uppercase;margin-bottom:28px;align-self:flex-start}
-    .hero-tag .live-dot{width:6px;height:6px;background:var(--lime);border-radius:50%;box-shadow:0 0 10px var(--lime)}
-    .hero-h1{font-family:var(--display);font-size:clamp(60px,12.5vw,190px);line-height:.86;letter-spacing:-.015em;color:var(--text);margin-bottom:28px;text-transform:uppercase;font-style:italic;transform:skewX(-4deg);transform-origin:left bottom}
-    .hero-h1 .accent{position:relative;display:inline-block;background:linear-gradient(180deg,var(--lime) 0%,var(--lime-dim) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-right:.08em}
-    .hero-h1 .accent::after{content:'';position:absolute;left:0;right:.1em;bottom:-.02em;height:.09em;background:var(--red);transform:scaleX(0);transform-origin:left;animation:underline .9s var(--ease) .7s forwards;border-radius:99px}
-    .hero-sub{font-size:clamp(15px,1.6vw,19px);color:var(--text-2);max-width:580px;margin-bottom:36px;line-height:1.6}
+    @keyframes beam{0%,100%{transform:rotate(-6deg);opacity:.55}50%{transform:rotate(5deg);opacity:.85}}
+    @keyframes beam2{0%,100%{transform:rotate(6deg) scaleX(-1);opacity:.45}50%{transform:rotate(-4deg) scaleX(-1);opacity:.75}}
+    @keyframes dashflow{to{stroke-dashoffset:-48}}
+    @keyframes cue{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(8px);opacity:1}}
+    @keyframes barin{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+    @keyframes wordin{from{opacity:0;transform:translateY(110%) rotate(4deg)}to{opacity:1;transform:none}}
+    @keyframes sweep{0%{left:-30%}100%{left:130%}}
+    .hero{position:relative;z-index:2;min-height:calc(100vh - 110px);display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px;align-items:center;padding:64px 24px 56px;max-width:1280px;margin:0 auto}
+    .hero-beams{position:absolute;inset:-120px 0 0 0;pointer-events:none;z-index:-1;overflow:visible}
+    .beam{position:absolute;top:-60px;width:52vw;height:120vh;max-width:760px;transform-origin:top center;background:conic-gradient(from 180deg at 50% 0%,transparent 165deg,rgba(var(--lime-rgb),.22) 176deg,rgba(255,255,255,.14) 180deg,rgba(var(--lime-rgb),.22) 184deg,transparent 195deg);filter:blur(14px);mix-blend-mode:screen;animation:beam 11s ease-in-out infinite}
+    .beam.b1{left:-8vw}
+    .beam.b2{right:-8vw;animation:beam2 13s ease-in-out -4s infinite}
+    .beam.b3{left:50%;margin-left:-26vw;opacity:.35;animation-duration:17s;animation-delay:-7s;filter:blur(22px)}
+    .pitch-lines{position:absolute;left:0;right:0;bottom:0;height:46%;pointer-events:none;z-index:-1;opacity:.35;-webkit-mask-image:linear-gradient(180deg,transparent,#000 40%);mask-image:linear-gradient(180deg,transparent,#000 40%)}
+    .pitch-lines line,.pitch-lines path{stroke:rgba(var(--lime-rgb),.55);stroke-width:1;fill:none;vector-effect:non-scaling-stroke}
+    .pitch-lines .flow{stroke-dasharray:6 18;animation:dashflow 2.4s linear infinite}
+    .hero-copy{position:relative}
+    .hero-kicker{display:flex;align-items:center;gap:14px;margin-bottom:26px;font-size:11px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;color:var(--text-2)}
+    .hero-kicker .live{display:inline-flex;align-items:center;gap:7px;color:var(--lime);padding:6px 12px;border:1px solid rgba(var(--lime-rgb),.35);border-radius:99px;background:rgba(var(--lime-rgb),.06)}
+    .hero-kicker .live i{width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 12px var(--lime);animation:blink 1.4s ease-in-out infinite}
+    .hero-kicker .rule{flex:0 0 40px;height:1px;background:var(--border-2)}
+    .hero-h1{font-family:var(--display);font-size:clamp(56px,8.6vw,132px);line-height:.9;letter-spacing:.005em;text-transform:uppercase;color:var(--text);margin-bottom:28px;font-style:normal;transform:none}
+    .hero-h1 .line{display:block;overflow:hidden;padding-bottom:.06em;margin-bottom:-.06em}
+    .hero-h1 .line>span{display:inline-block;animation:wordin 1s var(--ease) both}
+    .hero-h1 .line:nth-child(2)>span{animation-delay:.12s}
+    .hero-h1 .line:nth-child(3)>span{animation-delay:.24s}
+    .hero-h1 .serif{font-family:var(--serif);font-style:italic;font-weight:400;text-transform:none;letter-spacing:-.01em;color:var(--lime);font-size:1.12em;line-height:.8;padding-right:.1em;background:linear-gradient(180deg,#9dffbd,var(--lime) 55%,var(--lime-dim));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .hero-h1 .dot{color:var(--red);-webkit-text-fill-color:var(--red)}
+    .hero-sub{font-size:clamp(15px,1.5vw,18px);color:var(--text-2);max-width:520px;margin-bottom:34px;line-height:1.65;font-weight:300}
     .hero-sub strong{color:var(--text);font-weight:600}
-    .hero-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:56px}
-    .btn-primary{position:relative;overflow:hidden;background:var(--lime);color:#000;padding:16px 28px;border-radius:99px;font-size:14px;font-weight:800;letter-spacing:.03em;display:inline-flex;align-items:center;gap:10px;transition:transform .25s var(--spring),box-shadow .2s}
+    .hero-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:46px;align-items:center}
+    .btn-primary{position:relative;overflow:hidden;background:var(--lime);color:#000;padding:17px 30px;border-radius:99px;font-size:14px;font-weight:800;letter-spacing:.03em;display:inline-flex;align-items:center;gap:10px;transition:transform .25s var(--spring),box-shadow .2s}
     .btn-primary::after,.btn-submit::after,.btn-cta::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);transform:translateX(-120%) skewX(-18deg)}
     .btn-primary:hover::after,.btn-submit:hover:not(:disabled)::after,.btn-cta:hover::after{animation:shine .7s var(--ease)}
     .btn-primary:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 14px 40px rgba(var(--lime-rgb),.38)}
@@ -177,16 +188,62 @@
     .btn-primary:hover svg{transform:translateX(5px)}
     .btn-secondary{background:transparent;color:var(--text);padding:16px 28px;border-radius:99px;border:1.5px solid var(--border-2);font-size:14px;font-weight:700;letter-spacing:.02em;display:inline-flex;align-items:center;gap:10px;transition:border-color .15s,background .15s,transform .25s var(--spring)}
     .btn-secondary:hover{border-color:var(--text-2);background:rgba(255,255,255,.03);transform:translateY(-1px)}
-    .hero-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;max-width:780px;padding-top:32px;border-top:1px solid var(--border)}
-    .hero-stat-num{font-family:var(--display);font-size:40px;line-height:1;color:var(--lime);margin-bottom:4px;letter-spacing:.01em}
-    .hero-stat-lbl{font-size:11px;font-weight:600;color:var(--text-2);letter-spacing:.12em;text-transform:uppercase}
-    .hero-art{position:absolute;right:24px;top:50%;transform:translateY(-50%);width:min(34vw,420px);aspect-ratio:1;pointer-events:none;z-index:-1}
-    .hero-art .ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(var(--lime-rgb),.18);box-shadow:inset 0 0 80px rgba(var(--lime-rgb),.08)}
-    .hero-art .ring.r2{inset:14%;border-style:dashed;animation:spin 60s linear infinite}
-    .hero-art .ring.r3{inset:30%;border-color:rgba(var(--red-rgb),.25)}
-    .hero-art .ball{position:absolute;width:26%;left:8%;top:14%;animation:bob 5s ease-in-out infinite;filter:drop-shadow(0 20px 30px rgba(0,0,0,.6))}
-    .hero-art .foot{position:absolute;width:30%;right:4%;bottom:12%;animation:bob2 6.5s ease-in-out infinite;filter:drop-shadow(0 20px 30px rgba(0,0,0,.6))}
-    .hero-art .shuttle{position:absolute;width:16%;left:44%;bottom:0;animation:bob 7s ease-in-out -2s infinite}
+    .hero-stats{display:flex;gap:0;max-width:640px;border-top:1px solid var(--border);padding-top:22px}
+    .hero-stats>div{flex:1;padding-right:22px;position:relative}
+    .hero-stats>div+div{padding-left:22px;border-left:1px solid var(--border)}
+    .hero-stat-num{font-family:var(--display);font-size:38px;line-height:1;color:var(--text);margin-bottom:6px;letter-spacing:.01em;font-variant-numeric:tabular-nums}
+    .hero-stat-num em{font-family:var(--serif);font-style:italic;color:var(--lime);font-size:.7em;margin-left:2px}
+    .hero-stat-lbl{font-size:10px;font-weight:700;color:var(--text-3);letter-spacing:.16em;text-transform:uppercase}
+    .scroll-cue{position:absolute;left:24px;bottom:-6px;display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--text-3)}
+    .scroll-cue i{width:1px;height:34px;background:linear-gradient(var(--lime),transparent);display:block;animation:cue 1.8s ease-in-out infinite}
+
+    /* Tonight's board */
+    .board{position:relative;border-radius:26px;padding:1px;background:linear-gradient(160deg,rgba(var(--lime-rgb),.55),rgba(255,255,255,.06) 35%,rgba(255,255,255,.04) 65%,rgba(var(--red-rgb),.35));box-shadow:0 50px 120px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4);animation:pop .9s var(--ease) .35s both;transform-style:preserve-3d}
+    .board-in{position:relative;border-radius:25px;background:linear-gradient(180deg,rgba(16,21,15,.92),rgba(8,11,9,.96));backdrop-filter:blur(20px);padding:24px 24px 18px;overflow:hidden}
+    .board-in::before{content:'';position:absolute;top:0;left:-30%;width:30%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);transform:skewX(-18deg);animation:sweep 7s ease-in-out 2s infinite}
+    .board-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:1px dashed var(--border-2)}
+    .board-title{font-family:var(--display);font-size:15px;letter-spacing:.24em;text-transform:uppercase;color:var(--text)}
+    .board-title small{display:block;font-family:var(--body);font-size:10px;letter-spacing:.2em;color:var(--text-3);font-weight:700;margin-top:3px}
+    .board-clock{font-family:var(--mono);font-size:13px;color:var(--lime);letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+    .board-clock i{width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red);animation:blink 1.2s ease-in-out infinite}
+    .board-row{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:transform .25s var(--spring)}
+    .board-row:last-of-type{border-bottom:none}
+    .board-row:hover{transform:translateX(4px)}
+    .board-row .ic{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--border);display:grid;place-items:center;font-size:17px}
+    .board-row .nm{font-family:var(--display);font-size:15px;letter-spacing:.06em;text-transform:uppercase;line-height:1.1}
+    .board-row .pr{font-size:11px;color:var(--text-3);font-weight:600;margin-top:2px}
+    .board-row .bar{height:3px;border-radius:99px;background:rgba(255,255,255,.06);margin-top:7px;overflow:hidden;max-width:220px}
+    .board-row .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--lime-dim),var(--lime));transform-origin:left;animation:barin 1.2s var(--ease) both}
+    .board-row .bar.full i{background:linear-gradient(90deg,#7a2a2a,var(--red))}
+    .board-row .ct{text-align:right;font-family:var(--display);font-size:22px;color:var(--lime);line-height:1;font-variant-numeric:tabular-nums}
+    .board-row .ct.full{color:var(--text-3);font-size:11px;font-family:var(--body);font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+    .board-row .ct small{display:block;font-family:var(--body);font-size:9px;letter-spacing:.16em;color:var(--text-3);font-weight:700;margin-top:3px;text-transform:uppercase}
+    .board-foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px dashed var(--border-2);font-size:11px;color:var(--text-3)}
+    .board-foot b{color:var(--text-2);font-weight:700}
+    .board-foot a{color:var(--lime);font-weight:800;letter-spacing:.04em}
+    .board-skel{height:46px;border-radius:12px;margin:8px 0}
+    .board-tag{position:absolute;z-index:3;top:-12px;right:22px;background:var(--red);color:#fff;font-size:10px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;padding:5px 12px;border-radius:99px;box-shadow:0 10px 24px rgba(var(--red-rgb),.4)}
+    @media (max-width:980px){
+      .hero{grid-template-columns:1fr;gap:34px;min-height:auto;padding:52px 24px 40px}
+      .board{max-width:560px}
+      .scroll-cue{display:none}
+    }
+    @media (max-width:720px){
+      .hero{padding:36px 16px 30px}
+      .hero-h1{margin-bottom:18px;font-size:clamp(50px,15vw,88px)}
+      .hero-sub{margin-bottom:24px;font-size:14px}
+      .hero-ctas{margin-bottom:30px}
+      .btn-primary,.btn-secondary{padding:13px 22px;font-size:13px}
+      .hero-stats{padding-top:18px}
+      .hero-stats>div{padding-right:12px}
+      .hero-stats>div+div{padding-left:12px}
+      .hero-stat-num{font-size:26px}
+      .hero-stat-lbl{font-size:9px;letter-spacing:.1em}
+      .hero-kicker{margin-bottom:18px;font-size:10px}
+      .hero-kicker .rule,.hero-kicker .place{display:none}
+      .board-in{padding:18px 16px 14px}
+      .beam{width:90vw}
+    }
 
     /* ── Sections ── */
     .section{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:84px 24px}
@@ -853,53 +910,106 @@ function SportsRetry({ onRetry }){
   );
 }
 
-function Hero({ liveSlotsToday, sports, sportsError, payCfg }){
+function useClock(){
+  const [t, setT] = useState(new Date());
+  useEffect(()=>{ const id = setInterval(()=>setT(new Date()), 1000); return ()=>clearInterval(id); }, []);
+  return t.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true, timeZone:'Asia/Kolkata' }).toUpperCase();
+}
+
+function PitchLines(){
+  // Perspective turf lines, drawn once; the dashed centre line "flows" towards the viewer.
+  return (
+    <svg className="pitch-lines" viewBox="0 0 1200 400" preserveAspectRatio="none" aria-hidden="true">
+      {[-900,-600,-300,0,300,600,900].map(x => <line key={x} x1={600 + x*0.08} y1="0" x2={600 + x} y2="400"/>)}
+      {[40,95,160,240,330].map(y => <line key={y} x1={600 - (y/400)*1500 - 60} y1={y} x2={600 + (y/400)*1500 + 60} y2={y} opacity={0.35 + y/800}/>)}
+      <path className="flow" d="M600 0 L600 400"/>
+      <ellipse cx="600" cy="260" rx="150" ry="34" opacity=".5"/>
+    </svg>
+  );
+}
+
+function Hero({ liveSlotsToday, sports, sportsError, payCfg, board }){
   const scroll = () => document.getElementById('book')?.scrollIntoView({behavior:'smooth'});
-  // "From ₹X / hour" only makes sense for hourly sports; fall back to all sports without "/ hour"
+  const clock = useClock();
   const hourly = (sports || []).filter(s => !isSession(s));
   const priced = hourly.length ? hourly : (sports || []);
   const minPrice = priced.length ? Math.min(...priced.map(s => Number(s.price))) : null;
+  const totalHours = board ? board.totalHours : 0;
+  const pick = id => { scroll(); setTimeout(()=>window.dispatchEvent(new CustomEvent('hnr-pick-sport', { detail: id })), 350); };
   return (
     <section className="hero">
-      <div className="hero-art" aria-hidden="true">
-        <div className="ring"/><div className="ring r2"/><div className="ring r3"/>
-        <BallSVG className="ball"/>
-        <FootballSVG className="foot"/>
-      </div>
-      <div className="hero-tag anim-rise">
-        <span className="live-dot"></span>
-        <span>Live availability · {VENUE.area}, {VENUE.city}</span>
-      </div>
-      <h1 className="hero-h1 anim-rise" style={{animationDelay:'.05s'}}>
-        Book your<br/><span className="accent">ground.</span>
-      </h1>
-      <p className="hero-sub anim-rise" style={{animationDelay:'.15s'}}>
-        Dehradun's premier multi-sport arena in <strong>{VENUE.area}</strong>. Pick your game, pick your hour and {payCfg && payCfg.online ? <>lock it with a <strong>₹{payCfg.advance} advance</strong>, rest at the venue</> : <><strong>pay at the venue</strong></>}. Live availability · No fuss.
-      </p>
-      <div className="hero-ctas anim-rise" style={{animationDelay:'.25s'}}>
-        <button className="btn-primary" onClick={scroll}>
-          Book a slot
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
-        <a className="btn-secondary" href={`tel:${VENUE.phone.replace(/\s/g,'')}`}><span>📞</span> Call us</a>
-      </div>
-      <div className="hero-stats anim-rise" style={{animationDelay:'.4s'}}>
-        <div>
-          <div className="hero-stat-num">
-            {liveSlotsToday===null ? (
-              <span className="loading-pulse" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:18,color:'var(--lime)',fontFamily:'var(--body)',fontWeight:600,letterSpacing:0}}>
-                <span className="loading-dot"></span>
-                Loading
-              </span>
-            ) : <CountUp value={liveSlotsToday}/>}
+      <div className="hero-beams" aria-hidden="true"><div className="beam b1"/><div className="beam b2"/><div className="beam b3"/></div>
+      <PitchLines/>
+      <div className="hero-copy">
+        <div className="hero-kicker anim-rise">
+          <span className="live"><i/>Live now</span>
+          <span className="rule"/>
+          <span className="place">{VENUE.area} · {VENUE.city}</span>
+        </div>
+        <h1 className="hero-h1">
+          <span className="line"><span>Your</span></span>
+          <span className="line"><span className="serif">ground<span className="dot">.</span></span></span>
+          <span className="line"><span>Your hour.</span></span>
+        </h1>
+        <p className="hero-sub anim-rise" style={{animationDelay:'.3s'}}>
+          Dehradun's floodlit multi-sport arena. See what's open <strong>right now</strong>, pick your game and your hour, and {payCfg && payCfg.online ? <>lock it with a <strong>₹{payCfg.advance} advance</strong> — the rest at the venue.</> : <><strong>pay when you arrive</strong>.</>}
+        </p>
+        <div className="hero-ctas anim-rise" style={{animationDelay:'.4s'}}>
+          <button className="btn-primary" onClick={scroll}>
+            Book a slot
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+          <a className="btn-secondary" href={`tel:${VENUE.phone.replace(/\s/g,'')}`}>Call {VENUE.phone}</a>
+        </div>
+        <div className="hero-stats anim-rise" style={{animationDelay:'.5s'}}>
+          <div>
+            <div className="hero-stat-num">{liveSlotsToday===null ? <span className="loading-dot"/> : <><CountUp value={liveSlotsToday}/><em>hrs</em></>}</div>
+            <div className="hero-stat-lbl">Open today</div>
           </div>
-          <div className="hero-stat-lbl">{liveSlotsToday===null ? 'Checking availability…' : 'Slots open today'}</div>
+          <div>
+            <div className="hero-stat-num">{minPrice !== null ? <>₹<CountUp value={minPrice}/></> : sportsError ? '—' : <span className="loading-dot"/>}</div>
+            <div className="hero-stat-lbl">{hourly.length ? 'From / hour' : 'From'}</div>
+          </div>
+          <div>
+            <div className="hero-stat-num"><CountUp value={15}/><em>days</em></div>
+            <div className="hero-stat-lbl">Booking window</div>
+          </div>
         </div>
-        <div>
-          <div className="hero-stat-num">{minPrice !== null ? `₹${minPrice.toLocaleString('en-IN')}` : sportsError ? '—' : '…'}</div>
-          <div className="hero-stat-lbl">{minPrice === null ? 'Hourly rates' : hourly.length ? 'From / hour' : 'From'}</div>
+        <div className="scroll-cue"><i/>Scroll</div>
+      </div>
+
+      <div className="board" aria-label="Availability today">
+        <div className="board-tag">Live</div>
+        <div className="board-in">
+          <div className="board-head">
+            <div className="board-title">{new Date().getHours() >= 16 ? 'Tonight' : 'Today'} at HnR<small>{new Date().toLocaleDateString('en-IN',{weekday:'long', day:'numeric', month:'long'})}</small></div>
+            <div className="board-clock"><i/>{clock}</div>
+          </div>
+          {!board && !sportsError && [0,1,2,3].map(i => <div key={i} className="board-skel shimmer"/>)}
+          {sportsError && <div className="empty-block" style={{padding:20}}><div style={{fontSize:13}}>Couldn't load today's board.</div></div>}
+          {board && board.rows.map((r, i) => {
+            const full = r.open === 0;
+            const pct = r.total ? Math.round(100 * r.open / r.total) : 0;
+            return (
+              <div className="board-row" key={r.id} onClick={()=>pick(r.id)} style={{animation:`risefade .5s var(--ease) ${.5 + i*.08}s both`}}>
+                <div className="ic">{r.icon}</div>
+                <div>
+                  <div className="nm">{r.name}</div>
+                  <div className="pr">{priceLabel(r)}{r.next && !full ? ` · next ${r.next}` : ''}</div>
+                  <div className={`bar ${full?'full':''}`}><i style={{width:`${full ? 100 : Math.max(6, pct)}%`, animationDelay:`${.6 + i*.08}s`}}/></div>
+                </div>
+                {full
+                  ? <div className="ct full">Full<br/>today</div>
+                  : <div className="ct">{r.open}<small>{r.open === 1 ? 'slot' : 'slots'}</small></div>}
+              </div>
+            );
+          })}
+          {board && !board.rows.length && <div className="empty-block" style={{padding:20}}><div style={{fontSize:13}}>No online slots today — call us to book.</div></div>}
+          <div className="board-foot">
+            <span>{totalHours ? <><b>{totalHours}</b> playable hours left today</> : 'Updated live'}</span>
+            <a href="#book" onClick={e=>{e.preventDefault(); scroll();}}>Pick another day →</a>
+          </div>
         </div>
-        <div><div className="hero-stat-num"><CountUp value={15}/></div><div className="hero-stat-lbl">Day booking window</div></div>
       </div>
     </section>
   );
@@ -956,6 +1066,11 @@ function BookingWidget({ sports, sportsError, onRetrySports, onComplete, payCfg 
   }, [date, availNonce]);
 
   useEffect(()=>{ setSelectedSlot(null); }, [sportId]);
+  useEffect(()=>{
+    const h = e => { if ((sports || []).some(s => s.id === e.detail)) setSportId(e.detail); };
+    window.addEventListener('hnr-pick-sport', h);
+    return ()=>window.removeEventListener('hnr-pick-sport', h);
+  }, [sports]);
 
   useEffect(()=>{
     const ph = normalizePhone(form.phone);
@@ -1962,14 +2077,28 @@ function App(){
   }
 
   // Hours today where at least one sport can still be booked
+  const [todayAvail, setTodayAvail] = useState(null);
   const refreshSlotCount = async (fresh) => {
     try {
       const d = await loadAvailability(formatDateISO(new Date()), fresh);
       const open = new Set();
       d.sports.forEach(s => s.hours.forEach(h => { if (h.available > 0) open.add(h.slot_time); }));
       setLiveSlotsToday(open.size);
-    } catch(_) { setLiveSlotsToday(0); }
+      setTodayAvail(d);
+    } catch(_) { setLiveSlotsToday(0); setTodayAvail({ sports: [] }); }
   };
+  // Hero board: per public sport, hours still open today + the next open start time
+  const board = useMemo(()=>{
+    if (!sports || !todayAvail) return null;
+    const rows = sports.map(s => {
+      const a = todayAvail.sports.find(x => x.sport_id === s.id);
+      const hrs = a ? a.hours : [];
+      const openHrs = hrs.filter(h => h.available > 0);
+      return { ...s, open: openHrs.length, total: hrs.length, next: openHrs.length ? startTime12(openHrs[0].slot_time) : null };
+    });
+    const all = new Set(); todayAvail.sports.forEach(x => x.hours.forEach(h => { if (h.available > 0) all.add(h.slot_time); }));
+    return { rows, totalHours: all.size };
+  }, [sports, todayAvail]);
 
   useEffect(()=>{
     const t0 = Date.now();
@@ -2018,7 +2147,7 @@ function App(){
       <OfferBar coupons={coupons}/>
       <Nav account={account} onAccount={()=>setAcctOpen(true)}/>
       {manage ? <ManageBooking id={manage.id} token={manage.t} onDone={leaveManage} account={account} onAccount={()=>setAcctOpen(true)}/> : <>
-        {!booking && <Hero liveSlotsToday={liveSlotsToday} sports={sports} sportsError={sportsError} payCfg={payCfg}/>}
+        {!booking && <Hero liveSlotsToday={liveSlotsToday} sports={sports} sportsError={sportsError} payCfg={payCfg} board={board}/>}
         {!booking && <Ticker sports={sports}/>}
         {booking
           ? <ConfirmationTicket booking={booking} onReset={reset} onAccount={()=>setAcctOpen(true)}/>
